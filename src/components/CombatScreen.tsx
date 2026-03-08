@@ -19,7 +19,7 @@ function EnemyPanel({ enemy, targeted, onClick }: {
         ${enemy.hp <= 0 ? "opacity-20" : ""}
       `}
       style={{
-        minWidth: "150px", maxWidth: "180px",
+        minWidth: "170px", maxWidth: "210px",
         border: `1px solid ${targeted ? "#c41c1c" : "#3a3020"}`,
       }}>
       <div className="text-center text-3xl mb-1">{enemy.ascii}</div>
@@ -226,9 +226,9 @@ export function CombatScreen({ room, player, onVictory, onDefeat, onFleeToMap }:
       </div>
 
       {/* Combatants */}
-      <div className="flex gap-4 relative z-1 flex-wrap justify-center items-start">
+      <div className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full px-8">
         {/* Player panel */}
-        <div className="panel" style={{ minWidth: "155px", maxWidth: "175px" }}>
+        <div className="panel" style={{ minWidth: "175px", maxWidth: "200px" }}>
           <div className="text-center text-3xl mb-1">{"\u{1F9DD}"}</div>
           <div className="text-sm font-bold text-crypt-text text-center mb-1">You</div>
           <HpBar current={p.hp} max={p.maxHp} color="#3ddc84" />
@@ -246,7 +246,7 @@ export function CombatScreen({ room, player, onVictory, onDefeat, onFleeToMap }:
         <div className="text-crypt-border text-xl self-center">{"\u2726"}</div>
 
         {/* Enemies */}
-        <div className="flex gap-2 flex-wrap justify-center">
+        <div className="flex gap-3 flex-wrap justify-center">
           {enemies.map((enemy, i) => (
             <EnemyPanel key={enemy.uid} enemy={enemy} targeted={targetIdx === i && enemy.hp > 0}
               onClick={() => { if (enemy.hp > 0) setTargetIdx(i); }} />
@@ -256,7 +256,7 @@ export function CombatScreen({ room, player, onVictory, onDefeat, onFleeToMap }:
 
       {/* Mechanics hint */}
       {uniqueMechanics.length > 0 && (
-        <div className="panel max-w-xl w-full px-4 py-2 relative z-1">
+        <div className="panel max-w-3xl w-full px-4 py-2 relative z-1">
           {uniqueMechanics.map(e => (
             <div key={e.mechanic} className="text-xs text-crypt-dim leading-relaxed">
               <span className="text-crypt-red">{"\u2699"} {e.name}:</span> {e.mechanicDesc}
@@ -282,7 +282,7 @@ export function CombatScreen({ room, player, onVictory, onDefeat, onFleeToMap }:
       )}
 
       {/* Hand */}
-      <div className="flex gap-2 flex-wrap justify-center relative z-1 px-2">
+      <div className="flex gap-3 flex-wrap justify-center relative z-1 px-6">
         {p.hand.map(card => (
           <CardUI key={card.uid} card={card} selected={selectedCard === card.uid} affordable={card.cost <= p.energy}
             onClick={() => { if (card.cost <= p.energy) setSelectedCard(selectedCard === card.uid ? null : card.uid); }} />

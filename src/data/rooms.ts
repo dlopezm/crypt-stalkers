@@ -42,19 +42,19 @@ export const TYPE_COLOR: Record<string, string> = {combat:"#c0392b",rest:"#2ecc7
 export const TYPE_ICON: Record<string, string> = {combat:"\u2694",rest:"\u{1F56F}",shop:"\u{1F4B0}",boss:"\u2620",start:"\u{1F6AA}"};
 
 export const SLOT_POS: Record<SlotName, { cx: number; cy: number }> = {
-  start:   {cx:260, cy:420},
-  left:    {cx:92,  cy:300},
-  right:   {cx:428, cy:300},
-  mid:     {cx:260, cy:195},
-  branch1: {cx:92,  cy:125},
-  branch2: {cx:428, cy:125},
-  boss:    {cx:260, cy:50},
+  start:   {cx:340, cy:560},
+  left:    {cx:120, cy:400},
+  right:   {cx:560, cy:400},
+  mid:     {cx:340, cy:255},
+  branch1: {cx:120, cy:160},
+  branch2: {cx:560, cy:160},
+  boss:    {cx:340, cy:60},
 };
 
-export const MAP_W = 520;
-export const MAP_H = 480;
-export const ROOM_W_SM = 64;
-export const ROOM_H_SM = 50;
-export const ROOM_W_LG = 180;
-export const ROOM_H_LG = 130;
-export const COR_THICK = 10;
+export const MAP_W = 680;
+export const MAP_H = 630;
+export const ROOM_W_SM = 76;
+export const ROOM_H_SM = 58;
+export const ROOM_W_LG = 220;
+export const ROOM_H_LG = 155;
+export const COR_THICK = 12;

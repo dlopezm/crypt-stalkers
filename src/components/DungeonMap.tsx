@@ -132,12 +132,12 @@ function CurrentRoomTile({ node, isSelected, onClick }: {
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0,
         background: "linear-gradient(transparent,rgba(0,0,0,0.9) 40%)",
-        padding: "12px 10px 6px",
+        padding: "14px 12px 8px",
       }}>
-        <div className="text-xs tracking-widest uppercase leading-none mb-1" style={{ color: tc }}>
+        <div className="text-sm tracking-widest uppercase leading-none mb-1" style={{ color: tc }}>
           {TYPE_ICON[type]} {type}
         </div>
-        <div className="text-base font-bold leading-tight" style={{ color: "#ece0c0" }}>{node.label}</div>
+        <div className="text-lg font-bold leading-tight" style={{ color: "#ece0c0" }}>{node.label}</div>
       </div>
 
       <div style={{ position: "absolute", top: "6px", right: "8px", fontSize: "1rem", filter: "drop-shadow(0 0 6px #d4a830)" }}>{"\u2691"}</div>
@@ -229,14 +229,14 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
           style={{ textShadow: "0 0 20px #8b0000" }}>
           {"\u2620"} The Crypt
         </h2>
-        <div className="flex gap-3 items-center text-sm">
+        <div className="flex gap-4 items-center text-base">
           <span className="text-crypt-text">{"\u2764"} {player.hp}/{player.maxHp}</span>
           <span className="text-crypt-gold">{"\u{1FA99}"} {player.gold}</span>
           <span className="text-crypt-muted">{"\u{1F4DC}"} {player.deck.length}</span>
         </div>
       </div>
 
-      <div className="flex gap-4 relative z-1 flex-wrap justify-center items-start w-full max-w-5xl">
+      <div className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full px-4">
         {/* Map canvas */}
         <div className="relative shrink-0 overflow-hidden rounded-md border border-crypt-border-dim"
           style={{ width: `${MAP_W}px`, height: `${MAP_H}px`, background: "#0a0810" }}>
@@ -291,7 +291,7 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
                 position: "absolute",
                 left: cx, top: cy + ROOM_H_SM / 2 + 4,
                 transform: "translateX(-50%)",
-                fontSize: "0.6rem",
+                fontSize: "0.7rem",
                 color: visited ? tc : "#5a4028",
                 whiteSpace: "nowrap",
                 textShadow: "0 1px 4px #000",
@@ -306,18 +306,18 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
         </div>
 
         {/* Side panel */}
-        <div className="flex-1 min-w-[230px] max-w-[280px] flex flex-col gap-3">
+        <div className="flex-1 min-w-[280px] max-w-[360px] flex flex-col gap-3">
           {node ? (
             <div className="panel">
-              <div className="text-xs tracking-widest mb-1 uppercase" style={{ color: typeColor[node.type] }}>
+              <div className="text-sm tracking-widest mb-1 uppercase" style={{ color: typeColor[node.type] }}>
                 {TYPE_ICON[node.type]} {node.type}
               </div>
-              <div className="text-base font-bold text-crypt-text mb-2 leading-tight">
+              <div className="text-lg font-bold text-crypt-text mb-2 leading-tight">
                 {node.state === "locked" && !debugMode ? "???" : node.label}
               </div>
 
-              {node.state === "cleared" && <p className="text-xs text-crypt-green mb-1">Room cleared.</p>}
-              {node.id === currentRoomId && <p className="text-xs text-crypt-gold mb-1">{"\u2691"} You are here.</p>}
+              {node.state === "cleared" && <p className="text-sm text-crypt-green mb-1">Room cleared.</p>}
+              {node.id === currentRoomId && <p className="text-sm text-crypt-gold mb-1">{"\u2691"} You are here.</p>}
 
               {(node.state === "reachable" || node.state === "visited") && node.type === "combat" && (
                 <div className="text-sm text-crypt-muted mb-2 leading-relaxed">
@@ -389,10 +389,10 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
             </div>
           ) : (
             <div className="panel">
-              <p className="text-sm text-crypt-muted leading-relaxed mb-2">Click any visible room.</p>
-              <div className="flex flex-col gap-1">
+              <p className="text-base text-crypt-muted leading-relaxed mb-3">Click any visible room.</p>
+              <div className="flex flex-col gap-1.5">
                 {([["\u2694", "combat", "#c0392b"], ["\u{1F56F}", "rest", "#3ddc84"], ["\u{1F4B0}", "shop", "#f0c040"], ["\u2620", "boss", "#e74c3c"]] as const).map(([icon, label, color]) => (
-                  <span key={label} className="text-xs" style={{ color }}>{icon} {label}</span>
+                  <span key={label} className="text-sm" style={{ color }}>{icon} {label}</span>
                 ))}
               </div>
             </div>
@@ -400,10 +400,10 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
 
           {/* Player status */}
           <div className="panel">
-            <div className="text-xs text-crypt-dim mb-1 tracking-wider uppercase">Your Status {"\u00B7"} Turn {dungeonTurn}</div>
+            <div className="text-sm text-crypt-dim mb-2 tracking-wider uppercase">Your Status {"\u00B7"} Turn {dungeonTurn}</div>
             <HpBar current={player.hp} max={player.maxHp} color="#3ddc84" />
             <StatusBadges statuses={player.statuses} />
-            <div className="text-xs text-crypt-muted mt-1">
+            <div className="text-sm text-crypt-muted mt-2">
               {"\u26A1"} {player.maxEnergy} energy {"\u00B7"} {"\u{1F4DC}"} {player.deck.length} cards
             </div>
           </div>
