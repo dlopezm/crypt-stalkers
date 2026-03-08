@@ -148,55 +148,36 @@ export default function App() {
   if (!dungeon || !player || !currentRoomId) return null;
 
   const debugOverlay = showDebug && debugMode && (
-    <div style={{
-      position: "fixed", top: 0, right: 0, width: "340px", height: "100vh",
-      background: "#080610ee", borderLeft: "1px solid #2a1f40", zIndex: 100,
-      display: "flex", flexDirection: "column", overflow: "hidden",
-      fontFamily: "monospace", fontSize: "0.65rem",
-    }}>
-      <div style={{
-        padding: "8px 10px", borderBottom: "1px solid #2a1f40",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        background: "#0f0c1a",
-      }}>
-        <span style={{ color: "#9b59b6", fontWeight: "bold", letterSpacing: "0.1em" }}>{"\u{1F6E0}"} DEBUG {"\u2014"} Turn {dungeonTurn}</span>
-        <button onClick={() => setShowDebug(false)} style={{
-          background: "none", border: "none", color: "#5a4a7a", cursor: "pointer", fontSize: "0.8rem",
-        }}>{"\u2715"}</button>
+    <div className="fixed top-0 right-0 w-[380px] h-screen bg-[#080610ee] border-l border-[#2a1f40] z-100 flex flex-col overflow-hidden font-mono text-sm">
+      <div className="px-3 py-2 border-b border-[#2a1f40] flex justify-between items-center bg-[#0f0c1a]">
+        <span className="text-crypt-purple font-bold tracking-wider">{"\u{1F6E0}"} DEBUG {"\u2014"} Turn {dungeonTurn}</span>
+        <button onClick={() => setShowDebug(false)} className="bg-transparent border-none text-[#6a5a8a] cursor-pointer text-base">{"\u2715"}</button>
       </div>
 
-      <div style={{ padding: "8px 10px", borderBottom: "1px solid #1a1430", flex: "0 0 auto" }}>
-        <div style={{ color: "#7f8c8d", marginBottom: "4px", letterSpacing: "0.1em" }}>ROOMS</div>
+      <div className="px-3 py-2 border-b border-[#1a1430] shrink-0">
+        <div className="text-crypt-muted mb-1 tracking-wider text-xs">ROOMS</div>
         {dungeon.map(n => (
-          <div key={n.id} style={{
-            marginBottom: "3px",
-            color: n.id === currentRoomId ? "#f0c040" : "#a89080", lineHeight: 1.5,
-          }}>
+          <div key={n.id} className={`mb-1 leading-relaxed ${n.id === currentRoomId ? "text-crypt-gold" : "text-crypt-muted"}`}>
             {n.id === currentRoomId ? "\u25B6 " : "  "}
             <span style={{ color: TYPE_COLOR[n.type] || "#7f8c8d" }}>{n.label}</span>
             {" "}[{n.state}]
-            {n.enemies.length > 0 && <span style={{ color: "#e74c3c" }}> {n.enemies.length}{"\u2716"} ({n.enemies.join(",")})</span>}
-            {n.trap && <span style={{ color: "#e67e22" }}> {TRAP_INFO[n.trap]?.icon}</span>}
-            {n.blocked && <span style={{ color: "#3498db" }}> {"\u{1F6A7}"}</span>}
-            <button style={{
-              marginLeft: "6px", background: "#2a1f40", border: "none",
-              color: "#9b59b6", cursor: "pointer", fontSize: "0.58rem", padding: "0 4px", borderRadius: "2px",
-            }} onClick={() => enterRoom(n.id)}>teleport</button>
+            {n.enemies.length > 0 && <span className="text-red-400"> {n.enemies.length}{"\u2716"} ({n.enemies.join(",")})</span>}
+            {n.trap && <span className="text-orange-400"> {TRAP_INFO[n.trap]?.icon}</span>}
+            {n.blocked && <span className="text-crypt-blue"> {"\u{1F6A7}"}</span>}
+            <button className="ml-2 bg-[#2a1f40] border-none text-crypt-purple cursor-pointer text-xs px-1 rounded"
+              onClick={() => enterRoom(n.id)}>teleport</button>
           </div>
         ))}
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
-        <div style={{ color: "#7f8c8d", marginBottom: "4px", letterSpacing: "0.1em" }}>AI LOG (newest first)</div>
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        <div className="text-crypt-muted mb-1 tracking-wider text-xs">AI LOG (newest first)</div>
         {[...dungeonLog].reverse().map((entry, i) => (
-          <div key={i} style={{
-            color: "#8a7a9a", lineHeight: 1.6, borderBottom: "1px solid #1a1428",
-            paddingBottom: "2px", marginBottom: "2px",
-          }}>
-            <span style={{ color: "#5a4a7a" }}>[T{entry.turn}]</span> {entry.text}
+          <div key={i} className="text-[#9a8aaa] leading-relaxed border-b border-[#1a1428] pb-0.5 mb-0.5">
+            <span className="text-[#6a5a8a]">[T{entry.turn}]</span> {entry.text}
           </div>
         ))}
-        {!dungeonLog.length && <div style={{ color: "#2a2040", fontStyle: "italic" }}>No AI actions yet.</div>}
+        {!dungeonLog.length && <div className="text-[#3a2a50] italic">No AI actions yet.</div>}
       </div>
     </div>
   );
@@ -205,12 +186,10 @@ export default function App() {
     <>
       {debugOverlay}
       {debugMode && (
-        <button onClick={() => setShowDebug(s => !s)} style={{
-          position: "fixed", bottom: "12px", right: "12px", zIndex: 99,
-          background: "#2a1f40", border: "1px solid #9b59b6", color: "#9b59b6",
-          borderRadius: "4px", padding: "6px 12px", cursor: "pointer",
-          fontFamily: "monospace", fontSize: "0.7rem", letterSpacing: "0.08em",
-        }}>{"\u{1F6E0}"} {showDebug ? "Hide" : "Debug"}</button>
+        <button onClick={() => setShowDebug(s => !s)}
+          className="fixed bottom-3 right-3 z-99 bg-[#2a1f40] border border-crypt-purple text-crypt-purple rounded px-3 py-1.5 cursor-pointer font-mono text-sm tracking-wider">
+          {"\u{1F6E0}"} {showDebug ? "Hide" : "Debug"}
+        </button>
       )}
       <DungeonMap dungeon={dungeon} player={player} currentRoomId={currentRoomId}
         debugMode={debugMode} dungeonTurn={dungeonTurn}

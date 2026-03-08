@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { S } from "../styles";
+import { btnStyle } from "../styles";
 import { TRAP_INFO, TYPE_COLOR, TYPE_ICON, SLOT_POS, MAP_W, MAP_H, ROOM_W_SM, ROOM_H_SM, ROOM_W_LG, ROOM_H_LG, COR_THICK } from "../data/rooms";
 import { getScoutIntel } from "../utils/dungeon";
 import { StatusBadges, HpBar } from "./shared";
@@ -26,11 +26,11 @@ function RoomTile({ node, isSelected, isAdjacent, onClick }: {
   const cleared = state === "cleared";
   const canClick = isAdjacent && state !== "locked";
 
-  const bg = cleared ? "#0c1208" : visited ? "#181208" : isAdjacent ? "#160d06" : "#0a080c";
-  const border = isSelected ? "#e74c3c" : isAdjacent && !visited ? "#6a3010" : visited ? "#2e2010" : "#130e18";
-  const wallCol = visited ? "#3a2a14" : isAdjacent ? "#2a1a0c" : "#1a1620";
-  const dotCol = visited ? "#2a1e0c" : isAdjacent ? "#1e1208" : "#141018";
-  const featColor = type === "boss" ? "#e74c3c" : type === "rest" ? "#2ecc71" : type === "shop" ? "#f0c040" : "#e07060";
+  const bg = cleared ? "#0e1a0a" : visited ? "#1c1608" : isAdjacent ? "#1a1006" : "#0c0a10";
+  const border = isSelected ? "#e74c3c" : isAdjacent && !visited ? "#7a4018" : visited ? "#3a2a14" : "#18121e";
+  const wallCol = visited ? "#4a3a1e" : isAdjacent ? "#382818" : "#201828";
+  const dotCol = visited ? "#342810" : isAdjacent ? "#28180c" : "#181220";
+  const featColor = type === "boss" ? "#e74c3c" : type === "rest" ? "#3ddc84" : type === "shop" ? "#f0c040" : "#e88070";
   const featGlyph = cleared ? "\u2713" : type === "combat" ? "\u2716" : type === "rest" ? "\u263D" : type === "shop" ? "$" : type === "boss" ? "\u2620" : "\u2191";
   const { cx, cy } = SLOT_POS[node.slot];
 
@@ -46,20 +46,20 @@ function RoomTile({ node, isSelected, isAdjacent, onClick }: {
       position: "absolute",
       left: cx - ROOM_W_SM / 2, top: cy - ROOM_H_SM / 2,
       width: ROOM_W_SM, height: ROOM_H_SM,
-      background: bg, border: `1.5px solid ${border}`, borderRadius: "2px",
+      background: bg, border: `2px solid ${border}`, borderRadius: "3px",
       cursor: canClick ? "pointer" : "default",
-      boxShadow: isSelected ? "0 0 12px rgba(231,76,60,0.5)" : isAdjacent ? "0 0 7px rgba(100,48,16,0.4)" : "none",
+      boxShadow: isSelected ? "0 0 14px rgba(231,76,60,0.5)" : isAdjacent ? "0 0 10px rgba(120,64,24,0.4)" : "none",
       opacity: !visited && !isAdjacent ? 0.18 : 1,
       overflow: "hidden", zIndex: 2, transition: "all 0.2s", userSelect: "none",
     }}>
       <div style={{
         position: "absolute", inset: 0, display: "grid",
-        gridTemplateColumns: `repeat(${COLS},1fr)`, gridTemplateRows: `repeat(${ROWS},1fr)`, padding: "1px",
+        gridTemplateColumns: `repeat(${COLS},1fr)`, gridTemplateRows: `repeat(${ROWS},1fr)`, padding: "2px",
       }}>
         {grid.flat().map((cell, i) => (
           <div key={i} style={{
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: cell === "feat" ? "0.55rem" : "0.28rem",
+            fontSize: cell === "feat" ? "0.65rem" : "0.35rem",
             color: cell === "wall" ? wallCol : cell === "floor" ? dotCol : featColor,
             fontWeight: cell === "feat" ? "bold" : "normal", lineHeight: 1,
           }}>{cell === "wall" ? "\u25AA" : cell === "floor" ? "\u00B7" : featGlyph}</div>
@@ -70,18 +70,18 @@ function RoomTile({ node, isSelected, isAdjacent, onClick }: {
         <div style={{
           position: "absolute", inset: 0, background: "#080610e0",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "0.75rem", color: "#16121e",
+          fontSize: "0.9rem", color: "#201830",
         }}>?</div>
       )}
 
       {(visited || isAdjacent) && !cleared && enemies.length > 0 && (
         <div style={{
-          position: "absolute", top: "1px", right: "2px",
-          background: "rgba(160,20,20,0.9)", borderRadius: "1px",
-          fontSize: "0.42rem", color: "#ffc8c8", padding: "0px 2px", lineHeight: 1.4, fontWeight: "bold",
+          position: "absolute", top: "2px", right: "3px",
+          background: "rgba(196,28,28,0.9)", borderRadius: "2px",
+          fontSize: "0.55rem", color: "#ffd0d0", padding: "0px 3px", lineHeight: 1.5, fontWeight: "bold",
         }}>{enemies.length}{"\u2716"}</div>
       )}
-      {trap && <div style={{ position: "absolute", top: "1px", left: "2px", fontSize: "0.5rem" }}>{TRAP_INFO[trap]?.icon}</div>}
+      {trap && <div style={{ position: "absolute", top: "2px", left: "3px", fontSize: "0.6rem" }}>{TRAP_INFO[trap]?.icon}</div>}
     </div>
   );
 }
@@ -92,7 +92,7 @@ function CurrentRoomTile({ node, isSelected, onClick }: {
   const { type, state, enemies, trap, blocked } = node;
   const cleared = state === "cleared";
   const tc = TYPE_COLOR[type] || "#7f8c8d";
-  const featColor = type === "boss" ? "#e74c3c" : type === "rest" ? "#2ecc71" : type === "shop" ? "#f0c040" : type === "start" ? "#95a5a6" : "#e07060";
+  const featColor = type === "boss" ? "#e74c3c" : type === "rest" ? "#3ddc84" : type === "shop" ? "#f0c040" : type === "start" ? "#a0b0b8" : "#e88070";
   const featGlyph = cleared ? "\u2713" : type === "combat" ? "\u2716" : type === "rest" ? "\u263D" : type === "shop" ? "$" : type === "boss" ? "\u2620" : "\u2191";
   const { cx, cy } = SLOT_POS[node.slot];
 
@@ -109,21 +109,21 @@ function CurrentRoomTile({ node, isSelected, onClick }: {
       position: "absolute",
       left: cx - ROOM_W_LG / 2, top: cy - ROOM_H_LG / 2,
       width: ROOM_W_LG, height: ROOM_H_LG,
-      background: "#1c1408",
-      border: `2px solid ${isSelected ? "#e74c3c" : "#c8a030"}`,
-      borderRadius: "4px",
-      boxShadow: "0 0 30px rgba(200,160,48,0.3), 0 0 60px rgba(200,160,48,0.1), inset 0 0 20px rgba(0,0,0,0.5)",
+      background: "#201808",
+      border: `2px solid ${isSelected ? "#e74c3c" : "#d4a830"}`,
+      borderRadius: "5px",
+      boxShadow: "0 0 35px rgba(212,168,48,0.3), 0 0 70px rgba(212,168,48,0.1), inset 0 0 25px rgba(0,0,0,0.5)",
       overflow: "hidden", zIndex: 5, cursor: "pointer", userSelect: "none",
     }}>
       <div style={{
         position: "absolute", inset: 0, display: "grid",
-        gridTemplateColumns: `repeat(${COLS},1fr)`, gridTemplateRows: `repeat(${ROWS},1fr)`, padding: "3px",
+        gridTemplateColumns: `repeat(${COLS},1fr)`, gridTemplateRows: `repeat(${ROWS},1fr)`, padding: "4px",
       }}>
         {grid.flat().map((cell, i) => (
           <div key={i} style={{
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: cell === "feat" ? "1.1rem" : cell === "pillar" ? "0.5rem" : "0.32rem",
-            color: cell === "wall" ? "#4a3820" : cell === "floor" ? "#2e2210" : cell === "pillar" ? "#5a4228" : featColor,
+            fontSize: cell === "feat" ? "1.2rem" : cell === "pillar" ? "0.55rem" : "0.38rem",
+            color: cell === "wall" ? "#5a4828" : cell === "floor" ? "#382c18" : cell === "pillar" ? "#6a5230" : featColor,
             fontWeight: cell === "feat" ? "bold" : "normal", lineHeight: 1,
           }}>{cell === "wall" ? "\u25AA" : cell === "floor" ? "\u00B7" : cell === "pillar" ? "\u25AA" : featGlyph}</div>
         ))}
@@ -132,32 +132,32 @@ function CurrentRoomTile({ node, isSelected, onClick }: {
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0,
         background: "linear-gradient(transparent,rgba(0,0,0,0.9) 40%)",
-        padding: "10px 8px 5px",
+        padding: "12px 10px 6px",
       }}>
-        <div style={{ fontSize: "0.52rem", color: tc, letterSpacing: "0.14em", textTransform: "uppercase", lineHeight: 1, marginBottom: "2px" }}>
+        <div className="text-xs tracking-widest uppercase leading-none mb-1" style={{ color: tc }}>
           {TYPE_ICON[type]} {type}
         </div>
-        <div style={{ fontSize: "0.82rem", fontWeight: "bold", color: "#e8d8b0", lineHeight: 1.15 }}>{node.label}</div>
+        <div className="text-base font-bold leading-tight" style={{ color: "#ece0c0" }}>{node.label}</div>
       </div>
 
-      <div style={{ position: "absolute", top: "5px", right: "6px", fontSize: "0.9rem", filter: "drop-shadow(0 0 5px #c8a030)" }}>{"\u2691"}</div>
+      <div style={{ position: "absolute", top: "6px", right: "8px", fontSize: "1rem", filter: "drop-shadow(0 0 6px #d4a830)" }}>{"\u2691"}</div>
 
       {!cleared && enemies.length > 0 && (
         <div style={{
-          position: "absolute", top: "5px", left: "6px",
-          background: "rgba(180,30,30,0.92)", borderRadius: "2px",
-          fontSize: "0.65rem", color: "#ffd5c8", padding: "2px 6px", fontWeight: "bold",
+          position: "absolute", top: "6px", left: "8px",
+          background: "rgba(196,28,28,0.92)", borderRadius: "3px",
+          fontSize: "0.75rem", color: "#ffd5c8", padding: "2px 8px", fontWeight: "bold",
         }}>{enemies.length}{"\u2716"}</div>
       )}
       {cleared && (
         <div style={{
-          position: "absolute", top: "5px", left: "6px",
-          background: "rgba(30,80,30,0.85)", borderRadius: "2px",
-          fontSize: "0.6rem", color: "#a0e8a0", padding: "2px 6px",
+          position: "absolute", top: "6px", left: "8px",
+          background: "rgba(30,100,30,0.85)", borderRadius: "3px",
+          fontSize: "0.7rem", color: "#b0f0b0", padding: "2px 8px",
         }}>cleared</div>
       )}
-      {trap && <div style={{ position: "absolute", top: "28px", left: "6px", fontSize: "0.8rem" }}>{TRAP_INFO[trap]?.icon}</div>}
-      {blocked && <div style={{ position: "absolute", top: "28px", right: "6px", fontSize: "0.75rem" }}>{"\u{1F6A7}"}</div>}
+      {trap && <div style={{ position: "absolute", top: "30px", left: "8px", fontSize: "0.9rem" }}>{TRAP_INFO[trap]?.icon}</div>}
+      {blocked && <div style={{ position: "absolute", top: "30px", right: "8px", fontSize: "0.85rem" }}>{"\u{1F6A7}"}</div>}
     </div>
   );
 }
@@ -179,7 +179,7 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
   const [scoutLevel, setScoutLevel] = useState(0);
 
   const node = selected ? dungeon.find(n => n.id === selected) : null;
-  const typeColor: Record<string, string> = { combat: "#c0392b", rest: "#2ecc71", shop: "#f0c040", boss: "#e74c3c", start: "#7f8c8d" };
+  const typeColor: Record<string, string> = { combat: "#c0392b", rest: "#3ddc84", shop: "#f0c040", boss: "#e74c3c", start: "#7f8c8d" };
 
   const corridors: { a: DungeonNode; b: DungeonNode; key: string }[] = [];
   const seen = new Set<string>();
@@ -214,36 +214,37 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
 
   function corColor(a: DungeonNode, b: DungeonNode) {
     const states = [a.state, b.state];
-    if (states.includes("reachable")) return "#4a2a14";
-    if (states.includes("visited") || states.includes("cleared")) return "#2e2010";
-    return "#160f08";
+    if (states.includes("reachable")) return "#5a3618";
+    if (states.includes("visited") || states.includes("cleared")) return "#3a2814";
+    return "#1c140c";
   }
 
   return (
-    <div style={{ ...S.root, padding: "0.8rem", gap: "0.7rem", overflowY: "auto" }}>
-      <div style={S.vignette} />
+    <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-3 relative overflow-y-auto p-4">
+      <div className="vignette" />
 
-      <div style={{ display: "flex", gap: "1rem", alignItems: "center", zIndex: 1, flexWrap: "wrap", justifyContent: "center" }}>
-        <div style={{ ...S.title, fontSize: "1.3rem", margin: "0.3rem 0 0" }}>{"\u2620"} The Crypt</div>
-        <div style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}>
-          <span style={{ fontSize: "0.72rem", color: "#c9b99a" }}>{"\u2764"} {player.hp}/{player.maxHp}</span>
-          <span style={{ fontSize: "0.72rem", color: "#f0c040" }}>{"\u{1FA99}"} {player.gold}</span>
-          <span style={{ fontSize: "0.72rem", color: "#7f8c8d" }}>{"\u{1F4DC}"} {player.deck.length}</span>
+      {/* Top bar */}
+      <div className="flex gap-4 items-center relative z-1 flex-wrap justify-center">
+        <h2 className="text-xl tracking-[0.15em] uppercase text-crypt-red-glow font-bold"
+          style={{ textShadow: "0 0 20px #8b0000" }}>
+          {"\u2620"} The Crypt
+        </h2>
+        <div className="flex gap-3 items-center text-sm">
+          <span className="text-crypt-text">{"\u2764"} {player.hp}/{player.maxHp}</span>
+          <span className="text-crypt-gold">{"\u{1FA99}"} {player.gold}</span>
+          <span className="text-crypt-muted">{"\u{1F4DC}"} {player.deck.length}</span>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "1rem", zIndex: 1, flexWrap: "wrap", justifyContent: "center", alignItems: "flex-start", width: "100%", maxWidth: "820px" }}>
-        <div style={{
-          position: "relative", width: `${MAP_W}px`, height: `${MAP_H}px`,
-          background: "#09070d", border: "1px solid #2a1f1a", borderRadius: "4px",
-          flexShrink: 0, overflow: "hidden",
-        }}>
-          <div style={{
-            position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0, opacity: 0.04,
-            backgroundImage: "repeating-linear-gradient(0deg,#ccc 0,#ccc 1px,transparent 1px,transparent 10px),repeating-linear-gradient(90deg,#ccc 0,#ccc 1px,transparent 1px,transparent 10px)",
-          }} />
+      <div className="flex gap-4 relative z-1 flex-wrap justify-center items-start w-full max-w-5xl">
+        {/* Map canvas */}
+        <div className="relative shrink-0 overflow-hidden rounded-md border border-crypt-border-dim"
+          style={{ width: `${MAP_W}px`, height: `${MAP_H}px`, background: "#0a0810" }}>
+          {/* Grid texture */}
+          <div className="absolute inset-0 pointer-events-none z-0 opacity-[0.04]"
+            style={{ backgroundImage: "repeating-linear-gradient(0deg,#ccc 0,#ccc 1px,transparent 1px,transparent 10px),repeating-linear-gradient(90deg,#ccc 0,#ccc 1px,transparent 1px,transparent 10px)" }} />
 
-          <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1, pointerEvents: "none" }}>
+          <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1, pointerEvents: "none" }}>
             {corridors.map(({ a, b, key }) => {
               const aSeen = a.id === currentRoomId || a.state === "visited" || a.state === "cleared";
               const bSeen = b.id === currentRoomId || b.state === "visited" || b.state === "cleared";
@@ -257,7 +258,7 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
                   <rect
                     x={r.w > r.h ? r.x + 1 : r.x + 2} y={r.w > r.h ? r.y + 2 : r.y + 1}
                     width={r.w > r.h ? r.w - 2 : r.w - 4} height={r.w > r.h ? r.h - 4 : r.h - 2}
-                    fill={isHot ? "#6a4018" : "#2a1c0c"} opacity="0.6"
+                    fill={isHot ? "#7a4820" : "#342010"} opacity="0.6"
                   />
                 </g>
               );
@@ -278,6 +279,7 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
             );
           })}
 
+          {/* Room labels */}
           {dungeon.map(n => {
             if (n.id === currentRoomId) return null;
             const visited = n.state === "visited" || n.state === "cleared";
@@ -287,15 +289,15 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
             return (
               <div key={n.id + "-lbl"} style={{
                 position: "absolute",
-                left: cx, top: cy + ROOM_H_SM / 2 + 2,
+                left: cx, top: cy + ROOM_H_SM / 2 + 4,
                 transform: "translateX(-50%)",
-                fontSize: "0.46rem",
-                color: visited ? tc : "#4a3020",
+                fontSize: "0.6rem",
+                color: visited ? tc : "#5a4028",
                 whiteSpace: "nowrap",
-                textShadow: "0 1px 3px #000",
+                textShadow: "0 1px 4px #000",
                 letterSpacing: "0.04em",
                 zIndex: 3, pointerEvents: "none",
-                maxWidth: "80px", overflow: "hidden", textOverflow: "ellipsis",
+                maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis",
               }}>
                 {visited ? n.label : "???"}
               </div>
@@ -303,63 +305,67 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
           })}
         </div>
 
-        <div style={{ flex: 1, minWidth: "190px", maxWidth: "230px", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        {/* Side panel */}
+        <div className="flex-1 min-w-[230px] max-w-[280px] flex flex-col gap-3">
           {node ? (
-            <div style={{ ...S.panel, padding: "0.8rem 1rem" }}>
-              <div style={{ fontSize: "0.6rem", color: typeColor[node.type], letterSpacing: "0.15em", marginBottom: "3px", textTransform: "uppercase" }}>
+            <div className="panel">
+              <div className="text-xs tracking-widest mb-1 uppercase" style={{ color: typeColor[node.type] }}>
                 {TYPE_ICON[node.type]} {node.type}
               </div>
-              <div style={{ fontSize: "0.88rem", fontWeight: "bold", color: "#ddd0b8", marginBottom: "6px", lineHeight: 1.2 }}>
+              <div className="text-base font-bold text-crypt-text mb-2 leading-tight">
                 {node.state === "locked" && !debugMode ? "???" : node.label}
               </div>
 
-              {node.state === "cleared" && <p style={{ fontSize: "0.65rem", color: "#3a5a3a", margin: "0 0 4px" }}>Room cleared.</p>}
-              {node.id === currentRoomId && <p style={{ fontSize: "0.65rem", color: "#f0c040", margin: "0 0 4px" }}>{"\u2691"} You are here.</p>}
+              {node.state === "cleared" && <p className="text-xs text-crypt-green mb-1">Room cleared.</p>}
+              {node.id === currentRoomId && <p className="text-xs text-crypt-gold mb-1">{"\u2691"} You are here.</p>}
 
               {(node.state === "reachable" || node.state === "visited") && node.type === "combat" && (
-                <div style={{ fontSize: "0.65rem", color: "#7a6a52", marginBottom: "6px", lineHeight: 1.7 }}>
+                <div className="text-sm text-crypt-muted mb-2 leading-relaxed">
                   {debugMode
-                    ? <span style={{ color: "#9b59b6" }}>{node.enemies.length} enemies: {node.enemies.join(", ")}</span>
+                    ? <span className="text-crypt-purple">{node.enemies.length} enemies: {node.enemies.join(", ")}</span>
                     : scoutLevel === 0
-                      ? <span style={{ color: "#3a2a1a", fontStyle: "italic" }}>Unknown. Scout to learn more.</span>
+                      ? <span className="text-crypt-dim italic">Unknown. Scout to learn more.</span>
                       : scoutResult
                   }
                   {node.trap && <><br /><span style={{ color: TRAP_INFO[node.trap].color }}>{TRAP_INFO[node.trap].icon} {TRAP_INFO[node.trap].label} set.</span></>}
-                  {node.blocked && <><br /><span style={{ color: "#3498db" }}>{"\u{1F6A7}"} Blocked.</span></>}
+                  {node.blocked && <><br /><span className="text-crypt-blue">{"\u{1F6A7}"} Blocked.</span></>}
                 </div>
               )}
 
               {scoutResult && scoutLevel > 0 && (
-                <div style={{
-                  fontSize: "0.65rem", color: "#d09040", margin: "0 0 7px", fontStyle: "italic",
-                  lineHeight: 1.5, borderLeft: "2px solid #8b000055", paddingLeft: "7px",
-                }}>{scoutResult}</div>
+                <div className="text-sm text-amber-500 mb-2 italic leading-relaxed border-l-2 border-crypt-red-glow/30 pl-2">
+                  {scoutResult}
+                </div>
               )}
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <div className="flex flex-col gap-1.5">
                 {(adjacentIds.has(node.id) || debugMode) && node.state !== "cleared" && node.state !== "locked" && (
-                  <button style={S.btn(typeColor[node.type] || "#8b0000")}
+                  <button style={btnStyle(typeColor[node.type] || "#8b0000")}
                     onClick={() => { onEnterRoom(node.id); setSelected(null); }}>
                     {node.type === "combat" ? "\u2694 Enter" : node.type === "rest" ? "\u{1F56F} Rest" : node.type === "shop" ? "\u{1F4B0} Shop" : "\u2620 Enter \u2014 Lich"}
                   </button>
                 )}
 
                 {adjacentIds.has(node.id) && node.type === "combat" && node.state !== "cleared" && (
-                  <div style={{ display: "flex", gap: "3px" }}>
-                    <button title="Listen at door (quiet, safe)" style={{ ...S.btn("#3a2a10"), fontSize: "0.65rem", padding: "0.25rem 0.45rem", flex: 1, opacity: scoutLevel >= 1 ? 0.5 : 1 }}
+                  <div className="flex gap-1">
+                    <button title="Listen at door (quiet, safe)" style={btnStyle("#3a2a10")}
+                      className={`text-xs! px-2! py-1! flex-1 ${scoutLevel >= 1 ? "opacity-50" : ""}`}
                       onClick={() => handleScout(1)}>{"\u{1F442}"} Listen</button>
-                    <button title="Peek through keyhole (takes time)" style={{ ...S.btn("#4a3010"), fontSize: "0.65rem", padding: "0.25rem 0.45rem", flex: 1, opacity: scoutLevel >= 2 ? 0.5 : 1 }}
+                    <button title="Peek through keyhole" style={btnStyle("#4a3010")}
+                      className={`text-xs! px-2! py-1! flex-1 ${scoutLevel >= 2 ? "opacity-50" : ""}`}
                       onClick={() => handleScout(2)}>{"\u{1F511}"} Peek</button>
-                    <button title="Full scout \u2014 loud, risky" style={{ ...S.btn("#5a3a10"), fontSize: "0.65rem", padding: "0.25rem 0.45rem", flex: 1, opacity: scoutLevel >= 3 ? 0.5 : 1 }}
+                    <button title="Full scout \u2014 risky" style={btnStyle("#5a3a10")}
+                      className={`text-xs! px-2! py-1! flex-1 ${scoutLevel >= 3 ? "opacity-50" : ""}`}
                       onClick={() => handleScout(3)}>{"\u{1F575}"} Scout</button>
                   </div>
                 )}
 
                 {(adjacentIds.has(node.id) || node.id === currentRoomId) && node.type === "combat" && !node.trap && node.state !== "cleared" && (
-                  <div style={{ display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                  <div className="flex gap-1 flex-wrap">
                     {Object.entries(TRAP_INFO).map(([key, t]) => (
                       <button key={key} title={t.desc} disabled={player.gold < t.cost}
-                        style={{ ...S.btn(t.color, player.gold < t.cost), fontSize: "0.62rem", padding: "0.22rem 0.45rem" }}
+                        style={btnStyle(t.color, player.gold < t.cost)}
+                        className="text-xs! px-2! py-1!"
                         onClick={() => { onSetTrap(node.id, key); setSelected(node.id); }}>
                         {t.icon}{t.cost}{"\u{1FA99}"}
                       </button>
@@ -368,7 +374,8 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
                 )}
 
                 {(adjacentIds.has(node.id) || node.id === currentRoomId) && node.type === "combat" && !node.blocked && node.state !== "cleared" && (
-                  <button style={{ ...S.btn("#2980b9"), fontSize: "0.62rem", padding: "0.22rem 0.45rem" }}
+                  <button style={btnStyle("#2980b9", player.gold < 10)}
+                    className="text-xs! px-2! py-1!"
                     disabled={player.gold < 10}
                     onClick={() => { onBlockDoor(node.id); setSelected(node.id); }}>
                     {"\u{1F6A7}"} Block (10{"\u{1FA99}"})
@@ -376,35 +383,33 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
                 )}
 
                 {!debugMode && node.state !== "locked" && !adjacentIds.has(node.id) && node.id !== currentRoomId && (
-                  <div style={{ fontSize: "0.6rem", color: "#2a1a10", fontStyle: "italic" }}>Not adjacent {"\u2014"} move closer.</div>
+                  <div className="text-xs text-crypt-dim italic">Not adjacent {"\u2014"} move closer.</div>
                 )}
               </div>
             </div>
           ) : (
-            <div style={{ ...S.panel, padding: "0.8rem 1rem" }}>
-              <p style={{ fontSize: "0.7rem", color: "#7a6a5a", lineHeight: 1.8, margin: 0 }}>Click any visible room.</p>
-              <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "3px" }}>
-                {([["\u2694", "combat", "#c0392b"], ["\u{1F56F}", "rest", "#2ecc71"], ["\u{1F4B0}", "shop", "#f0c040"], ["\u2620", "boss", "#e74c3c"]] as const).map(([icon, label, color]) => (
-                  <span key={label} style={{ fontSize: "0.6rem", color }}>{icon} {label}</span>
+            <div className="panel">
+              <p className="text-sm text-crypt-muted leading-relaxed mb-2">Click any visible room.</p>
+              <div className="flex flex-col gap-1">
+                {([["\u2694", "combat", "#c0392b"], ["\u{1F56F}", "rest", "#3ddc84"], ["\u{1F4B0}", "shop", "#f0c040"], ["\u2620", "boss", "#e74c3c"]] as const).map(([icon, label, color]) => (
+                  <span key={label} className="text-xs" style={{ color }}>{icon} {label}</span>
                 ))}
               </div>
             </div>
           )}
 
-          <div style={{ ...S.panel, padding: "0.6rem 0.8rem" }}>
-            <div style={{ fontSize: "0.56rem", color: "#4a3a2a", marginBottom: "3px", letterSpacing: "0.1em" }}>YOUR STATUS {"\u00B7"} Turn {dungeonTurn}</div>
-            <HpBar current={player.hp} max={player.maxHp} color="#22a55a" />
+          {/* Player status */}
+          <div className="panel">
+            <div className="text-xs text-crypt-dim mb-1 tracking-wider uppercase">Your Status {"\u00B7"} Turn {dungeonTurn}</div>
+            <HpBar current={player.hp} max={player.maxHp} color="#3ddc84" />
             <StatusBadges statuses={player.statuses} />
-            <div style={{ fontSize: "0.56rem", color: "#3a2a1a", marginTop: "3px" }}>
+            <div className="text-xs text-crypt-muted mt-1">
               {"\u26A1"} {player.maxEnergy} energy {"\u00B7"} {"\u{1F4DC}"} {player.deck.length} cards
             </div>
           </div>
 
-          <button onClick={onToggleDebug} style={{
-            ...S.btn(debugMode ? "#9b59b6" : "#2a1f40"),
-            fontSize: "0.62rem", padding: "0.3rem 0.6rem",
-            border: `1px solid ${debugMode ? "#9b59b6" : "#3a2f5a"}`,
-          }}>
+          <button onClick={onToggleDebug} style={btnStyle(debugMode ? "#9b59b6" : "#2a1f40")}
+            className="text-xs!">
             {"\u{1F6E0}"} Debug {debugMode ? "ON" : "OFF"}
           </button>
         </div>

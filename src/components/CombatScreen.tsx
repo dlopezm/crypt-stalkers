@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { S } from "../styles";
+import { btnStyle } from "../styles";
 import { ENEMY_TYPES } from "../data/enemies";
 import { STATUS_ICONS } from "../data/status";
 import { shuffle, makeEnemy, drawCards, tickStatuses } from "../utils/helpers";
@@ -12,29 +12,31 @@ function EnemyPanel({ enemy, targeted, onClick }: {
   const stunned = (enemy.statuses?.stun || 0) > 0;
   const crouching = enemy.mechanic === "ambush" && (enemy.ambushTurns ?? 0) > 0;
   return (
-    <div onClick={onClick} style={{
-      ...S.panel, cursor: "pointer", minWidth: "132px", maxWidth: "158px",
-      border: `1px solid ${targeted ? "#8b0000" : "#2a1f15"}`,
-      boxShadow: targeted ? "0 0 16px rgba(139,0,0,0.4)" : "none",
-      transition: "all 0.2s", transform: targeted ? "scale(1.03)" : "scale(1)",
-      opacity: enemy.hp <= 0 ? 0.2 : 1,
-    }}>
-      <div style={{ textAlign: "center", fontSize: "1.8rem", marginBottom: "2px" }}>{enemy.ascii}</div>
-      <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: enemy.isBoss ? "#8b0000" : "#c9b99a", textAlign: "center", marginBottom: "2px", lineHeight: 1.2 }}>{enemy.name}</div>
+    <div onClick={onClick}
+      className={`
+        panel cursor-pointer transition-all duration-200 select-none
+        ${targeted ? "scale-[1.03] shadow-[0_0_20px_rgba(196,28,28,0.4)]" : ""}
+        ${enemy.hp <= 0 ? "opacity-20" : ""}
+      `}
+      style={{
+        minWidth: "150px", maxWidth: "180px",
+        border: `1px solid ${targeted ? "#c41c1c" : "#3a3020"}`,
+      }}>
+      <div className="text-center text-3xl mb-1">{enemy.ascii}</div>
+      <div className={`text-sm font-bold text-center mb-1 leading-tight ${enemy.isBoss ? "text-crypt-red" : "text-crypt-text"}`}>
+        {enemy.name}
+      </div>
       {enemy.mechanic && enemy.mechanic !== "boss" && (
-        <div title={enemy.mechanicDesc} style={{
-          fontSize: "0.52rem", color: "#4a3a2a", textAlign: "center",
-          marginBottom: "3px", cursor: "help", borderBottom: "1px dotted #2a1f15", paddingBottom: "2px",
-        }}>
+        <div title={enemy.mechanicDesc} className="text-xs text-crypt-dim text-center mb-1 cursor-help border-b border-dotted border-crypt-border-dim pb-1">
           {"\u2699"} {enemy.mechanic.replace("_", " ")} {"\u2139"}
         </div>
       )}
-      {crouching && <div style={{ fontSize: "0.6rem", color: "#f1c40f", textAlign: "center", marginBottom: "2px" }}>{"\u{1F9B4}"} Crouching {enemy.ambushTurns}t</div>}
-      {stunned && <div style={{ fontSize: "0.6rem", color: "#f1c40f", textAlign: "center" }}>{"\u26A1"} Stunned</div>}
-      <HpBar current={enemy.hp} max={enemy.maxHp} color="#8b0000" />
-      {enemy.block > 0 && <div style={{ fontSize: "0.6rem", color: "#2980b9", textAlign: "center", marginTop: "2px" }}>{"\u{1F6E1}"} {enemy.block}</div>}
+      {crouching && <div className="text-xs text-crypt-gold text-center mb-1">{"\u{1F9B4}"} Crouching {enemy.ambushTurns}t</div>}
+      {stunned && <div className="text-xs text-crypt-gold text-center">{"\u26A1"} Stunned</div>}
+      <HpBar current={enemy.hp} max={enemy.maxHp} color="#c41c1c" />
+      {enemy.block > 0 && <div className="text-xs text-crypt-blue text-center mt-1">{"\u{1F6E1}"} {enemy.block}</div>}
       <StatusBadges statuses={enemy.statuses} />
-      <div style={{ fontSize: "0.56rem", color: "#3a2a1a", textAlign: "center", marginTop: "3px", fontStyle: "italic" }}>
+      <div className="text-xs text-crypt-dim text-center mt-1 italic">
         {crouching ? "Preparing..." : stunned ? "Skip turn" : `ATK ${(enemy.statuses?.weaken || 0) > 0 ? Math.floor(enemy.atk * 0.75) : enemy.atk}`}
       </div>
     </div>
@@ -206,38 +208,45 @@ export function CombatScreen({ room, player, onVictory, onDefeat, onFleeToMap }:
   const uniqueMechanics = [...new Map(liveEnems.filter(e => e.mechanicDesc && e.mechanic !== "boss").map(e => [e.mechanic, e])).values()];
 
   return (
-    <div style={{ ...S.root, padding: "0.8rem", gap: "0.55rem" }}>
-      <div style={S.vignette} />
+    <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-3 relative overflow-hidden p-4">
+      <div className="vignette" />
 
-      <div style={{ display: "flex", gap: "1rem", alignItems: "center", zIndex: 1, flexWrap: "wrap", justifyContent: "center" }}>
-        <div style={{ color: "#5a4a3a", fontSize: "0.7rem", letterSpacing: "0.15em" }}>
-          {"\u2694"} <span style={{ color: "#8b0000" }}>{room.label.toUpperCase()}</span>
+      {/* Header bar */}
+      <div className="flex gap-4 items-center relative z-1 flex-wrap justify-center">
+        <div className="text-crypt-muted text-sm tracking-wider">
+          {"\u2694"} <span className="text-crypt-red font-bold">{room.label.toUpperCase()}</span>
         </div>
-        <div style={{ color: "#f0c040", fontSize: "0.72rem" }}>{"\u{1FA99}"} {p.gold}</div>
-        <div style={{ fontSize: "0.7rem", color: lightLevel > 2 ? "#f0c040" : lightLevel > 0 ? "#e67e22" : "#8b0000" }}>
+        <div className="text-crypt-gold text-sm">{"\u{1FA99}"} {p.gold}</div>
+        <div className={`text-sm ${lightLevel > 2 ? "text-crypt-gold" : lightLevel > 0 ? "text-orange-400" : "text-crypt-red"}`}>
           {"\u{1F525}".repeat(lightLevel)}{"\u25AA".repeat(5 - lightLevel)}
         </div>
-        <button style={{ ...S.btn("#3a2f25"), fontSize: "0.65rem", padding: "0.25rem 0.6rem" }} onClick={() => onFleeToMap(p)}>{"\u2190"} Flee to map</button>
+        <button style={btnStyle("#3a2f25")} className="text-sm! px-3! py-1!" onClick={() => onFleeToMap(p)}>
+          {"\u2190"} Flee to map
+        </button>
       </div>
 
-      <div style={{ display: "flex", gap: "0.8rem", zIndex: 1, flexWrap: "wrap", justifyContent: "center", alignItems: "flex-start" }}>
-        <div style={{ ...S.panel, minWidth: "130px", maxWidth: "152px" }}>
-          <div style={{ textAlign: "center", fontSize: "1.8rem", marginBottom: "2px" }}>{"\u{1F9DD}"}</div>
-          <div style={{ fontSize: "0.75rem", fontWeight: "bold", color: "#c9b99a", textAlign: "center", marginBottom: "3px" }}>You</div>
-          <HpBar current={p.hp} max={p.maxHp} color="#22a55a" />
-          {p.block > 0 && <div style={{ fontSize: "0.6rem", color: "#2980b9", textAlign: "center", marginTop: "2px" }}>{"\u{1F6E1}"} {p.block}</div>}
+      {/* Combatants */}
+      <div className="flex gap-4 relative z-1 flex-wrap justify-center items-start">
+        {/* Player panel */}
+        <div className="panel" style={{ minWidth: "155px", maxWidth: "175px" }}>
+          <div className="text-center text-3xl mb-1">{"\u{1F9DD}"}</div>
+          <div className="text-sm font-bold text-crypt-text text-center mb-1">You</div>
+          <HpBar current={p.hp} max={p.maxHp} color="#3ddc84" />
+          {p.block > 0 && <div className="text-xs text-crypt-blue text-center mt-1">{"\u{1F6E1}"} {p.block}</div>}
           <StatusBadges statuses={p.statuses} />
-          <div style={{ marginTop: "7px", display: "flex", justifyContent: "center", gap: "3px", flexWrap: "wrap" }}>
+          <div className="mt-2 flex justify-center gap-1 flex-wrap">
             {Array.from({ length: Math.max(p.maxEnergy, 3) }).map((_, i) => (
-              <div key={i} style={{ width: "9px", height: "9px", borderRadius: "50%", background: i < p.energy ? "#8b0000" : "#1a1210", border: "1px solid #3a2f25" }} />
+              <div key={i} className="w-3 h-3 rounded-full border border-crypt-border"
+                style={{ background: i < p.energy ? "#c41c1c" : "#1a1210" }} />
             ))}
           </div>
-          <div style={{ fontSize: "0.58rem", color: "#5a4a3a", textAlign: "center", marginTop: "2px" }}>{p.energy}/{p.maxEnergy}</div>
+          <div className="text-xs text-crypt-muted text-center mt-1">{p.energy}/{p.maxEnergy}</div>
         </div>
 
-        <div style={{ color: "#2a1f15", fontSize: "1.3rem", alignSelf: "center" }}>{"\u2726"}</div>
+        <div className="text-crypt-border text-xl self-center">{"\u2726"}</div>
 
-        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", justifyContent: "center" }}>
+        {/* Enemies */}
+        <div className="flex gap-2 flex-wrap justify-center">
           {enemies.map((enemy, i) => (
             <EnemyPanel key={enemy.uid} enemy={enemy} targeted={targetIdx === i && enemy.hp > 0}
               onClick={() => { if (enemy.hp > 0) setTargetIdx(i); }} />
@@ -245,40 +254,45 @@ export function CombatScreen({ room, player, onVictory, onDefeat, onFleeToMap }:
         </div>
       </div>
 
+      {/* Mechanics hint */}
       {uniqueMechanics.length > 0 && (
-        <div style={{ ...S.panel, maxWidth: "560px", width: "100%", padding: "0.4rem 0.8rem", zIndex: 1 }}>
+        <div className="panel max-w-xl w-full px-4 py-2 relative z-1">
           {uniqueMechanics.map(e => (
-            <div key={e.mechanic} style={{ fontSize: "0.62rem", color: "#4a3a2a", lineHeight: 1.5 }}>
-              <span style={{ color: "#8b0000" }}>{"\u2699"} {e.name}:</span> {e.mechanicDesc}
+            <div key={e.mechanic} className="text-xs text-crypt-dim leading-relaxed">
+              <span className="text-crypt-red">{"\u2699"} {e.name}:</span> {e.mechanicDesc}
             </div>
           ))}
         </div>
       )}
 
-      <div style={{ ...S.panel, width: "100%", maxWidth: "560px", zIndex: 1, padding: "0.45rem 0.8rem" }}>
+      {/* Combat log */}
+      <div className="panel w-full max-w-xl px-4 py-2 relative z-1">
         {log.slice(0, 4).map((l, i) => (
-          <div key={i} style={{ fontSize: "0.65rem", color: i === 0 ? "#c9b99a" : `rgba(90,74,58,${1 - i * 0.22})`, lineHeight: 1.45 }}>{l}</div>
+          <div key={i} className="text-sm leading-relaxed" style={{ color: i === 0 ? "#ece0c8" : `rgba(168,152,120,${1 - i * 0.22})` }}>{l}</div>
         ))}
       </div>
 
+      {/* Card action buttons */}
       {selectedCard && (
-        <div style={{ zIndex: 1, display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-          <button style={S.btn("#8b0000")} onClick={() => playCard(selectedCard)}>Play Card</button>
-          <button style={S.btn("#3a2f25")} onClick={() => setSelectedCard(null)}>Cancel</button>
-          {liveEnems.length > 1 && <div style={{ fontSize: "0.68rem", color: "#5a4a3a" }}>{"\u2192"} <span style={{ color: "#c9b99a" }}>{enemies[targetIdx]?.name}</span></div>}
+        <div className="relative z-1 flex gap-3 items-center flex-wrap justify-center">
+          <button style={btnStyle("#c41c1c")} onClick={() => playCard(selectedCard)}>Play Card</button>
+          <button style={btnStyle("#3a2f25")} onClick={() => setSelectedCard(null)}>Cancel</button>
+          {liveEnems.length > 1 && <div className="text-sm text-crypt-muted">{"\u2192"} <span className="text-crypt-text">{enemies[targetIdx]?.name}</span></div>}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", justifyContent: "center", zIndex: 1, padding: "0 0.4rem" }}>
+      {/* Hand */}
+      <div className="flex gap-2 flex-wrap justify-center relative z-1 px-2">
         {p.hand.map(card => (
           <CardUI key={card.uid} card={card} selected={selectedCard === card.uid} affordable={card.cost <= p.energy}
             onClick={() => { if (card.cost <= p.energy) setSelectedCard(selectedCard === card.uid ? null : card.uid); }} />
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: "1rem", zIndex: 1, alignItems: "center", flexWrap: "wrap", justifyContent: "center", paddingBottom: "0.8rem" }}>
-        <div style={{ fontSize: "0.6rem", color: "#3a2f25" }}>Draw:{p.drawPile.length} Discard:{p.discard.length}</div>
-        <button style={S.btn("#5a3a1a", animating)} onClick={endTurn} disabled={animating}>End Turn {"\u2192"}</button>
+      {/* Bottom bar */}
+      <div className="flex gap-4 relative z-1 items-center flex-wrap justify-center pb-4">
+        <div className="text-xs text-crypt-dim">Draw:{p.drawPile.length} Discard:{p.discard.length}</div>
+        <button style={btnStyle("#6a3a1a", animating)} onClick={endTurn} disabled={animating}>End Turn {"\u2192"}</button>
       </div>
     </div>
   );

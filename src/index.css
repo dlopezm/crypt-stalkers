@@ -1,1 +1,46 @@
 @import "tailwindcss";
+
+@theme {
+  --font-serif: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
+
+  --color-crypt-bg: #0c0a08;
+  --color-crypt-surface: #161210;
+  --color-crypt-panel: #1a1610;
+  --color-crypt-border: #3a3020;
+  --color-crypt-border-dim: #2a2018;
+
+  --color-crypt-text: #ece0c8;
+  --color-crypt-muted: #a89878;
+  --color-crypt-dim: #786848;
+
+  --color-crypt-red: #c41c1c;
+  --color-crypt-red-glow: #8b0000;
+  --color-crypt-gold: #f0c040;
+  --color-crypt-green: #3ddc84;
+  --color-crypt-blue: #5dade2;
+  --color-crypt-purple: #b07cc6;
+}
+
+body {
+  background: var(--color-crypt-bg);
+  font-family: var(--font-serif);
+}
+
+/* Vignette overlay */
+.vignette {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, #000 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Panel component */
+.panel {
+  background: linear-gradient(180deg, #1c1812, #141008);
+  border: 1px solid var(--color-crypt-border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  position: relative;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.8), inset 0 1px 0 rgba(139,0,0,0.15);
+}
