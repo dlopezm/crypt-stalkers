@@ -139,6 +139,14 @@ export default function App() {
     setScreen("map");
   }
 
+  function onRestOnMap() {
+    if (!dungeon || !currentRoomId || !player) return;
+    const healAmt = Math.floor(player.maxHp * 0.3);
+    setPlayer((p) => (p ? { ...p, hp: Math.min(p.maxHp, p.hp + healAmt) } : p));
+    const afterAI = tickAI(dungeon, currentRoomId, "rest");
+    setDungeon(afterAI);
+  }
+
   function onSetTrap(roomId: string, trapKey: string) {
     setPlayer((p) => (p ? { ...p, gold: p.gold - TRAP_INFO[trapKey].cost } : p));
     setDungeon((prev) =>
@@ -275,6 +283,7 @@ export default function App() {
           onScout={onScout}
           onSetTrap={onSetTrap}
           onBlockDoor={onBlockDoor}
+          onRest={onRestOnMap}
           onToggleDebug={() => setDebugMode((d) => !d)}
           onReturnToTown={() => returnToTown()}
         />

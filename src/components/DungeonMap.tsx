@@ -386,6 +386,7 @@ export function DungeonMap({
   onScout,
   onSetTrap,
   onBlockDoor,
+  onRest,
   onToggleDebug,
   onReturnToTown,
 }: {
@@ -399,6 +400,7 @@ export function DungeonMap({
   onScout: (id: string, level: number) => void;
   onSetTrap: (id: string, trap: string) => void;
   onBlockDoor: (id: string) => void;
+  onRest: () => void;
   onToggleDebug: () => void;
   onReturnToTown: () => void;
 }) {
@@ -767,6 +769,14 @@ export function DungeonMap({
               {"\u{1F392}"} {player.consumables.length} items
             </div>
           </div>
+
+          <button
+            onClick={onRest}
+            disabled={player.hp >= player.maxHp}
+            style={btnStyle("#27ae60", player.hp >= player.maxHp)}
+          >
+            {"\u{1FA79}"} Rest (+{Math.floor(player.maxHp * 0.3)} HP)
+          </button>
 
           <button onClick={onReturnToTown} style={btnStyle("#3a2f25")} className="text-xs!">
             {"\u{1F3F0}"} Abandon Dungeon
