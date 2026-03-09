@@ -1,6 +1,8 @@
-import { ALL_CARDS, STARTER_IDS, REWARD_POOL } from "../data/cards";
+import { WEAPONS, STARTER_WEAPON_ID } from "../data/weapons";
+import { CONSUMABLES, STARTER_CONSUMABLE_IDS } from "../data/consumables";
 import { ENEMY_TYPES } from "../data/enemies";
-import type { Card, CardTemplate, Enemy, CombatPlayer, Statuses } from "../types";
+import { BUILDINGS } from "../data/buildings";
+import type { Enemy, Player, Statuses, BuildingState } from "../types";
 
 export function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -26,30 +28,28 @@ export function makeEnemy(id: string): Enemy {
     ambushTurns: b.ambushTurns || 0,
     summonCooldown: 2,
     uid: uid(id),
+    row: b.defaultRow,
   };
 }
 
-export function makeStarterDeck(): Card[] {
-  return STARTER_IDS.map((id, i) => ({
-    ...ALL_CARDS.find(c => c.id === id)!,
-    uid: `${id}-${i}`,
-  }));
-}
-
-export function drawCards(count: number, p: CombatPlayer): CombatPlayer {
-  const draw = [...p.drawPile];
-  let disc = [...p.discard];
-  const h = [...p.hand];
-  for (let i = 0; i < count; i++) {
-    if (!draw.length) {
-      if (!disc.length) break;
-      const reshuffled = shuffle(disc);
-      draw.push(...reshuffled);
-      disc = [];
-    }
-    h.push(draw.shift()!);
-  }
-  return { ...p, hand: h, drawPile: draw, discard: disc };
+export function makeStarterPlayer(): Player {
+  const starterWeapon = { ...WEAPONS.find(w => w.id === STARTER_WEAPON_ID)! };
+  const starterConsumables = STARTER_CONSUMABLE_IDS.map(id => ({ ...CONSUMABLES.find(c => c.id === id)! }));
+  const buildings: Record<string, BuildingState> = {};
+  BUILDINGS.forEach(b => {
+    buildings[b.id] = { unlocked: b.initiallyUnlocked, level: b.initiallyUnlocked ? 1 : 0 };
+  });
+  return {
+    hp: 60,
+    maxHp: 60,
+    gold: 0,
+    statuses: {},
+    weapons: [starterWeapon],
+    activeWeaponIdx: 0,
+    consumables: starterConsumables,
+    abilities: [],
+    buildings,
+  };
 }
 
 export function tickStatuses(entity: { hp: number; name?: string; statuses: Statuses }): { entity: typeof entity; log: string[] } {
@@ -72,8 +72,4 @@ export function tickStatuses(entity: { hp: number; name?: string; statuses: Stat
   if ((s.silence || 0) > 0) s.silence = Math.max(0, s.silence! - 1);
 
   return { entity: e, log };
-}
-
-export function getRewards(): CardTemplate[] {
-  return shuffle(REWARD_POOL).slice(0, 3);
 }

@@ -1,6 +1,5 @@
-import { ROOM_TEMPLATES, LAYOUT } from "../data/rooms";
 import { ENEMY_TYPES } from "../data/enemies";
-import type { DungeonNode } from "../types";
+import type { DungeonNode, DungeonDef, RoomTemplate } from "../types";
 import { shuffle, uid } from "./helpers";
 
 function connectNodes(a: DungeonNode, b: DungeonNode) {
@@ -9,35 +8,40 @@ function connectNodes(a: DungeonNode, b: DungeonNode) {
   if (!b.connections.includes(a.id)) b.connections.push(a.id);
 }
 
-export function generateDungeon(): DungeonNode[] {
-  const combatPool = shuffle(ROOM_TEMPLATES.filter(r => r.type === "combat"));
-  const restPool = shuffle(ROOM_TEMPLATES.filter(r => r.type === "rest"));
-  const shopTmpl = ROOM_TEMPLATES.find(r => r.type === "shop")!;
-  const bossTmpl = ROOM_TEMPLATES.find(r => r.type === "boss")!;
-  const hasShop = Math.random() > 0.4;
+export function generateDungeon(def: DungeonDef): DungeonNode[] {
+  const combatPool = shuffle([...def.combatRooms]);
+  const restPool = shuffle([...def.restRooms]);
 
-  const assignments: Record<string, { label: string; type: string; enemies: string[]; hint: string }> = {
-    start: { label: "Crypt Entrance", type: "start", enemies: [], hint: "" },
-    left: { ...combatPool[0] },
-    right: { ...combatPool[1] },
-    mid: { ...combatPool[2] },
-    branch1: hasShop ? { ...shopTmpl } : { ...restPool[0] },
-    branch2: { ...restPool[1] || restPool[0], label: restPool[1]?.label || "Old Barracks" },
-    boss: { ...bossTmpl },
-  };
+  let combatIdx = 0;
+  let restIdx = 0;
 
-  const nodes: DungeonNode[] = LAYOUT.map(({ slot, col, row }) => {
-    const tmpl = assignments[slot];
+  function pickTemplate(type: "start" | "combat" | "rest" | "boss"): RoomTemplate {
+    if (type === "start") return { type: "start", label: "Entrance", enemies: [], hint: "" };
+    if (type === "boss") return { ...def.bossRoom };
+    if (type === "rest") {
+      const t = restPool[restIdx % restPool.length];
+      restIdx++;
+      return { ...t };
+    }
+    const t = combatPool[combatIdx % combatPool.length];
+    combatIdx++;
+    return { ...t };
+  }
+
+  const nodes: DungeonNode[] = def.slots.map(s => {
+    const tmpl = pickTemplate(s.type);
     return {
-      id: slot === "start" ? "start" : uid("room"),
-      slot,
+      id: s.slot === "start" ? "start" : uid("room"),
+      slot: s.slot,
       label: tmpl.label,
-      type: tmpl.type as DungeonNode["type"],
+      type: tmpl.type,
       enemies: tmpl.enemies ? [...tmpl.enemies] : [],
       hint: tmpl.hint || "",
-      state: slot === "start" ? "visited" : "locked",
-      col,
-      row,
+      state: s.slot === "start" ? "visited" : "locked",
+      col: s.col,
+      row: s.row,
+      cx: s.cx,
+      cy: s.cy,
       connections: [],
       trap: null,
       blocked: false,
@@ -45,17 +49,9 @@ export function generateDungeon(): DungeonNode[] {
     };
   });
 
-  const bySlot = (s: string) => nodes.find(n => n.slot === s)!;
+  const bySlot = (slot: string) => nodes.find(n => n.slot === slot)!;
 
-  const pairs: [string, string][] = [
-    ["start", "left"], ["start", "right"],
-    ["left", "mid"], ["right", "mid"],
-    ["left", "branch1"],
-    ["mid", "branch1"], ["mid", "branch2"],
-    ["right", "branch2"],
-    ["branch1", "boss"], ["branch2", "boss"],
-  ];
-  pairs.forEach(([a, b]) => connectNodes(bySlot(a), bySlot(b)));
+  def.connections.forEach(([a, b]) => connectNodes(bySlot(a), bySlot(b)));
 
   bySlot("start").connections.forEach(id => {
     const n = nodes.find(n => n.id === id);
@@ -70,7 +66,6 @@ const ACTION_NOISE: Record<string, string> = {
   scout: "quiet",
   combat: "loud",
   rest: "quiet",
-  shop: "quiet",
 };
 
 export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, action = "move") {

@@ -5,13 +5,29 @@
 
 ## Vision
 
-Crypt Crawler is a card-based dungeon crawler where **every monster is a puzzle**. The player navigates a small procedurally-generated crypt, gathering information through scouting, setting traps, and managing a card deck to defeat unique enemies. The dungeon is alive — monsters react to sound and light between turns, roam, reproduce, and investigate.
+Crypt Crawler is a card-based dungeon crawler where **every dungeon is a puzzle**. The player navigates a small procedurally-generated crypt, gathering information through scouting, setting traps, and managing equipment and abilities defeat unique enemies. The dungeon is alive — monsters react to sound and light between turns, roam, reproduce, and investigate.
 
 The tone is dark gothic horror, inspired by Darkest Dungeon. Art will come from **Latiencur's Crypt Stalkers** card deck (gothic creature illustrations).
 
 ---
 
 ## Core Loop
+
+Town:
+Player can perform different actions at different buildings, and upgrade them
+* Smithy: Purchase equipment
+* General store: Purchase consumables
+* Tavern: Learn about other dungeons
+* Old Shrine: Unlocks and upgrades divine abilities
+* Hunter's lodge: Unlocks and upgrades hunting skills (ranged, scouting, stealth)
+* Knight’s Chapterhouse: Train martial abilities and defensive techniques such as shield stances, counterattacks, and heavy weapon mastery.
+* Alchemist’s Workshop: Craft potions, toxins, oils, and explosives using materials recovered from dungeons.
+* Cartographer’s Study: Improves scouting accuracy, reveals additional dungeon structure, and unlocks advanced mapping tools.
+
+Only Smithy, General Store, and Tavern are unlocked initially.
+
+From the town, the player can move to any unlocked dungeon.
+The initial dungeon is smaller, with easier monsters.
 
 ```
 MAP SCREEN
@@ -30,23 +46,12 @@ BOSS ROOM — The Lich King
 ## Dungeon Structure
 
 ### Layout
-7 rooms, fixed-slot, branching graph:
-
-```
-        [BOSS]
-       /      \
-  [BR1]       [BR2]    ← shop or rest
-      |  [MID]  |      ← combat
-  [LEFT]     [RIGHT]   ← combat
-        \    /
-        [START]
-```
+Randomly generated, number of rooms depending on difficulty.
 
 - **Start**: Crypt Entrance. Player begins here, no enemies.
-- **Left / Right**: Two combat rooms on the first branch.
-- **Mid**: Third combat room, accessible from left or right.
-- **Branch 1 / Branch 2**: One is always a Rest room. The other is Shop (60%) or a second Rest room.
-- **Boss**: The Lich's Throne. Always last.
+- **Other rooms**: Rooms form a graph. Each room can have corridors up, left, right or down randomly.
+  - 80% of rooms contain monsters, randomly generated at the start of the dungeon.
+  - One room in the dungeon is the Boss' Room. It's usually on the far end.
 
 ### Room States
 | State | Meaning |
@@ -73,10 +78,8 @@ Every player action advances the dungeon clock by one **Dungeon Turn**. Between 
 | Move to adjacent room | Medium |
 | Listen at door | Quiet |
 | Peek through keyhole | Quiet |
-| Full scout | Quiet (but risky — can attract) |
 | Combat (victory or flee) | Loud |
-| Rest | Quiet |
-| Shop visit | Quiet |
+| Rest | Quiet, restores 5HP per dungeon turn (upgradable) |
 
 ### Monster AI Behaviours (per turn)
 
@@ -111,7 +114,6 @@ The player has **no knowledge** of enemy contents when entering a new area. They
 |--------|------|---------------|
 | 👂 **Listen** | 1 dungeon turn (quiet) | Ambient sound hint (room's flavour text) |
 | 🔑 **Peek** | 1 dungeon turn (quiet) | Rough count ("a few creatures") + first enemy type emoji |
-| 🕵 **Full Scout** | 1 dungeon turn (quiet) | Full enemy list by name |
 
 The enemy count badge on the map tile is **hidden** until scouted. The player sees no `3✖` badge — only what they've earned through scouting.
 
@@ -119,7 +121,7 @@ The enemy count badge on the map tile is **hidden** until scouted. The player se
 
 ## Preparation System
 
-Before entering a room the player can:
+Once a room is cleared, the player can set traps for incoming monsters:
 
 | Action | Cost | Effect |
 |--------|------|--------|
@@ -139,27 +141,22 @@ Turn-based card game. Player goes first.
 - **Energy**: 3 per turn (can be permanently upgraded to 4 or 5 via Soul Crystal).
 - **Block**: Absorbs damage before HP. Resets each turn.
 
+### Positioning
+- Enemies can be in front or back row
+- Melee attacks only reach front row. Ranged can reach back row
+
 ### Turn Structure
-1. Draw 5 cards from deck.
-2. Play cards spending energy.
-3. End Turn → enemies act → statuses tick → new turn.
+ Player selects an available move (depends on current equipment, inventory, known abilities, etc.)
+ Player selects target(s)
+ Monsters attack
+ Statuses tick
 
-### Cards
-
-**Starter Deck (11 cards)**
-| Card | Cost | Type | Effect |
-|------|------|------|--------|
-| Slash ×3 | 1 | Attack | 8 dmg |
-| Iron Ward ×2 | 1 | Defend | 7 block |
-| Fortify | 0 | Defend | 4 block (free) |
-| Swift Cut | 1 | Attack | 10 dmg |
-| Heavy Bash | 2 | Attack | 14 dmg |
-| Soul Drain | 1 | Attack | 6 dmg, heal 3 |
-| Hex Bolt | 1 | Attack | 5 dmg + Weaken |
-| Meditate | 1 | Skill | Draw 2 cards |
-
-**Shop / Reward Cards (15 total)**
-Cleave, Backstab, Bloodlust, Stone Wall, Refocus, Envenom, Blind Dust, Sunder, Power Word, Holy Water, Holy Smite, Bell of Silence, Burst Strike, Mass Smite, Dispel.
+### Moves
+Available moves are: 
+Attack: using current weapon
+Switch weapon: To any other
+Attempt to flee
+More unlocked later.
 
 ### Status Effects
 | Effect | Icon | Description |
@@ -167,12 +164,12 @@ Cleave, Backstab, Bloodlust, Stone Wall, Refocus, Envenom, Blind Dust, Sunder, P
 | Bleed | 🩸 | Lose HP per turn, ticks down |
 | Weaken | 💔 | Deal 25% less damage |
 | Blind | 👁️ | 30% miss chance |
-| Silence | 🔇 | Can't play Skill cards |
+| Silence | 🔇 | Can't use Skills |
 | Poison | 🐍 | Lose HP per turn (stacks, doesn't tick down) |
 | Stun | ⚡ | Skip next action |
 
 ### Flee
-The player can flee combat at any time. They return to the map at the room they fled from, with current HP. The dungeon turn ticks (medium noise).
+The player can attempt to flee combat at any time, towards any direction. If unsuccessful, monsters get one more turn. If successful, the player appears in the new room. The dungeon turn ticks (medium noise). After that, some monsters might follow in upcoming turns.
 
 ---
 
@@ -193,27 +190,6 @@ Each monster has a **unique in-combat mechanic** that requires a different strat
 | 🌑 The Shadow | 25 | 11 | **Light Drain**: reduces light level each turn. Darkness = discard a card | Kill quickly or carry torches. |
 | ☠️ Lich King (Boss) | 90 | 15 | **Raise Dead**: revives fallen enemies each round | AoE to keep adds down. High DPS. |
 
----
-
-## Shop
-
-The Wandering Merchant appears in one room per run (60% chance, otherwise replaced by a Rest room).
-
-| Item | Cost | Effect |
-|------|------|--------|
-| 🧪 Vial of Blood | 20g | Restore 15 HP |
-| ⚗️ Dark Elixir | 35g | Restore 30 HP |
-| 💎 Soul Crystal | 40g | Permanently +1 max energy |
-| 🕯️ Curse Removal | 25g | Remove any card from your deck |
-| Cards ×3 | 25g each | 3 random cards from the reward pool |
-
----
-
-## Rest Rooms
-
-Restore **30% of max HP** (18 HP at base stats). Cannot be re-rested. Cleared after first use.
-
----
 
 ## Map Fog of War
 

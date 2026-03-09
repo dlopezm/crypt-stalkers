@@ -12,6 +12,6 @@ export const STATUS_ICONS: Record<StatusKey, string> = {
 
 export const STATUS_DESC: Record<StatusKey, string> = {
   bleed: "Lose HP each turn", weaken: "Deal 25% less dmg",
-  blind: "30% miss chance", silence: "Can't play Skills",
+  blind: "30% miss chance", silence: "Can't use Abilities",
   poison: "Lose HP (stacks)", stun: "Skip next action",
 };

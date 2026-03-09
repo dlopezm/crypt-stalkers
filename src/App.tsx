@@ -1,20 +1,21 @@
 import { useState } from "react";
-import { TRAP_INFO, TYPE_COLOR } from "./data/rooms";
-import { uid, makeStarterDeck } from "./utils/helpers";
+import { TRAP_INFO, TYPE_COLOR, DUNGEONS } from "./data/rooms";
+import { makeStarterPlayer } from "./utils/helpers";
 import { generateDungeon, runDungeonAI } from "./utils/dungeon";
 import { TitleScreen } from "./components/TitleScreen";
+import { TownScreen } from "./components/TownScreen";
 import { DungeonMap } from "./components/DungeonMap";
 import { CombatScreen } from "./components/CombatScreen";
-import { ShopScreen } from "./components/ShopScreen";
 import { RestScreen } from "./components/RestScreen";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
-import type { DungeonNode, Player, CombatPlayer, DungeonLogEntry, ShopItem } from "./types";
+import type { DungeonNode, DungeonDef, Player, CombatPlayer, DungeonLogEntry } from "./types";
 
-type Screen = "title" | "map" | "combat" | "rest" | "shop" | "victory" | "gameover";
+type Screen = "title" | "town" | "map" | "combat" | "rest" | "victory" | "gameover";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("title");
   const [dungeon, setDungeon] = useState<DungeonNode[] | null>(null);
+  const [dungeonDef, setDungeonDef] = useState<DungeonDef | null>(null);
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
   const [dungeonLog, setDungeonLog] = useState<DungeonLogEntry[]>([]);
@@ -34,14 +35,34 @@ export default function App() {
     return newDungeon;
   }
 
-  function startGame() {
-    const d = generateDungeon();
-    const p: Player = { hp: 60, maxHp: 60, gold: 0, maxEnergy: 3, statuses: {}, deck: makeStarterDeck() };
-    setDungeon(d); setPlayer(p); setCurrentRoomId("start");
-    setDungeonLog([]); setDungeonTurn(0);
+  /* ── New Game ── */
+  function startNewGame() {
+    setPlayer(makeStarterPlayer());
+    setScreen("town");
+  }
+
+  /* ── Enter Dungeon from Town ── */
+  function enterDungeon(def: DungeonDef) {
+    if (!player) return;
+    const d = generateDungeon(def);
+    setDungeon(d);
+    setDungeonDef(def);
+    setCurrentRoomId("start");
+    setDungeonLog([]);
+    setDungeonTurn(0);
     setScreen("map");
   }
 
+  /* ── Return to Town ── */
+  function returnToTown(p?: Player) {
+    if (p) setPlayer(p);
+    setDungeon(null);
+    setDungeonDef(null);
+    setCurrentRoomId(null);
+    setScreen("town");
+  }
+
+  /* ── Dungeon Navigation ── */
   function enterRoom(roomId: string) {
     if (!dungeon || !currentRoomId) return;
     const room = dungeon.find(n => n.id === roomId);
@@ -53,7 +74,6 @@ export default function App() {
     setCurrentRoomId(roomId);
     if (room.type === "combat" || room.type === "boss") setScreen("combat");
     else if (room.type === "rest") setScreen("rest");
-    else if (room.type === "shop") setScreen("shop");
   }
 
   function markCleared(roomId: string) {
@@ -80,7 +100,7 @@ export default function App() {
         return n;
       });
     });
-    const { hand: _, drawPile: _dp, discard: _d, energy: _e, block: _b, ...playerState } = newPlayer;
+    const { block: _b, stealthActive: _st, counterActive: _c, ...playerState } = newPlayer;
     setPlayer(playerState);
     const room = dungeon.find(n => n.id === currentRoomId);
     if (room?.type === "boss") { setScreen("victory"); return; }
@@ -96,7 +116,7 @@ export default function App() {
     if (!dungeon || !currentRoomId) return;
     const afterAI = tickAI(dungeon, currentRoomId, "move");
     setDungeon(afterAI);
-    const { hand: _, drawPile: _dp, discard: _d, energy: _e, block: _b, ...playerState } = newPlayer;
+    const { block: _b, stealthActive: _st, counterActive: _c, ...playerState } = newPlayer;
     setPlayer(playerState);
     setScreen("map");
   }
@@ -108,18 +128,6 @@ export default function App() {
     setDungeon(afterAI);
     markCleared(currentRoomId);
     setScreen("map");
-  }
-
-  function onShopBuy(item: ShopItem) {
-    setPlayer(p => {
-      if (!p) return p;
-      const np = { ...p, gold: p.gold - item.cost };
-      if (item.effect === "heal") np.hp = Math.min(np.maxHp, np.hp + item.value);
-      if (item.effect === "energy") np.maxEnergy = np.maxEnergy + item.value;
-      if (item.effect === "addcard" && item.card) np.deck = [...np.deck, { ...item.card, uid: uid(item.card.id) }];
-      if (item.effect === "remove") np.deck = np.deck.filter(c => c.uid !== item.targetCard);
-      return np;
-    });
   }
 
   function onSetTrap(roomId: string, trapKey: string) {
@@ -141,11 +149,25 @@ export default function App() {
     addLog([`\u{1F50D} [T${dungeonTurn}] Scout (level ${scoutLevel}) on ${dungeon.find(n => n.id === roomId)?.label || roomId}`]);
   }
 
-  if (screen === "title") return <TitleScreen onStart={startGame} />;
-  if (screen === "victory") return <VictoryScreen gold={player?.gold || 0} onRestart={() => setScreen("title")} />;
-  if (screen === "gameover") return <GameOverScreen gold={player?.gold || 0} onRestart={() => setScreen("title")} />;
+  /* ── Rendering ── */
+  if (screen === "title") return <TitleScreen onStart={startNewGame} />;
+
+  if (screen === "town" && player) {
+    return <TownScreen player={player} onUpdatePlayer={setPlayer} onEnterDungeon={enterDungeon} />;
+  }
+
+  if (screen === "victory") {
+    return <VictoryScreen gold={player?.gold || 0} onReturn={() => returnToTown()} />;
+  }
+  if (screen === "gameover") {
+    const penaltyGold = Math.floor((player?.gold || 0) * 0.75);
+    return <GameOverScreen gold={penaltyGold}
+      onReturn={() => { if (player) setPlayer({ ...player, gold: penaltyGold, hp: player.maxHp, statuses: {} }); returnToTown(); }} />;
+  }
 
   if (!dungeon || !player || !currentRoomId) return null;
+
+  const dungeonName = dungeonDef?.name || "The Crypt";
 
   const debugOverlay = showDebug && debugMode && (
     <div className="fixed top-0 right-0 w-[380px] h-screen bg-[#080610ee] border-l border-[#2a1f40] z-100 flex flex-col overflow-hidden font-mono text-sm">
@@ -192,19 +214,17 @@ export default function App() {
         </button>
       )}
       <DungeonMap dungeon={dungeon} player={player} currentRoomId={currentRoomId}
+        dungeonName={dungeonName}
         debugMode={debugMode} dungeonTurn={dungeonTurn}
         onEnterRoom={enterRoom} onScout={onScout}
         onSetTrap={onSetTrap} onBlockDoor={onBlockDoor}
-        onToggleDebug={() => setDebugMode(d => !d)} />
+        onToggleDebug={() => setDebugMode(d => !d)}
+        onReturnToTown={() => returnToTown()} />
     </>
   );
 
   if (screen === "rest") {
     return <RestScreen player={player} onRest={onRest} onLeave={() => { markCleared(currentRoomId); setScreen("map"); }} />;
-  }
-
-  if (screen === "shop") {
-    return <ShopScreen player={player} onBuy={onShopBuy} onLeave={() => { markCleared(currentRoomId); setScreen("map"); }} />;
   }
 
   if (screen === "combat") {

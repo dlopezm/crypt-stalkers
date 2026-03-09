@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { btnStyle } from "../styles";
-import { TRAP_INFO, TYPE_COLOR, TYPE_ICON, SLOT_POS, MAP_W, MAP_H, ROOM_W_SM, ROOM_H_SM, ROOM_W_LG, ROOM_H_LG, COR_THICK } from "../data/rooms";
+import { TRAP_INFO, TYPE_COLOR, TYPE_ICON, ROOM_W_SM, ROOM_H_SM, ROOM_W_LG, ROOM_H_LG, COR_THICK } from "../data/rooms";
 import { getScoutIntel } from "../utils/dungeon";
 import { StatusBadges, HpBar } from "./shared";
 import type { DungeonNode, Player } from "../types";
 
 function corridorRect(a: DungeonNode, b: DungeonNode) {
   const hw = ROOM_W_SM / 2, hh = ROOM_H_SM / 2;
-  const { cx: ax, cy: ay } = SLOT_POS[a.slot];
-  const { cx: bx, cy: by } = SLOT_POS[b.slot];
+  const ax = a.cx, ay = a.cy, bx = b.cx, by = b.cy;
   if (Math.abs(by - ay) >= Math.abs(bx - ax)) {
     const top = Math.min(ay, by) + hh, bottom = Math.max(ay, by) - hh;
     return { x: (ax + bx) / 2 - COR_THICK / 2, y: Math.min(top, bottom), w: COR_THICK, h: Math.abs(bottom - top) };
@@ -30,9 +29,8 @@ function RoomTile({ node, isSelected, isAdjacent, onClick }: {
   const border = isSelected ? "#e74c3c" : isAdjacent && !visited ? "#7a4018" : visited ? "#3a2a14" : "#18121e";
   const wallCol = visited ? "#4a3a1e" : isAdjacent ? "#382818" : "#201828";
   const dotCol = visited ? "#342810" : isAdjacent ? "#28180c" : "#181220";
-  const featColor = type === "boss" ? "#e74c3c" : type === "rest" ? "#3ddc84" : type === "shop" ? "#f0c040" : "#e88070";
-  const featGlyph = cleared ? "\u2713" : type === "combat" ? "\u2716" : type === "rest" ? "\u263D" : type === "shop" ? "$" : type === "boss" ? "\u2620" : "\u2191";
-  const { cx, cy } = SLOT_POS[node.slot];
+  const featColor = type === "boss" ? "#e74c3c" : type === "rest" ? "#3ddc84" : "#e88070";
+  const featGlyph = cleared ? "\u2713" : type === "combat" ? "\u2716" : type === "rest" ? "\u263D" : type === "boss" ? "\u2620" : "\u2191";
 
   const COLS = 4, ROWS = 3;
   const grid = Array.from({ length: ROWS }, (_, r) => Array.from({ length: COLS }, (_, c) => {
@@ -44,7 +42,7 @@ function RoomTile({ node, isSelected, isAdjacent, onClick }: {
   return (
     <div onClick={canClick ? onClick : undefined} style={{
       position: "absolute",
-      left: cx - ROOM_W_SM / 2, top: cy - ROOM_H_SM / 2,
+      left: node.cx - ROOM_W_SM / 2, top: node.cy - ROOM_H_SM / 2,
       width: ROOM_W_SM, height: ROOM_H_SM,
       background: bg, border: `2px solid ${border}`, borderRadius: "3px",
       cursor: canClick ? "pointer" : "default",
@@ -92,9 +90,8 @@ function CurrentRoomTile({ node, isSelected, onClick }: {
   const { type, state, enemies, trap, blocked } = node;
   const cleared = state === "cleared";
   const tc = TYPE_COLOR[type] || "#7f8c8d";
-  const featColor = type === "boss" ? "#e74c3c" : type === "rest" ? "#3ddc84" : type === "shop" ? "#f0c040" : type === "start" ? "#a0b0b8" : "#e88070";
-  const featGlyph = cleared ? "\u2713" : type === "combat" ? "\u2716" : type === "rest" ? "\u263D" : type === "shop" ? "$" : type === "boss" ? "\u2620" : "\u2191";
-  const { cx, cy } = SLOT_POS[node.slot];
+  const featColor = type === "boss" ? "#e74c3c" : type === "rest" ? "#3ddc84" : type === "start" ? "#a0b0b8" : "#e88070";
+  const featGlyph = cleared ? "\u2713" : type === "combat" ? "\u2716" : type === "rest" ? "\u263D" : type === "boss" ? "\u2620" : "\u2191";
 
   const COLS = 9, ROWS = 6;
   const grid = Array.from({ length: ROWS }, (_, r) => Array.from({ length: COLS }, (_, c) => {
@@ -107,7 +104,7 @@ function CurrentRoomTile({ node, isSelected, onClick }: {
   return (
     <div onClick={onClick} style={{
       position: "absolute",
-      left: cx - ROOM_W_LG / 2, top: cy - ROOM_H_LG / 2,
+      left: node.cx - ROOM_W_LG / 2, top: node.cy - ROOM_H_LG / 2,
       width: ROOM_W_LG, height: ROOM_H_LG,
       background: "#201808",
       border: `2px solid ${isSelected ? "#e74c3c" : "#d4a830"}`,
@@ -162,10 +159,11 @@ function CurrentRoomTile({ node, isSelected, onClick }: {
   );
 }
 
-export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonTurn, onEnterRoom, onScout, onSetTrap, onBlockDoor, onToggleDebug }: {
+export function DungeonMap({ dungeon, player, currentRoomId, dungeonName, debugMode, dungeonTurn, onEnterRoom, onScout, onSetTrap, onBlockDoor, onToggleDebug, onReturnToTown }: {
   dungeon: DungeonNode[];
   player: Player;
   currentRoomId: string;
+  dungeonName: string;
   debugMode: boolean;
   dungeonTurn: number;
   onEnterRoom: (id: string) => void;
@@ -173,13 +171,17 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
   onSetTrap: (id: string, trap: string) => void;
   onBlockDoor: (id: string) => void;
   onToggleDebug: () => void;
+  onReturnToTown: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [scoutResult, setScoutResult] = useState<string | null>(null);
   const [scoutLevel, setScoutLevel] = useState(0);
 
   const node = selected ? dungeon.find(n => n.id === selected) : null;
-  const typeColor: Record<string, string> = { combat: "#c0392b", rest: "#3ddc84", shop: "#f0c040", boss: "#e74c3c", start: "#7f8c8d" };
+  const typeColor: Record<string, string> = { combat: "#c0392b", rest: "#3ddc84", boss: "#e74c3c", start: "#7f8c8d" };
+
+  const mapW = Math.max(...dungeon.map(n => n.cx)) + 140;
+  const mapH = Math.max(...dungeon.map(n => n.cy)) + 80;
 
   const corridors: { a: DungeonNode; b: DungeonNode; key: string }[] = [];
   const seen = new Set<string>();
@@ -227,19 +229,19 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
       <div className="flex gap-4 items-center relative z-1 flex-wrap justify-center">
         <h2 className="text-xl tracking-[0.15em] uppercase text-crypt-red-glow font-bold"
           style={{ textShadow: "0 0 20px #8b0000" }}>
-          {"\u2620"} The Crypt
+          {"\u2620"} {dungeonName}
         </h2>
         <div className="flex gap-4 items-center text-base">
           <span className="text-crypt-text">{"\u2764"} {player.hp}/{player.maxHp}</span>
           <span className="text-crypt-gold">{"\u{1FA99}"} {player.gold}</span>
-          <span className="text-crypt-muted">{"\u{1F4DC}"} {player.deck.length}</span>
+          <span className="text-crypt-muted">{"\u{1F5E1}\uFE0F"} {player.weapons[player.activeWeaponIdx]?.name}</span>
         </div>
       </div>
 
       <div className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full px-4">
         {/* Map canvas */}
         <div className="relative shrink-0 overflow-hidden rounded-md border border-crypt-border-dim"
-          style={{ width: `${MAP_W}px`, height: `${MAP_H}px`, background: "#0a0810" }}>
+          style={{ width: `${mapW}px`, height: `${mapH}px`, background: "#0a0810" }}>
           {/* Grid texture */}
           <div className="absolute inset-0 pointer-events-none z-0 opacity-[0.04]"
             style={{ backgroundImage: "repeating-linear-gradient(0deg,#ccc 0,#ccc 1px,transparent 1px,transparent 10px),repeating-linear-gradient(90deg,#ccc 0,#ccc 1px,transparent 1px,transparent 10px)" }} />
@@ -284,12 +286,11 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
             if (n.id === currentRoomId) return null;
             const visited = n.state === "visited" || n.state === "cleared";
             if (!visited && !adjacentIds.has(n.id)) return null;
-            const { cx, cy } = SLOT_POS[n.slot];
             const tc = TYPE_COLOR[n.type] || "#7f8c8d";
             return (
               <div key={n.id + "-lbl"} style={{
                 position: "absolute",
-                left: cx, top: cy + ROOM_H_SM / 2 + 4,
+                left: n.cx, top: n.cy + ROOM_H_SM / 2 + 4,
                 transform: "translateX(-50%)",
                 fontSize: "0.7rem",
                 color: visited ? tc : "#5a4028",
@@ -342,7 +343,7 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
                 {(adjacentIds.has(node.id) || debugMode) && node.state !== "cleared" && node.state !== "locked" && (
                   <button style={btnStyle(typeColor[node.type] || "#8b0000")}
                     onClick={() => { onEnterRoom(node.id); setSelected(null); }}>
-                    {node.type === "combat" ? "\u2694 Enter" : node.type === "rest" ? "\u{1F56F} Rest" : node.type === "shop" ? "\u{1F4B0} Shop" : "\u2620 Enter \u2014 Lich"}
+                    {node.type === "combat" ? "\u2694 Enter" : node.type === "rest" ? "\u{1F56F} Rest" : "\u2620 Enter \u2014 Boss"}
                   </button>
                 )}
 
@@ -391,7 +392,7 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
             <div className="panel">
               <p className="text-base text-crypt-muted leading-relaxed mb-3">Click any visible room.</p>
               <div className="flex flex-col gap-1.5">
-                {([["\u2694", "combat", "#c0392b"], ["\u{1F56F}", "rest", "#3ddc84"], ["\u{1F4B0}", "shop", "#f0c040"], ["\u2620", "boss", "#e74c3c"]] as const).map(([icon, label, color]) => (
+                {([["\u2694", "combat", "#c0392b"], ["\u{1F56F}", "rest", "#3ddc84"], ["\u2620", "boss", "#e74c3c"]] as const).map(([icon, label, color]) => (
                   <span key={label} className="text-sm" style={{ color }}>{icon} {label}</span>
                 ))}
               </div>
@@ -404,9 +405,14 @@ export function DungeonMap({ dungeon, player, currentRoomId, debugMode, dungeonT
             <HpBar current={player.hp} max={player.maxHp} color="#3ddc84" />
             <StatusBadges statuses={player.statuses} />
             <div className="text-sm text-crypt-muted mt-2">
-              {"\u26A1"} {player.maxEnergy} energy {"\u00B7"} {"\u{1F4DC}"} {player.deck.length} cards
+              {"\u{1F392}"} {player.consumables.length} items
             </div>
           </div>
+
+          <button onClick={onReturnToTown} style={btnStyle("#3a2f25")}
+            className="text-xs!">
+            {"\u{1F3F0}"} Abandon Dungeon
+          </button>
 
           <button onClick={onToggleDebug} style={btnStyle(debugMode ? "#9b59b6" : "#2a1f40")}
             className="text-xs!">

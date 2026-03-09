@@ -1,30 +1,76 @@
 export type StatusKey = "bleed" | "weaken" | "blind" | "silence" | "poison" | "stun";
 export type Statuses = Partial<Record<StatusKey, number>>;
 
-export type CardType = "attack" | "defend" | "skill";
+/* ── Equipment & Abilities ── */
 
-export interface Card {
+export interface Weapon {
   id: string;
   name: string;
-  cost: number;
-  type: CardType;
-  value: number;
+  damage: number;
+  range: "melee" | "ranged";
+  icon: string;
   desc: string;
-  color: string;
-  uid: string;
-  draw?: number;
-  heal?: number;
-  healOnHit?: boolean;
-  aoe?: boolean;
-  exhaust?: boolean;
-  gainEnergy?: number;
-  cleanse?: boolean;
+  cost: number;
   holy?: boolean;
+  aoe?: boolean;
   finishing?: boolean;
-  applyStatus?: { target: "enemy"; status: StatusKey; stacks: number };
+  applyStatus?: { status: StatusKey; stacks: number; chance: number };
 }
 
-export type CardTemplate = Omit<Card, "uid">;
+export interface Consumable {
+  id: string;
+  name: string;
+  icon: string;
+  desc: string;
+  cost: number;
+  heal?: number;
+  damage?: number;
+  damageRange?: "melee" | "ranged";
+  holy?: boolean;
+  aoe?: boolean;
+  block?: number;
+  cleanse?: boolean;
+  restoreLight?: number;
+  applyStatus?: { status: StatusKey; stacks: number };
+}
+
+export interface Ability {
+  id: string;
+  name: string;
+  icon: string;
+  desc: string;
+  building: string;
+  buildingLevel: number;
+  damage?: number;
+  damageRange?: "melee" | "ranged";
+  holy?: boolean;
+  aoe?: boolean;
+  finishing?: boolean;
+  block?: number;
+  heal?: number;
+  applyStatus?: { status: StatusKey; stacks: number };
+  selfBuff?: "stealth" | "counter";
+  needsTarget?: boolean;
+}
+
+/* ── Town Buildings ── */
+
+export interface BuildingDef {
+  id: string;
+  name: string;
+  icon: string;
+  desc: string;
+  initiallyUnlocked: boolean;
+  unlockCost: number;
+  upgradeCost: number;
+}
+
+export interface BuildingState {
+  unlocked: boolean;
+  level: number;
+}
+
+/* ── Enemies ── */
 
 export interface EnemyAI {
   noiseAttract?: boolean;
@@ -47,6 +93,7 @@ export interface EnemyType {
   evadeChance?: number;
   ambushTurns?: number;
   isBoss?: boolean;
+  defaultRow: "front" | "back";
 }
 
 export interface Enemy extends EnemyType {
@@ -56,9 +103,12 @@ export interface Enemy extends EnemyType {
   reassembled: boolean;
   summonCooldown: number;
   uid: string;
+  row: "front" | "back";
 }
 
-export type RoomType = "combat" | "rest" | "shop" | "boss" | "start";
+/* ── Dungeon ── */
+
+export type RoomType = "combat" | "rest" | "boss" | "start";
 export type RoomState = "locked" | "reachable" | "visited" | "cleared";
 
 export interface RoomTemplate {
@@ -68,11 +118,32 @@ export interface RoomTemplate {
   hint: string;
 }
 
-export type SlotName = "start" | "left" | "right" | "mid" | "branch1" | "branch2" | "boss";
+export interface DungeonSlotDef {
+  slot: string;
+  type: "start" | "combat" | "rest" | "boss";
+  col: number;
+  row: number;
+  cx: number;
+  cy: number;
+}
+
+export interface DungeonDef {
+  id: string;
+  name: string;
+  desc: string;
+  difficulty: number;
+  slots: DungeonSlotDef[];
+  connections: [string, string][];
+  combatRooms: RoomTemplate[];
+  restRooms: RoomTemplate[];
+  bossRoom: RoomTemplate;
+  mapW: number;
+  mapH: number;
+}
 
 export interface DungeonNode {
   id: string;
-  slot: SlotName;
+  slot: string;
   label: string;
   type: RoomType;
   enemies: string[];
@@ -80,28 +151,35 @@ export interface DungeonNode {
   state: RoomState;
   col: number;
   row: number;
+  cx: number;
+  cy: number;
   connections: string[];
   trap: string | null;
   blocked: boolean;
   scouted: boolean;
 }
 
+/* ── Player ── */
+
 export interface Player {
   hp: number;
   maxHp: number;
   gold: number;
-  maxEnergy: number;
   statuses: Statuses;
-  deck: Card[];
+  weapons: Weapon[];
+  activeWeaponIdx: number;
+  consumables: Consumable[];
+  abilities: string[];
+  buildings: Record<string, BuildingState>;
 }
 
 export interface CombatPlayer extends Player {
-  hand: Card[];
-  drawPile: Card[];
-  discard: Card[];
-  energy: number;
   block: number;
+  stealthActive: boolean;
+  counterActive: boolean;
 }
+
+/* ── Misc ── */
 
 export interface TrapInfo {
   label: string;
@@ -109,18 +187,6 @@ export interface TrapInfo {
   desc: string;
   cost: number;
   color: string;
-}
-
-export interface ShopItem {
-  id: string;
-  label: string;
-  icon: string;
-  desc: string;
-  cost: number;
-  effect: string;
-  value: number;
-  card?: CardTemplate;
-  targetCard?: string;
 }
 
 export interface DungeonLogEntry {
