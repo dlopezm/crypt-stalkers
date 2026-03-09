@@ -10,19 +10,12 @@ function connectNodes(a: DungeonNode, b: DungeonNode) {
 
 export function generateDungeon(def: DungeonDef): DungeonNode[] {
   const combatPool = shuffle([...def.combatRooms]);
-  const restPool = shuffle([...def.restRooms]);
 
   let combatIdx = 0;
-  let restIdx = 0;
 
-  function pickTemplate(type: "start" | "combat" | "rest" | "boss"): RoomTemplate {
+  function pickTemplate(type: "start" | "combat" | "boss"): RoomTemplate {
     if (type === "start") return { type: "start", label: "Entrance", enemies: [], hint: "" };
     if (type === "boss") return { ...def.bossRoom };
-    if (type === "rest") {
-      const t = restPool[restIdx % restPool.length];
-      restIdx++;
-      return { ...t };
-    }
     const t = combatPool[combatIdx % combatPool.length];
     combatIdx++;
     return { ...t };
@@ -31,32 +24,20 @@ export function generateDungeon(def: DungeonDef): DungeonNode[] {
   // Generate rows procedurally based on difficulty
   // More difficulty = more rows and wider rows
   const midRowCount = def.difficulty + 2; // 3, 4, 5 middle rows
-  const rows: { type: "start" | "combat" | "rest" | "boss"; col: number }[][] = [];
+  const rows: { type: "start" | "combat" | "boss"; col: number }[][] = [];
 
   // Start row
   rows.push([{ type: "start", col: 1 }]);
 
-  // Middle rows: randomize width (1-3 rooms) with rest rooms scattered
-  const totalMidRooms = midRowCount * 2 + Math.floor(Math.random() * (def.difficulty + 1));
-  const restCount = Math.max(1, Math.floor(totalMidRooms * 0.25));
-  const restPositions = new Set<number>();
-  // Place rest rooms in middle rows (not first or last middle row)
-  while (restPositions.size < restCount) {
-    const pos = 1 + Math.floor(Math.random() * (totalMidRooms - 1));
-    restPositions.add(pos);
-  }
-
-  let roomCounter = 0;
+  // Middle rows: randomize width (1-3 rooms), all combat
   for (let r = 0; r < midRowCount; r++) {
     const maxWidth = Math.min(3, 1 + def.difficulty);
     const width = 1 + Math.floor(Math.random() * maxWidth);
-    const row: { type: "combat" | "rest"; col: number }[] = [];
+    const row: { type: "combat"; col: number }[] = [];
     for (let c = 0; c < width; c++) {
-      const type = restPositions.has(roomCounter) ? "rest" : "combat";
-      row.push({ type, col: c });
-      roomCounter++;
+      row.push({ type: "combat", col: c });
     }
-    rows.push(row as { type: "start" | "combat" | "rest" | "boss"; col: number }[]);
+    rows.push(row);
   }
 
   // Boss row

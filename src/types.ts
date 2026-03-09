@@ -108,7 +108,7 @@ export interface Enemy extends EnemyType {
 
 /* ── Dungeon ── */
 
-export type RoomType = "combat" | "rest" | "boss" | "start";
+export type RoomType = "combat" | "boss" | "start";
 export type RoomState = "locked" | "reachable" | "visited" | "cleared";
 
 export interface RoomTemplate {
@@ -124,7 +124,6 @@ export interface DungeonDef {
   desc: string;
   difficulty: number;
   combatRooms: RoomTemplate[];
-  restRooms: RoomTemplate[];
   bossRoom: RoomTemplate;
 }
 

@@ -96,17 +96,6 @@ const HARD_COMBAT: RoomTemplate[] = [
   },
 ];
 
-const REST_ROOMS: RoomTemplate[] = [
-  {
-    type: "rest",
-    label: "Forgotten Alcove",
-    enemies: [],
-    hint: "silence \u2014 not the dangerous kind",
-  },
-  { type: "rest", label: "Collapsed Chapel", enemies: [], hint: "dust and faint candlelight" },
-  { type: "rest", label: "Old Barracks", enemies: [], hint: "empty cots, a stale breeze" },
-];
-
 /* ── Dungeon Definitions ── */
 
 export const DUNGEONS: DungeonDef[] = [
@@ -116,7 +105,6 @@ export const DUNGEONS: DungeonDef[] = [
     desc: "A small burial site on the outskirts. Rats and old bones.",
     difficulty: 1,
     combatRooms: EASY_COMBAT,
-    restRooms: REST_ROOMS,
     bossRoom: {
       type: "boss",
       label: "The Bone Throne",
@@ -130,7 +118,6 @@ export const DUNGEONS: DungeonDef[] = [
     desc: "A branching dungeon of 7 rooms. Undead, wraiths, and worse.",
     difficulty: 2,
     combatRooms: MED_COMBAT,
-    restRooms: REST_ROOMS,
     bossRoom: {
       type: "boss",
       label: "The Blood Altar",
@@ -144,7 +131,6 @@ export const DUNGEONS: DungeonDef[] = [
     desc: "A sprawling tomb complex. Necromancers, shadows, and the Lich King himself.",
     difficulty: 3,
     combatRooms: HARD_COMBAT,
-    restRooms: REST_ROOMS,
     bossRoom: {
       type: "boss",
       label: "The Lich's Throne",
@@ -182,13 +168,11 @@ export const TRAP_INFO: Record<string, TrapInfo> = {
 
 export const TYPE_COLOR: Record<string, string> = {
   combat: "#c0392b",
-  rest: "#2ecc71",
   boss: "#e74c3c",
   start: "#7f8c8d",
 };
 export const TYPE_ICON: Record<string, string> = {
   combat: "\u2694",
-  rest: "\u{1F56F}",
   boss: "\u2620",
   start: "\u{1F6AA}",
 };

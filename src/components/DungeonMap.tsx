@@ -70,16 +70,14 @@ function RoomTile({
         : "#18121e";
   const wallCol = visited ? "#4a3a1e" : isAdjacent ? "#382818" : "#201828";
   const dotCol = visited ? "#342810" : isAdjacent ? "#28180c" : "#181220";
-  const featColor = type === "boss" ? "#e74c3c" : type === "rest" ? "#3ddc84" : "#e88070";
+  const featColor = type === "boss" ? "#e74c3c" : "#e88070";
   const featGlyph = cleared
     ? "\u2713"
     : type === "combat"
       ? "\u2716"
-      : type === "rest"
-        ? "\u263D"
-        : type === "boss"
-          ? "\u2620"
-          : "\u2191";
+      : type === "boss"
+        ? "\u2620"
+        : "\u2191";
 
   const COLS = 4,
     ROWS = 3;
@@ -201,23 +199,14 @@ function CurrentRoomTile({
   const { type, state, enemies, trap, blocked } = node;
   const cleared = state === "cleared";
   const tc = TYPE_COLOR[type] || "#7f8c8d";
-  const featColor =
-    type === "boss"
-      ? "#e74c3c"
-      : type === "rest"
-        ? "#3ddc84"
-        : type === "start"
-          ? "#a0b0b8"
-          : "#e88070";
+  const featColor = type === "boss" ? "#e74c3c" : type === "start" ? "#a0b0b8" : "#e88070";
   const featGlyph = cleared
     ? "\u2713"
     : type === "combat"
       ? "\u2716"
-      : type === "rest"
-        ? "\u263D"
-        : type === "boss"
-          ? "\u2620"
-          : "\u2191";
+      : type === "boss"
+        ? "\u2620"
+        : "\u2191";
 
   const COLS = 9,
     ROWS = 6;
@@ -411,7 +400,6 @@ export function DungeonMap({
   const node = selected ? dungeon.find((n) => n.id === selected) : null;
   const typeColor: Record<string, string> = {
     combat: "#c0392b",
-    rest: "#3ddc84",
     boss: "#e74c3c",
     start: "#7f8c8d",
   };
@@ -648,11 +636,7 @@ export function DungeonMap({
                         setSelected(null);
                       }}
                     >
-                      {node.type === "combat"
-                        ? "\u2694 Enter"
-                        : node.type === "rest"
-                          ? "\u{1F56F} Rest"
-                          : "\u2620 Enter \u2014 Boss"}
+                      {node.type === "boss" ? "\u2620 Enter \u2014 Boss" : "\u2694 Enter"}
                     </button>
                   )}
 
@@ -746,7 +730,6 @@ export function DungeonMap({
                 {(
                   [
                     ["\u2694", "combat", "#c0392b"],
-                    ["\u{1F56F}", "rest", "#3ddc84"],
                     ["\u2620", "boss", "#e74c3c"],
                   ] as const
                 ).map(([icon, label, color]) => (
@@ -775,7 +758,7 @@ export function DungeonMap({
             disabled={player.hp >= player.maxHp}
             style={btnStyle("#27ae60", player.hp >= player.maxHp)}
           >
-            {"\u{1FA79}"} Rest (+{Math.floor(player.maxHp * 0.3)} HP)
+            {"\u{1FA79}"} Rest (+{Math.floor(player.maxHp * 0.05)} HP)
           </button>
 
           <button onClick={onReturnToTown} style={btnStyle("#3a2f25")} className="text-xs!">

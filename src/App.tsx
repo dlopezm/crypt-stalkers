@@ -6,11 +6,10 @@ import { TitleScreen } from "./components/TitleScreen";
 import { TownScreen } from "./components/TownScreen";
 import { DungeonMap } from "./components/DungeonMap";
 import { CombatScreen } from "./components/CombatScreen";
-import { RestScreen } from "./components/RestScreen";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
 import type { DungeonNode, DungeonDef, Player, CombatPlayer, DungeonLogEntry } from "./types";
 
-type Screen = "title" | "town" | "map" | "combat" | "rest" | "victory" | "gameover";
+type Screen = "title" | "town" | "map" | "combat" | "victory" | "gameover";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("title");
@@ -73,20 +72,6 @@ export default function App() {
     setDungeon(afterAI);
     setCurrentRoomId(roomId);
     if (room.type === "combat" || room.type === "boss") setScreen("combat");
-    else if (room.type === "rest") setScreen("rest");
-  }
-
-  function markCleared(roomId: string) {
-    setCurrentRoomId(roomId);
-    setDungeon((prev) => {
-      if (!prev) return prev;
-      return prev.map((n) => {
-        if (n.id === roomId) return { ...n, state: "cleared" as const, enemies: [] };
-        if (n.state === "locked" && prev.find((r) => r.id === roomId)?.connections.includes(n.id))
-          return { ...n, state: "reachable" as const };
-        return n;
-      });
-    });
   }
 
   function onCombatVictory(newPlayer: CombatPlayer) {
@@ -130,18 +115,9 @@ export default function App() {
     setScreen("map");
   }
 
-  function onRest(healAmt: number) {
-    if (!dungeon || !currentRoomId) return;
-    setPlayer((p) => (p ? { ...p, hp: Math.min(p.maxHp, p.hp + healAmt) } : p));
-    const afterAI = tickAI(dungeon, currentRoomId, "rest");
-    setDungeon(afterAI);
-    markCleared(currentRoomId);
-    setScreen("map");
-  }
-
   function onRestOnMap() {
     if (!dungeon || !currentRoomId || !player) return;
-    const healAmt = Math.floor(player.maxHp * 0.3);
+    const healAmt = Math.floor(player.maxHp * 0.1);
     setPlayer((p) => (p ? { ...p, hp: Math.min(p.maxHp, p.hp + healAmt) } : p));
     const afterAI = tickAI(dungeon, currentRoomId, "rest");
     setDungeon(afterAI);
@@ -289,19 +265,6 @@ export default function App() {
         />
       </>
     );
-
-  if (screen === "rest") {
-    return (
-      <RestScreen
-        player={player}
-        onRest={onRest}
-        onLeave={() => {
-          markCleared(currentRoomId);
-          setScreen("map");
-        }}
-      />
-    );
-  }
 
   if (screen === "combat") {
     const room = dungeon.find((n) => n.id === currentRoomId);
