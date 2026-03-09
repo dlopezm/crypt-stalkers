@@ -645,8 +645,50 @@ export function CombatScreen({
       </div>
 
       {/* Combatants */}
-      <div className="flex gap-4 relative z-1 flex-wrap justify-center items-start w-full px-4">
-        {/* Player panel */}
+      <div className="flex flex-col gap-2 relative z-1 items-center w-full px-4">
+        {/* Enemies by row — back row on top (furthest from player) */}
+        {backRow.length > 0 && (
+          <div>
+            <div className="text-[0.6rem] text-crypt-dim text-center tracking-wider mb-1 uppercase">
+              {"\u{1F6E1}"} Back Row
+            </div>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {enemies.map((enemy, i) => {
+                if (enemy.row !== "back" || enemy.hp <= 0) return null;
+                return (
+                  <EnemyPanel
+                    key={enemy.uid}
+                    enemy={enemy}
+                    targeted={isTargeting ? false : targetIdx === i}
+                    onClick={() => handleEnemyClick(i)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {frontRow.length > 0 && (
+          <div>
+            <div className="text-[0.6rem] text-crypt-dim text-center tracking-wider mb-1 uppercase">
+              {"\u2694"} Front Row
+            </div>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {enemies.map((enemy, i) => {
+                if (enemy.row !== "front" || enemy.hp <= 0) return null;
+                return (
+                  <EnemyPanel
+                    key={enemy.uid}
+                    enemy={enemy}
+                    targeted={isTargeting ? false : targetIdx === i}
+                    onClick={() => handleEnemyClick(i)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Player panel — below enemies */}
         <div className="panel" style={{ minWidth: "160px", maxWidth: "190px" }}>
           <div className="text-center text-2xl mb-0.5">{"\u{1F9DD}"}</div>
           <div className="text-sm font-bold text-crypt-text text-center mb-0.5">You</div>
@@ -674,52 +716,6 @@ export function CombatScreen({
               {weapon.damage} {weapon.range}
             </span>
           </div>
-        </div>
-
-        <div className="text-crypt-border text-lg self-center">{"\u2726"}</div>
-
-        {/* Enemies by row */}
-        <div className="flex flex-col gap-2 items-center">
-          {backRow.length > 0 && (
-            <div>
-              <div className="text-[0.6rem] text-crypt-dim text-center tracking-wider mb-1 uppercase">
-                {"\u{1F6E1}"} Back Row
-              </div>
-              <div className="flex gap-2 flex-wrap justify-center">
-                {enemies.map((enemy, i) => {
-                  if (enemy.row !== "back" || enemy.hp <= 0) return null;
-                  return (
-                    <EnemyPanel
-                      key={enemy.uid}
-                      enemy={enemy}
-                      targeted={isTargeting ? false : targetIdx === i}
-                      onClick={() => handleEnemyClick(i)}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {frontRow.length > 0 && (
-            <div>
-              <div className="text-[0.6rem] text-crypt-dim text-center tracking-wider mb-1 uppercase">
-                {"\u2694"} Front Row
-              </div>
-              <div className="flex gap-2 flex-wrap justify-center">
-                {enemies.map((enemy, i) => {
-                  if (enemy.row !== "front" || enemy.hp <= 0) return null;
-                  return (
-                    <EnemyPanel
-                      key={enemy.uid}
-                      enemy={enemy}
-                      targeted={isTargeting ? false : targetIdx === i}
-                      onClick={() => handleEnemyClick(i)}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
