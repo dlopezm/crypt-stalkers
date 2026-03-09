@@ -46,17 +46,19 @@ function RoomTile({
   node,
   isSelected,
   isAdjacent,
+  debugMode,
   onClick,
 }: {
   node: DungeonNode;
   isSelected: boolean;
   isAdjacent: boolean;
+  debugMode?: boolean;
   onClick: () => void;
 }) {
   const { type, state, enemies, trap } = node;
   const visited = state === "visited" || state === "cleared";
   const cleared = state === "cleared";
-  const canClick = isAdjacent && state !== "locked";
+  const canClick = debugMode || (isAdjacent && state !== "locked");
 
   const bg = cleared ? "#0e1a0a" : visited ? "#1c1608" : isAdjacent ? "#1a1006" : "#0c0a10";
   const border = isSelected
@@ -107,7 +109,7 @@ function RoomTile({
           : isAdjacent
             ? "0 0 10px rgba(120,64,24,0.4)"
             : "none",
-        opacity: !visited && !isAdjacent ? 0.18 : 1,
+        opacity: !visited && !isAdjacent && !debugMode ? 0.18 : 1,
         overflow: "hidden",
         zIndex: 2,
         transition: "all 0.2s",
@@ -142,7 +144,7 @@ function RoomTile({
         ))}
       </div>
 
-      {!visited && !isAdjacent && (
+      {!visited && !isAdjacent && !debugMode && (
         <div
           style={{
             position: "absolute",
@@ -159,7 +161,7 @@ function RoomTile({
         </div>
       )}
 
-      {(visited || isAdjacent) && !cleared && enemies.length > 0 && (
+      {(visited || isAdjacent || debugMode) && !cleared && enemies.length > 0 && (
         <div
           style={{
             position: "absolute",
@@ -503,7 +505,7 @@ export function DungeonMap({
                 a.id === currentRoomId || a.state === "visited" || a.state === "cleared";
               const bSeen =
                 b.id === currentRoomId || b.state === "visited" || b.state === "cleared";
-              if (!aSeen && !bSeen) return null;
+              if (!debugMode && !aSeen && !bSeen) return null;
               const r = corridorRect(a, b);
               const col = corColor(a, b);
               const isHot = a.id === currentRoomId || b.id === currentRoomId;
@@ -539,6 +541,7 @@ export function DungeonMap({
                 node={n}
                 isSelected={selected === n.id}
                 isAdjacent={adjacentIds.has(n.id)}
+                debugMode={debugMode}
                 onClick={() => handleClick(n)}
               />
             );
@@ -548,7 +551,7 @@ export function DungeonMap({
           {dungeon.map((n) => {
             if (n.id === currentRoomId) return null;
             const visited = n.state === "visited" || n.state === "cleared";
-            if (!visited && !adjacentIds.has(n.id)) return null;
+            if (!debugMode && !visited && !adjacentIds.has(n.id)) return null;
             const tc = TYPE_COLOR[n.type] || "#7f8c8d";
             return (
               <div
@@ -570,7 +573,7 @@ export function DungeonMap({
                   textOverflow: "ellipsis",
                 }}
               >
-                {visited ? n.label : "???"}
+                {visited || debugMode ? n.label : "???"}
               </div>
             );
           })}
