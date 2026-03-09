@@ -28,32 +28,148 @@ export function generateDungeon(def: DungeonDef): DungeonNode[] {
     return { ...t };
   }
 
-  const nodes: DungeonNode[] = def.slots.map((s) => {
-    const tmpl = pickTemplate(s.type);
-    return {
-      id: s.slot === "start" ? "start" : uid("room"),
-      slot: s.slot,
-      label: tmpl.label,
-      type: tmpl.type,
-      enemies: tmpl.enemies ? [...tmpl.enemies] : [],
-      hint: tmpl.hint || "",
-      state: s.slot === "start" ? "visited" : "locked",
-      col: s.col,
-      row: s.row,
-      cx: s.cx,
-      cy: s.cy,
-      connections: [],
-      trap: null,
-      blocked: false,
-      scouted: false,
-    };
-  });
+  // Generate rows procedurally based on difficulty
+  // More difficulty = more rows and wider rows
+  const midRowCount = def.difficulty + 2; // 3, 4, 5 middle rows
+  const rows: { type: "start" | "combat" | "rest" | "boss"; col: number }[][] = [];
 
-  const bySlot = (slot: string) => nodes.find((n) => n.slot === slot)!;
+  // Start row
+  rows.push([{ type: "start", col: 1 }]);
 
-  def.connections.forEach(([a, b]) => connectNodes(bySlot(a), bySlot(b)));
+  // Middle rows: randomize width (1-3 rooms) with rest rooms scattered
+  const totalMidRooms = midRowCount * 2 + Math.floor(Math.random() * (def.difficulty + 1));
+  const restCount = Math.max(1, Math.floor(totalMidRooms * 0.25));
+  const restPositions = new Set<number>();
+  // Place rest rooms in middle rows (not first or last middle row)
+  while (restPositions.size < restCount) {
+    const pos = 1 + Math.floor(Math.random() * (totalMidRooms - 1));
+    restPositions.add(pos);
+  }
 
-  bySlot("start").connections.forEach((id) => {
+  let roomCounter = 0;
+  for (let r = 0; r < midRowCount; r++) {
+    const maxWidth = Math.min(3, 1 + def.difficulty);
+    const width = 1 + Math.floor(Math.random() * maxWidth);
+    const row: { type: "combat" | "rest"; col: number }[] = [];
+    for (let c = 0; c < width; c++) {
+      const type = restPositions.has(roomCounter) ? "rest" : "combat";
+      row.push({ type, col: c });
+      roomCounter++;
+    }
+    rows.push(row as { type: "start" | "combat" | "rest" | "boss"; col: number }[]);
+  }
+
+  // Boss row
+  rows.push([{ type: "boss", col: 1 }]);
+
+  // Compute positions
+  const rowSpacing = 140;
+  const colSpacing = 200;
+  const totalRows = rows.length;
+  const mapH = (totalRows - 1) * rowSpacing + 120;
+
+  const nodes: DungeonNode[] = [];
+  const nodesByRow: DungeonNode[][] = [];
+
+  for (let r = 0; r < totalRows; r++) {
+    const row = rows[r];
+    const rowWidth = row.length;
+    const totalW = (rowWidth - 1) * colSpacing;
+    const baseX = 340 - totalW / 2;
+    const cy = mapH - 60 - r * rowSpacing;
+    const rowNodes: DungeonNode[] = [];
+
+    for (let c = 0; c < rowWidth; c++) {
+      const slot = row[c];
+      const jitterX = rowWidth > 1 ? Math.floor(Math.random() * 40 - 20) : 0;
+      const jitterY = Math.floor(Math.random() * 20 - 10);
+      const cx = baseX + c * colSpacing + jitterX;
+      const tmpl = pickTemplate(slot.type);
+      const isStart = slot.type === "start";
+      const node: DungeonNode = {
+        id: isStart ? "start" : uid("room"),
+        slot: isStart ? "start" : uid("slot"),
+        label: tmpl.label,
+        type: tmpl.type,
+        enemies: tmpl.enemies ? [...tmpl.enemies] : [],
+        hint: tmpl.hint || "",
+        state: isStart ? "visited" : "locked",
+        col: c,
+        row: r,
+        cx,
+        cy: cy + jitterY,
+        connections: [],
+        trap: null,
+        blocked: false,
+        scouted: false,
+      };
+      nodes.push(node);
+      rowNodes.push(node);
+    }
+    nodesByRow.push(rowNodes);
+  }
+
+  // Connect rooms between adjacent rows
+  for (let r = 0; r < nodesByRow.length - 1; r++) {
+    const currentRow = nodesByRow[r];
+    const nextRow = nodesByRow[r + 1];
+
+    // Every node must have at least one connection forward
+    // Every node in next row must have at least one connection backward
+    const forwardConnected = new Set<DungeonNode>();
+    const backwardConnected = new Set<DungeonNode>();
+
+    // Connect each current node to nearest next-row node
+    for (const node of currentRow) {
+      let nearest = nextRow[0];
+      let nearestDist = Math.abs(node.cx - nearest.cx);
+      for (const n of nextRow) {
+        const d = Math.abs(node.cx - n.cx);
+        if (d < nearestDist) {
+          nearest = n;
+          nearestDist = d;
+        }
+      }
+      connectNodes(node, nearest);
+      forwardConnected.add(nearest);
+      backwardConnected.add(node);
+    }
+
+    // Ensure all next-row nodes have at least one backward connection
+    for (const nextNode of nextRow) {
+      if (!forwardConnected.has(nextNode)) {
+        let nearest = currentRow[0];
+        let nearestDist = Math.abs(nextNode.cx - nearest.cx);
+        for (const n of currentRow) {
+          const d = Math.abs(nextNode.cx - n.cx);
+          if (d < nearestDist) {
+            nearest = n;
+            nearestDist = d;
+          }
+        }
+        connectNodes(nearest, nextNode);
+      }
+    }
+
+    // Add random cross-connections for variety
+    if (currentRow.length > 1 && nextRow.length > 1 && Math.random() < 0.5) {
+      const a = currentRow[Math.floor(Math.random() * currentRow.length)];
+      const b = nextRow[Math.floor(Math.random() * nextRow.length)];
+      connectNodes(a, b);
+    }
+  }
+
+  // Occasional same-row connections
+  for (const rowNodes of nodesByRow) {
+    if (rowNodes.length >= 2 && Math.random() < 0.3) {
+      const idx = Math.floor(Math.random() * (rowNodes.length - 1));
+      connectNodes(rowNodes[idx], rowNodes[idx + 1]);
+    }
+  }
+
+  // Mark rooms adjacent to start as reachable
+  const startNode = nodes.find((n) => n.id === "start")!;
+  startNode.connections.forEach((id) => {
     const n = nodes.find((n) => n.id === id);
     if (n && n.state === "locked") n.state = "reachable";
   });

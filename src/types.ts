@@ -118,27 +118,14 @@ export interface RoomTemplate {
   hint: string;
 }
 
-export interface DungeonSlotDef {
-  slot: string;
-  type: "start" | "combat" | "rest" | "boss";
-  col: number;
-  row: number;
-  cx: number;
-  cy: number;
-}
-
 export interface DungeonDef {
   id: string;
   name: string;
   desc: string;
   difficulty: number;
-  slots: DungeonSlotDef[];
-  connections: [string, string][];
   combatRooms: RoomTemplate[];
   restRooms: RoomTemplate[];
   bossRoom: RoomTemplate;
-  mapW: number;
-  mapH: number;
 }
 
 export interface DungeonNode {

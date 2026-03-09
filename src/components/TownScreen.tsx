@@ -405,8 +405,7 @@ export function TownScreen({
                 </div>
                 <div className="text-xs text-crypt-muted text-center leading-relaxed">{d.desc}</div>
                 <div className="text-xs text-crypt-dim">
-                  {d.slots.filter((s) => s.type === "combat").length} combat {"\u00B7"}{" "}
-                  {d.slots.filter((s) => s.type === "rest").length} rest
+                  Difficulty {d.difficulty} {"\u00B7"} Randomized layout
                 </div>
                 <button
                   style={btnStyle("#8b0000")}
