@@ -2,6 +2,7 @@ import { WEAPONS, STARTER_WEAPON_ID } from "../data/weapons";
 import { CONSUMABLES, STARTER_CONSUMABLE_IDS } from "../data/consumables";
 import { ENEMY_TYPES } from "../data/enemies";
 import { BUILDINGS } from "../data/buildings";
+import { PLAYER_START_HP, PLAYER_START_GOLD, NECRO_SUMMON_COOLDOWN } from "../data/constants";
 import type { Enemy, Player, Statuses, BuildingState } from "../types";
 
 export function shuffle<T>(arr: T[]): T[] {
@@ -26,10 +27,18 @@ export function makeEnemy(id: string): Enemy {
     statuses: {},
     reassembled: false,
     ambushTurns: b.ambushTurns || 0,
-    summonCooldown: 2,
+    summonCooldown: NECRO_SUMMON_COOLDOWN,
     uid: uid(id),
     row: b.defaultRow,
   };
+}
+
+export function cloneEnemy(e: Enemy): Enemy {
+  return { ...e, statuses: { ...(e.statuses || {}) } };
+}
+
+export function cloneEnemies(enemies: Enemy[]): Enemy[] {
+  return enemies.map(cloneEnemy);
 }
 
 export function makeStarterPlayer(): Player {
@@ -42,9 +51,9 @@ export function makeStarterPlayer(): Player {
     buildings[b.id] = { unlocked: b.initiallyUnlocked, level: b.initiallyUnlocked ? 1 : 0 };
   });
   return {
-    hp: 60,
-    maxHp: 60,
-    gold: 0,
+    hp: PLAYER_START_HP,
+    maxHp: PLAYER_START_HP,
+    gold: PLAYER_START_GOLD,
     statuses: {},
     weapons: [starterWeapon],
     activeWeaponIdx: 0,

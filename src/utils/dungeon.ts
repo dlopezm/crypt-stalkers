@@ -1,4 +1,11 @@
 import { ENEMY_TYPES } from "../data/enemies";
+import {
+  AI_REPRODUCE_CHANCE,
+  AI_NOISE_ATTRACT_CHANCE,
+  AI_LIGHT_FLEE_CHANCE,
+  AI_ROAM_CHANCE,
+  AI_SCOUT_SEND_CHANCE,
+} from "../data/constants";
 import type { DungeonNode, DungeonDef, RoomTemplate } from "../types";
 import { shuffle, uid } from "./helpers";
 
@@ -201,7 +208,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
       const ai = etype.ai;
 
       if (ai.reproduce && room.enemies.filter((e) => e === eid).length > 0) {
-        if (Math.random() < 0.4) {
+        if (Math.random() < AI_REPRODUCE_CHANCE) {
           room.enemies = [...room.enemies, eid];
           log.push(
             `\u{1F400} [AI] Rats in ${room.label} reproduced. Now ${room.enemies.filter((e) => e === "rat").length} rats.`,
@@ -211,19 +218,19 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
 
       if (ai.noiseAttract && isMedium) {
         const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
-        if (adjacentToCurrent && !room.blocked && Math.random() < 0.55) {
+        if (adjacentToCurrent && !room.blocked && Math.random() < AI_NOISE_ATTRACT_CHANCE) {
           moveEnemy(eid, room, adjacentToCurrent, "attracted by noise");
         }
       }
 
       if (ai.lightFlee && isLoud) {
         const awayRoom = neighbours.find((n) => n.id !== currentRoomId && n.state !== "cleared");
-        if (awayRoom && Math.random() < 0.45) {
+        if (awayRoom && Math.random() < AI_LIGHT_FLEE_CHANCE) {
           moveEnemy(eid, room, awayRoom, "fleeing light/noise");
         }
       }
 
-      if (ai.roam && Math.random() < 0.2) {
+      if (ai.roam && Math.random() < AI_ROAM_CHANCE) {
         const target = shuffle(
           neighbours.filter((n) => n.state !== "cleared" && n.id !== currentRoomId),
         )[0];
@@ -232,7 +239,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
 
       if (ai.sendScout && isMedium && room.enemies.includes("zombie")) {
         const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
-        if (adjacentToCurrent && Math.random() < 0.6) {
+        if (adjacentToCurrent && Math.random() < AI_SCOUT_SEND_CHANCE) {
           moveEnemy("zombie", room, adjacentToCurrent, "sent by Necromancer to investigate");
         }
       }

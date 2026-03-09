@@ -1,10 +1,27 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import { btnStyle } from "../styles";
 import { ENEMY_TYPES } from "../data/enemies";
 import { ABILITIES } from "../data/abilities";
 import { STATUS_ICONS } from "../data/status";
-import { makeEnemy, tickStatuses } from "../utils/helpers";
+import { makeEnemy, tickStatuses, cloneEnemies } from "../utils/helpers";
 import { StatusBadges, HpBar } from "./shared";
+import {
+  WEAKEN_DMG_MULT,
+  BLIND_MISS_CHANCE,
+  LIFESTEAL_FRACTION,
+  COUNTER_REFLECT_FRACTION,
+  HOLY_VS_VAMPIRE_MULT,
+  FLEE_CHANCE,
+  LIGHT_MAX,
+  LIGHT_START,
+  DARKNESS_DAMAGE,
+  AMBUSH_DMG_MULT,
+  ZOMBIE_EMPOWERED_ATK_MULT,
+  NECRO_SUMMON_COOLDOWN,
+  NECRO_REVIVE_HP_FRAC,
+  LICH_REVIVE_HP_FRAC,
+  COMBAT_LOG_MAX,
+} from "../data/constants";
 import type { DungeonNode, Player, Enemy, CombatPlayer, Ability, Consumable } from "../types";
 
 type SubAction =
@@ -15,7 +32,7 @@ type SubAction =
   | "pick_attack_target"
   | "pick_item_target";
 
-function EnemyPanel({
+const EnemyPanel = memo(function EnemyPanel({
   enemy,
   targeted,
   onClick,
@@ -77,11 +94,13 @@ function EnemyPanel({
           ? "Preparing..."
           : stunned
             ? "Skip turn"
-            : `ATK ${(enemy.statuses?.weaken || 0) > 0 ? Math.floor(enemy.atk * 0.75) : enemy.atk}`}
+            : enemy.atk === 0
+              ? "No attack"
+              : `ATK ${(enemy.statuses?.weaken || 0) > 0 ? Math.floor(enemy.atk * WEAKEN_DMG_MULT) : enemy.atk}`}
       </div>
     </div>
   );
-}
+});
 
 export function CombatScreen({
   room,
@@ -117,9 +136,9 @@ export function CombatScreen({
   const [targetIdx, setTargetIdx] = useState(0);
   const [log, setLog] = useState([`\u2694 Combat begins: ${room.label}`]);
   const [animating, setAnimating] = useState(false);
-  const [lightLevel, setLightLevel] = useState(4);
+  const [lightLevel, setLightLevel] = useState(LIGHT_START);
 
-  const addLog = (msg: string) => setLog((prev) => [msg, ...prev].slice(0, 12));
+  const addLog = (msg: string) => setLog((prev) => [msg, ...prev].slice(0, COMBAT_LOG_MAX));
   const liveEnems = enemies.filter((e) => e.hp > 0);
   const frontRow = liveEnems.filter((e) => e.row === "front");
   const backRow = liveEnems.filter((e) => e.row === "back");
@@ -147,27 +166,30 @@ export function CombatScreen({
     finishing: boolean,
     isWeapon: boolean,
     lines: string[],
+    enems?: Enemy[],
   ): Enemy {
     const t = { ...target, statuses: { ...(target.statuses || {}) } };
     if (t.mechanic === "phase" && !holy && Math.random() < (t.evadeChance || 0.5)) {
       lines.push(`\u{1F47B} ${t.name} phases through the attack!`);
       return t;
     }
-    if (holy && t.id === "vampire") dmg = Math.floor(dmg * 1.5);
+    if (holy && t.id === "vampire") dmg = Math.floor(dmg * HOLY_VS_VAMPIRE_MULT);
     const bl = Math.min(t.block, dmg);
     t.block = Math.max(0, t.block - bl);
     const dealt = dmg - bl;
     t.hp -= dealt;
     lines.push(`\u2694 ${dealt} dmg\u2192${t.name}${bl > 0 ? ` (${bl} blocked)` : ""}`);
     if (t.mechanic === "lifesteal" && dealt > 0) {
-      const st = Math.floor(dealt * 0.5);
+      const st = Math.floor(dealt * LIFESTEAL_FRACTION);
       t.hp = Math.min(t.maxHp, t.hp + st);
       lines.push(`\u{1F9DB} ${t.name} steals ${st} HP`);
     }
-    if (t.mechanic === "reassemble" && t.hp <= 0 && !t.reassembled && !finishing && dmg < 10) {
-      t.hp = 5;
-      t.reassembled = true;
-      lines.push(`\u{1F480} Skeleton reassembles!`);
+    if (t.mechanic === "reassemble" && t.hp <= 0 && !t.reassembled && !finishing && enems) {
+      const heap = makeEnemy("heap_of_bones");
+      heap.row = t.row;
+      heap.summonCooldown = 1;
+      enems.push(heap);
+      lines.push(`\u{1F9B4} ${t.name} collapses into a heap of bones...`);
     }
     if (isWeapon && weapon.applyStatus && Math.random() < weapon.applyStatus.chance) {
       const { status, stacks } = weapon.applyStatus;
@@ -221,10 +243,10 @@ export function CombatScreen({
   function doAttack(tIdx: number) {
     if (animating) return;
     const np = { ...p };
-    const enems = enemies.map((e) => ({ ...e, statuses: { ...(e.statuses || {}) } }));
+    const enems = cloneEnemies(enemies);
     const lines: string[] = [];
 
-    if ((np.statuses?.blind || 0) > 0 && Math.random() < 0.3) {
+    if ((np.statuses?.blind || 0) > 0 && Math.random() < BLIND_MISS_CHANCE) {
       lines.push(`\u{1F441}\uFE0F Blinded \u2014 miss!`);
       lines.forEach(addLog);
       setSubAction("none");
@@ -242,8 +264,8 @@ export function CombatScreen({
         return;
       }
       let dmg = weapon.damage;
-      if ((np.statuses?.weaken || 0) > 0) dmg = Math.floor(dmg * 0.75);
-      const result = resolveHit(dmg, t, !!weapon.holy, !!weapon.finishing, true, lines);
+      if ((np.statuses?.weaken || 0) > 0) dmg = Math.floor(dmg * WEAKEN_DMG_MULT);
+      const result = resolveHit(dmg, t, !!weapon.holy, !!weapon.finishing, true, lines, enems);
       const idx = enems.findIndex((e) => e.uid === t.uid);
       if (idx >= 0) enems[idx] = result;
     });
@@ -258,7 +280,7 @@ export function CombatScreen({
     const np = { ...p, activeWeaponIdx: idx };
     addLog(`\u{1F504} Switched to ${p.weapons[idx].name}`);
     setSubAction("none");
-    const enems = enemies.map((e) => ({ ...e, statuses: { ...(e.statuses || {}) } }));
+    const enems = cloneEnemies(enemies);
     endPlayerAction(np, enems);
   }
 
@@ -279,7 +301,7 @@ export function CombatScreen({
 
   function doUseItem(item: Consumable, itemIdx: number, tIdx: number) {
     const np = { ...p, consumables: p.consumables.filter((_, i) => i !== itemIdx) };
-    const enems = enemies.map((e) => ({ ...e, statuses: { ...(e.statuses || {}) } }));
+    const enems = cloneEnemies(enemies);
     const lines: string[] = [`\u{1F392} ${item.name}:`];
 
     if (item.heal) {
@@ -291,7 +313,7 @@ export function CombatScreen({
       lines.push("Debuffs cleared!");
     }
     if (item.restoreLight) {
-      setLightLevel((prev) => Math.min(5, prev + item.restoreLight!));
+      setLightLevel((prev) => Math.min(LIGHT_MAX, prev + item.restoreLight!));
       lines.push(`+${item.restoreLight} light`);
     }
     if (item.block) {
@@ -302,7 +324,7 @@ export function CombatScreen({
       const targets = item.aoe ? enems.filter((e) => e.hp > 0) : [enems[tIdx]].filter(Boolean);
       targets.forEach((t) => {
         if (t.hp <= 0) return;
-        const result = resolveHit(item.damage!, t, !!item.holy, false, false, lines);
+        const result = resolveHit(item.damage!, t, !!item.holy, false, false, lines, enems);
         const idx = enems.findIndex((e) => e.uid === t.uid);
         if (idx >= 0) enems[idx] = result;
       });
@@ -342,7 +364,7 @@ export function CombatScreen({
 
   function doAbility(ability: Ability, tIdx: number) {
     const np = { ...p };
-    const enems = enemies.map((e) => ({ ...e, statuses: { ...(e.statuses || {}) } }));
+    const enems = cloneEnemies(enemies);
     const lines: string[] = [`\u2728 ${ability.name}:`];
 
     if (ability.heal) {
@@ -363,11 +385,11 @@ export function CombatScreen({
     }
     if (ability.damage) {
       const range = ability.damageRange || "melee";
-      if ((np.statuses?.blind || 0) > 0 && Math.random() < 0.3) {
+      if ((np.statuses?.blind || 0) > 0 && Math.random() < BLIND_MISS_CHANCE) {
         lines.push(`\u{1F441}\uFE0F Blinded \u2014 miss!`);
       } else {
         let dmg = ability.damage;
-        if ((np.statuses?.weaken || 0) > 0) dmg = Math.floor(dmg * 0.75);
+        if ((np.statuses?.weaken || 0) > 0) dmg = Math.floor(dmg * WEAKEN_DMG_MULT);
         const targets = ability.aoe ? enems.filter((e) => e.hp > 0) : [enems[tIdx]].filter(Boolean);
         targets.forEach((t) => {
           if (t.hp <= 0) return;
@@ -375,7 +397,15 @@ export function CombatScreen({
             lines.push(`Can't reach ${t.name} with melee!`);
             return;
           }
-          const result = resolveHit(dmg, t, !!ability.holy, !!ability.finishing, false, lines);
+          const result = resolveHit(
+            dmg,
+            t,
+            !!ability.holy,
+            !!ability.finishing,
+            false,
+            lines,
+            enems,
+          );
           const idx = enems.findIndex((e) => e.uid === t.uid);
           if (idx >= 0) enems[idx] = result;
         });
@@ -402,12 +432,12 @@ export function CombatScreen({
   /* ── FLEE ── */
   function attemptFlee() {
     if (animating) return;
-    if (Math.random() < 0.6) {
+    if (Math.random() < FLEE_CHANCE) {
       addLog("\u{1F3C3} You flee into the darkness!");
       setTimeout(() => onFleeToMap(p), 300);
     } else {
       addLog("\u274C Flee failed! Enemies get a free turn.");
-      const enems = enemies.map((e) => ({ ...e, statuses: { ...(e.statuses || {}) } }));
+      const enems = cloneEnemies(enemies);
       doEnemyTurn({ ...p }, enems, true);
     }
   }
@@ -418,14 +448,29 @@ export function CombatScreen({
     np = { ...np, statuses: { ...np.statuses } };
     const lines: string[] = ["\u2014 Enemy Turn \u2014"];
 
+    // Heap of bones: wait one turn, then reassemble into skeleton
+    enems.forEach((heap) => {
+      if (heap.id !== "heap_of_bones" || heap.hp <= 0) return;
+      if (heap.summonCooldown > 0) {
+        heap.summonCooldown -= 1;
+        return;
+      }
+      heap.hp = 0;
+      const skeleton = makeEnemy("skeleton");
+      skeleton.reassembled = true;
+      skeleton.row = heap.row;
+      enems.push(skeleton);
+      lines.push(`\u{1F480} A skeleton reassembles from the heap of bones!`);
+    });
+
     // Necromancer summon
     const necro = enems.find((e) => e.id === "necromancer" && e.hp > 0);
     if (necro) {
-      necro.summonCooldown = (necro.summonCooldown || 2) - 1;
+      necro.summonCooldown = (necro.summonCooldown || NECRO_SUMMON_COOLDOWN) - 1;
       if (necro.summonCooldown <= 0) {
         const dead = enems.find((e) => e.hp <= 0 && e.id !== "necromancer");
         if (dead) {
-          dead.hp = Math.floor(dead.maxHp * 0.5);
+          dead.hp = Math.floor(dead.maxHp * NECRO_REVIVE_HP_FRAC);
           dead.statuses = {};
           dead.reassembled = false;
           lines.push(`\u{1F9D9} Necro revives ${dead.name}!`);
@@ -433,7 +478,7 @@ export function CombatScreen({
           enems.push(makeEnemy("zombie"));
           lines.push("\u{1F9D9} Necro summons Zombie!");
         }
-        necro.summonCooldown = 2;
+        necro.summonCooldown = NECRO_SUMMON_COOLDOWN;
       }
     }
 
@@ -442,7 +487,7 @@ export function CombatScreen({
     if (lich) {
       const dead = enems.find((e) => e.hp <= 0 && e.id !== "boss_lich");
       if (dead) {
-        dead.hp = Math.floor(dead.maxHp * 0.3);
+        dead.hp = Math.floor(dead.maxHp * LICH_REVIVE_HP_FRAC);
         dead.statuses = {};
         dead.reassembled = false;
         lines.push(`\u2620\uFE0F Lich King raises ${dead.name}!`);
@@ -487,6 +532,7 @@ export function CombatScreen({
         return;
       }
       if (enemy.mechanic === "swarm") return;
+      if (enemy.id === "heap_of_bones") return;
 
       if (np.stealthActive) return;
 
@@ -497,14 +543,14 @@ export function CombatScreen({
             lines.push(`\u{1F9B4} ${enemy.name} crouches...`);
             return;
           } else {
-            const leap = enemy.atk * 3;
+            const leap = enemy.atk * AMBUSH_DMG_MULT;
             const bl = Math.min(np.block, leap);
             np.block = Math.max(0, np.block - bl);
             const dealt = leap - bl;
             np.hp -= dealt;
             lines.push(`\u{1F9B4} LEAP: ${leap} dmg! (${dealt} after block)`);
             if (np.counterActive && dealt > 0) {
-              const reflect = Math.floor(dealt * 0.5);
+              const reflect = Math.floor(dealt * COUNTER_REFLECT_FRACTION);
               enemy.hp -= reflect;
               lines.push(`\u2694\uFE0F Counter! ${reflect} reflected to ${enemy.name}`);
             }
@@ -515,10 +561,10 @@ export function CombatScreen({
 
       let atk = enemy.atk;
       if (enemy.id === "zombie" && enems.find((e) => e.id === "necromancer" && e.hp > 0)) {
-        atk *= 2;
+        atk *= ZOMBIE_EMPOWERED_ATK_MULT;
         lines.push(`\u{1F9DF} ${enemy.name} empowered!`);
       }
-      if ((enemy.statuses?.weaken || 0) > 0) atk = Math.floor(atk * 0.75);
+      if ((enemy.statuses?.weaken || 0) > 0) atk = Math.floor(atk * WEAKEN_DMG_MULT);
       const bl = Math.min(np.block, atk);
       np.block = Math.max(0, np.block - bl);
       const dt = atk - bl;
@@ -526,13 +572,13 @@ export function CombatScreen({
       lines.push(`${enemy.ascii} ${enemy.name}: ${atk}\u2192${dt} dmg`);
 
       if (enemy.mechanic === "lifesteal" && dt > 0) {
-        const st = Math.floor(dt * 0.5);
+        const st = Math.floor(dt * LIFESTEAL_FRACTION);
         enemy.hp = Math.min(enemy.maxHp, enemy.hp + st);
         lines.push(`\u{1F9DB} heals ${st}`);
       }
 
       if (np.counterActive && dt > 0) {
-        const reflect = Math.floor(dt * 0.5);
+        const reflect = Math.floor(dt * COUNTER_REFLECT_FRACTION);
         enemy.hp -= reflect;
         lines.push(`\u2694\uFE0F Counter! ${reflect} reflected to ${enemy.name}`);
       }
@@ -544,9 +590,8 @@ export function CombatScreen({
 
     // Darkness penalty: deal direct damage
     if (lightLevel <= 0) {
-      const darkDmg = 3;
-      np.hp -= darkDmg;
-      lines.push(`\u{1F311} Darkness saps your life! -${darkDmg} HP`);
+      np.hp -= DARKNESS_DAMAGE;
+      lines.push(`\u{1F311} Darkness saps your life! -${DARKNESS_DAMAGE} HP`);
     }
 
     // Status ticks
@@ -640,7 +685,7 @@ export function CombatScreen({
           className={`text-sm ${lightLevel > 2 ? "text-crypt-gold" : lightLevel > 0 ? "text-orange-400" : "text-crypt-red"}`}
         >
           {"\u{1F525}".repeat(lightLevel)}
-          {"\u25AA".repeat(5 - lightLevel)}
+          {"\u25AA".repeat(LIGHT_MAX - lightLevel)}
         </div>
       </div>
 

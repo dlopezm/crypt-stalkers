@@ -28,7 +28,7 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
             {"\u{1F5FA}"} Explore the dungeon map {"\u2014"} scout and set traps
           </div>
           <div>{"\u{1FAA4}"} Front and back row positioning matters</div>
-          <div>{"\u{1F56F}"} Find rest rooms to recover HP</div>
+          <div>{"\u{1F56F}"} Rest anywhere in the dungeon to recover HP</div>
           <div>{"\u2620"} Defeat the Lich King to conquer the crypt</div>
         </div>
         <button

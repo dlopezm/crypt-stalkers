@@ -21,7 +21,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     loot: 8,
     ascii: "\u{1F480}",
     mechanic: "reassemble",
-    mechanicDesc: "Revives at 5 HP unless killed with finishing weapon.",
+    mechanicDesc:
+      "Collapses into a heap of bones, then reassembles next turn. Finishing weapon kills permanently.",
     defaultRow: "front",
     ai: { roam: false },
   },
@@ -112,6 +113,19 @@ export const ENEMY_TYPES: EnemyType[] = [
     ai: { lightFlee: false, roam: true },
   },
 
+  {
+    id: "heap_of_bones",
+    name: "Heap of Bones",
+    maxHp: 3,
+    atk: 0,
+    loot: 0,
+    ascii: "\u{1F9B4}",
+    mechanic: "reassemble_source",
+    mechanicDesc: "Will reassemble into a Skeleton next turn if not destroyed.",
+    defaultRow: "front",
+    ai: { roam: false },
+  },
+
   /* ── Bosses ── */
   {
     id: "boss_skeleton_lord",
@@ -121,7 +135,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     loot: 40,
     ascii: "\u{1F480}",
     mechanic: "reassemble",
-    mechanicDesc: "Revives at 10 HP once unless killed with finishing weapon.",
+    mechanicDesc:
+      "Collapses into a heap of bones, then reassembles next turn. Finishing weapon kills permanently.",
     isBoss: true,
     defaultRow: "front",
     ai: { roam: false },

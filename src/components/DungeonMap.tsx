@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { btnStyle } from "../styles";
 import {
   TRAP_INFO,
@@ -10,6 +10,7 @@ import {
   ROOM_H_LG,
   COR_THICK,
 } from "../data/rooms";
+import { REST_HEAL_FRACTION, BLOCK_DOOR_COST } from "../data/constants";
 import { getScoutIntel } from "../utils/dungeon";
 import { StatusBadges, HpBar } from "./shared";
 import type { DungeonNode, Player } from "../types";
@@ -407,17 +408,20 @@ export function DungeonMap({
   const mapW = Math.max(...dungeon.map((n) => n.cx)) + 140;
   const mapH = Math.max(...dungeon.map((n) => n.cy)) + 80;
 
-  const corridors: { a: DungeonNode; b: DungeonNode; key: string }[] = [];
-  const seen = new Set<string>();
-  dungeon.forEach((a) => {
-    a.connections.forEach((bid) => {
-      const key = [a.id, bid].sort().join("|");
-      if (seen.has(key)) return;
-      seen.add(key);
-      const b = dungeon.find((n) => n.id === bid);
-      if (b) corridors.push({ a, b, key });
+  const corridors = useMemo(() => {
+    const result: { a: DungeonNode; b: DungeonNode; key: string }[] = [];
+    const seen = new Set<string>();
+    dungeon.forEach((a) => {
+      a.connections.forEach((bid) => {
+        const key = [a.id, bid].sort().join("|");
+        if (seen.has(key)) return;
+        seen.add(key);
+        const b = dungeon.find((n) => n.id === bid);
+        if (b) result.push({ a, b, key });
+      });
     });
-  });
+    return result;
+  }, [dungeon]);
 
   const currentRoom = dungeon.find((n) => n.id === currentRoomId);
   const adjacentIds = new Set(currentRoom?.connections || []);
@@ -699,15 +703,16 @@ export function DungeonMap({
                   !node.blocked &&
                   node.state !== "cleared" && (
                     <button
-                      style={btnStyle("#2980b9", player.gold < 10)}
+                      style={btnStyle("#2980b9", player.gold < BLOCK_DOOR_COST)}
                       className="text-xs! px-2! py-1!"
-                      disabled={player.gold < 10}
+                      disabled={player.gold < BLOCK_DOOR_COST}
                       onClick={() => {
                         onBlockDoor(node.id);
                         setSelected(node.id);
                       }}
                     >
-                      {"\u{1F6A7}"} Block (10{"\u{1FA99}"})
+                      {"\u{1F6A7}"} Block ({BLOCK_DOOR_COST}
+                      {"\u{1FA99}"})
                     </button>
                   )}
 
@@ -758,7 +763,7 @@ export function DungeonMap({
             disabled={player.hp >= player.maxHp}
             style={btnStyle("#27ae60", player.hp >= player.maxHp)}
           >
-            {"\u{1FA79}"} Rest (+{Math.floor(player.maxHp * 0.05)} HP)
+            {"\u{1FA79}"} Rest (+{Math.floor(player.maxHp * REST_HEAL_FRACTION)} HP)
           </button>
 
           <button onClick={onReturnToTown} style={btnStyle("#3a2f25")} className="text-xs!">

@@ -1,5 +1,11 @@
 import { useState } from "react";
 import { TRAP_INFO, TYPE_COLOR } from "./data/rooms";
+import {
+  REST_HEAL_FRACTION,
+  BLOCK_DOOR_COST,
+  GAME_OVER_GOLD_KEEP,
+  DUNGEON_LOG_MAX,
+} from "./data/constants";
 import { makeStarterPlayer } from "./utils/helpers";
 import { generateDungeon, runDungeonAI } from "./utils/dungeon";
 import { TitleScreen } from "./components/TitleScreen";
@@ -24,7 +30,9 @@ export default function App() {
 
   function addLog(entries: string[]) {
     const turn = dungeonTurn;
-    setDungeonLog((prev) => [...prev, ...entries.map((e) => ({ turn, text: e }))].slice(-200));
+    setDungeonLog((prev) =>
+      [...prev, ...entries.map((e) => ({ turn, text: e }))].slice(-DUNGEON_LOG_MAX),
+    );
   }
 
   function tickAI(currentDungeon: DungeonNode[], roomId: string, action: string) {
@@ -117,7 +125,7 @@ export default function App() {
 
   function onRestOnMap() {
     if (!dungeon || !currentRoomId || !player) return;
-    const healAmt = Math.floor(player.maxHp * 0.1);
+    const healAmt = Math.floor(player.maxHp * REST_HEAL_FRACTION);
     setPlayer((p) => (p ? { ...p, hp: Math.min(p.maxHp, p.hp + healAmt) } : p));
     const afterAI = tickAI(dungeon, currentRoomId, "rest");
     setDungeon(afterAI);
@@ -134,7 +142,7 @@ export default function App() {
   }
 
   function onBlockDoor(roomId: string) {
-    setPlayer((p) => (p ? { ...p, gold: p.gold - 10 } : p));
+    setPlayer((p) => (p ? { ...p, gold: p.gold - BLOCK_DOOR_COST } : p));
     setDungeon((prev) =>
       prev ? prev.map((n) => (n.id === roomId ? { ...n, blocked: true } : n)) : prev,
     );
@@ -163,7 +171,7 @@ export default function App() {
     return <VictoryScreen gold={player?.gold || 0} onReturn={() => returnToTown()} />;
   }
   if (screen === "gameover") {
-    const penaltyGold = Math.floor((player?.gold || 0) * 0.75);
+    const penaltyGold = Math.floor((player?.gold || 0) * GAME_OVER_GOLD_KEEP);
     return (
       <GameOverScreen
         gold={penaltyGold}
