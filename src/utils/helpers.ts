@@ -18,7 +18,7 @@ export function uid(p: string): string {
 }
 
 export function makeEnemy(id: string): Enemy {
-  const b = ENEMY_TYPES.find(e => e.id === id)!;
+  const b = ENEMY_TYPES.find((e) => e.id === id)!;
   return {
     ...b,
     hp: b.maxHp,
@@ -33,10 +33,12 @@ export function makeEnemy(id: string): Enemy {
 }
 
 export function makeStarterPlayer(): Player {
-  const starterWeapon = { ...WEAPONS.find(w => w.id === STARTER_WEAPON_ID)! };
-  const starterConsumables = STARTER_CONSUMABLE_IDS.map(id => ({ ...CONSUMABLES.find(c => c.id === id)! }));
+  const starterWeapon = { ...WEAPONS.find((w) => w.id === STARTER_WEAPON_ID)! };
+  const starterConsumables = STARTER_CONSUMABLE_IDS.map((id) => ({
+    ...CONSUMABLES.find((c) => c.id === id)!,
+  }));
   const buildings: Record<string, BuildingState> = {};
-  BUILDINGS.forEach(b => {
+  BUILDINGS.forEach((b) => {
     buildings[b.id] = { unlocked: b.initiallyUnlocked, level: b.initiallyUnlocked ? 1 : 0 };
   });
   return {
@@ -52,7 +54,10 @@ export function makeStarterPlayer(): Player {
   };
 }
 
-export function tickStatuses(entity: { hp: number; name?: string; statuses: Statuses }): { entity: typeof entity; log: string[] } {
+export function tickStatuses(entity: { hp: number; name?: string; statuses: Statuses }): {
+  entity: typeof entity;
+  log: string[];
+} {
   const e = { ...entity, statuses: { ...(entity.statuses || {}) } };
   const log: string[] = [];
   const s = e.statuses;

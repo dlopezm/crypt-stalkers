@@ -1,7 +1,11 @@
 import { btnStyle } from "../styles";
 import type { Player } from "../types";
 
-export function RestScreen({ player, onRest, onLeave }: {
+export function RestScreen({
+  player,
+  onRest,
+  onLeave,
+}: {
   player: Player;
   onRest: (healAmt: number) => void;
   onLeave: () => void;
@@ -11,13 +15,16 @@ export function RestScreen({ player, onRest, onLeave }: {
     <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center justify-center gap-5 relative overflow-hidden p-4">
       <div className="vignette" />
       <div className="text-5xl relative z-1">{"\u{1F56F}"}</div>
-      <h1 className="text-2xl tracking-[0.2em] uppercase text-crypt-red-glow font-bold relative z-1"
-        style={{ textShadow: "0 0 30px #8b0000, 0 0 60px #4a0000" }}>
+      <h1
+        className="text-2xl tracking-[0.2em] uppercase text-crypt-red-glow font-bold relative z-1"
+        style={{ textShadow: "0 0 30px #8b0000, 0 0 60px #4a0000" }}
+      >
         A moment of stillness
       </h1>
       <div className="panel max-w-sm text-center relative z-1">
         <p className="text-base text-crypt-muted leading-relaxed mb-4">
-          The dust settles. No eyes watch from the dark.<br />
+          The dust settles. No eyes watch from the dark.
+          <br />
           You allow yourself to breathe.
         </p>
         <div className="text-crypt-text text-base mb-5">

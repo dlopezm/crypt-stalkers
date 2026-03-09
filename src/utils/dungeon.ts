@@ -28,7 +28,7 @@ export function generateDungeon(def: DungeonDef): DungeonNode[] {
     return { ...t };
   }
 
-  const nodes: DungeonNode[] = def.slots.map(s => {
+  const nodes: DungeonNode[] = def.slots.map((s) => {
     const tmpl = pickTemplate(s.type);
     return {
       id: s.slot === "start" ? "start" : uid("room"),
@@ -49,12 +49,12 @@ export function generateDungeon(def: DungeonDef): DungeonNode[] {
     };
   });
 
-  const bySlot = (slot: string) => nodes.find(n => n.slot === slot)!;
+  const bySlot = (slot: string) => nodes.find((n) => n.slot === slot)!;
 
   def.connections.forEach(([a, b]) => connectNodes(bySlot(a), bySlot(b)));
 
-  bySlot("start").connections.forEach(id => {
-    const n = nodes.find(n => n.id === id);
+  bySlot("start").connections.forEach((id) => {
+    const n = nodes.find((n) => n.id === id);
     if (n && n.state === "locked") n.state = "reachable";
   });
 
@@ -69,14 +69,14 @@ const ACTION_NOISE: Record<string, string> = {
 };
 
 export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, action = "move") {
-  const rooms = dungeon.map(r => ({ ...r, enemies: [...r.enemies] }));
+  const rooms = dungeon.map((r) => ({ ...r, enemies: [...r.enemies] }));
   const log: string[] = [];
 
   const noise = ACTION_NOISE[action] || "medium";
   const isLoud = noise === "loud";
   const isMedium = noise === "medium" || isLoud;
 
-  const byId = (id: string) => rooms.find(r => r.id === id);
+  const byId = (id: string) => rooms.find((r) => r.id === id);
 
   function moveEnemy(enemyId: string, fromRoom: DungeonNode, toRoom: DungeonNode, reason: string) {
     if (!fromRoom || !toRoom) return;
@@ -84,51 +84,57 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
       log.push(`\u{1F6A7} [AI] ${enemyId} tried to enter ${toRoom.label} \u2014 door blocked.`);
       return;
     }
-    fromRoom.enemies = fromRoom.enemies.filter(e => e !== enemyId);
+    fromRoom.enemies = fromRoom.enemies.filter((e) => e !== enemyId);
     toRoom.enemies = [...toRoom.enemies, enemyId];
-    log.push(`\u{1F463} [AI] ${enemyId} moved from ${fromRoom.label} \u2192 ${toRoom.label} (${reason})`);
+    log.push(
+      `\u{1F463} [AI] ${enemyId} moved from ${fromRoom.label} \u2192 ${toRoom.label} (${reason})`,
+    );
   }
 
-  rooms.forEach(room => {
+  rooms.forEach((room) => {
     if (room.state === "cleared" || room.id === currentRoomId) return;
     if (!room.enemies.length) return;
 
-    const neighbours = room.connections.map(id => byId(id)).filter(Boolean) as DungeonNode[];
+    const neighbours = room.connections.map((id) => byId(id)).filter(Boolean) as DungeonNode[];
     const typesHere = [...new Set(room.enemies)];
 
-    typesHere.forEach(eid => {
-      const etype = ENEMY_TYPES.find(e => e.id === eid);
+    typesHere.forEach((eid) => {
+      const etype = ENEMY_TYPES.find((e) => e.id === eid);
       if (!etype?.ai) return;
       const ai = etype.ai;
 
-      if (ai.reproduce && room.enemies.filter(e => e === eid).length > 0) {
+      if (ai.reproduce && room.enemies.filter((e) => e === eid).length > 0) {
         if (Math.random() < 0.4) {
           room.enemies = [...room.enemies, eid];
-          log.push(`\u{1F400} [AI] Rats in ${room.label} reproduced. Now ${room.enemies.filter(e => e === "rat").length} rats.`);
+          log.push(
+            `\u{1F400} [AI] Rats in ${room.label} reproduced. Now ${room.enemies.filter((e) => e === "rat").length} rats.`,
+          );
         }
       }
 
       if (ai.noiseAttract && isMedium) {
-        const adjacentToCurrent = neighbours.find(n => n.id === currentRoomId);
+        const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
         if (adjacentToCurrent && !room.blocked && Math.random() < 0.55) {
           moveEnemy(eid, room, adjacentToCurrent, "attracted by noise");
         }
       }
 
       if (ai.lightFlee && isLoud) {
-        const awayRoom = neighbours.find(n => n.id !== currentRoomId && n.state !== "cleared");
+        const awayRoom = neighbours.find((n) => n.id !== currentRoomId && n.state !== "cleared");
         if (awayRoom && Math.random() < 0.45) {
           moveEnemy(eid, room, awayRoom, "fleeing light/noise");
         }
       }
 
       if (ai.roam && Math.random() < 0.2) {
-        const target = shuffle(neighbours.filter(n => n.state !== "cleared" && n.id !== currentRoomId))[0];
+        const target = shuffle(
+          neighbours.filter((n) => n.state !== "cleared" && n.id !== currentRoomId),
+        )[0];
         if (target) moveEnemy(eid, room, target, "roaming");
       }
 
       if (ai.sendScout && isMedium && room.enemies.includes("zombie")) {
-        const adjacentToCurrent = neighbours.find(n => n.id === currentRoomId);
+        const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
         if (adjacentToCurrent && Math.random() < 0.6) {
           moveEnemy("zombie", room, adjacentToCurrent, "sent by Necromancer to investigate");
         }
@@ -150,9 +156,11 @@ export function getScoutIntel(room: DungeonNode, scoutLevel: number): string {
   }
   if (scoutLevel === 2) {
     const rough = count === 1 ? "one creature" : count <= 3 ? "a few creatures" : "many creatures";
-    const firstType = ENEMY_TYPES.find(e => e.id === room.enemies[0]);
+    const firstType = ENEMY_TYPES.find((e) => e.id === room.enemies[0]);
     return `${rough} inside. ${firstType ? `Something ${firstType.ascii}...` : ""}`;
   }
-  const names = room.enemies.map(id => ENEMY_TYPES.find(e => e.id === id)?.name || id).join(", ");
+  const names = room.enemies
+    .map((id) => ENEMY_TYPES.find((e) => e.id === id)?.name || id)
+    .join(", ");
   return `Full scout: ${names}.`;
 }

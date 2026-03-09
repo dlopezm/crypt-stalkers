@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
+  --font-serif: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
 
   --color-crypt-bg: #0c0a08;
   --color-crypt-surface: #161210;
@@ -42,5 +42,7 @@ body {
   border-radius: 6px;
   padding: 1rem 1.25rem;
   position: relative;
-  box-shadow: 0 4px 30px rgba(0,0,0,0.8), inset 0 1px 0 rgba(139,0,0,0.15);
+  box-shadow:
+    0 4px 30px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(139, 0, 0, 0.15);
 }
