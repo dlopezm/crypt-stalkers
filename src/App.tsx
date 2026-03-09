@@ -106,12 +106,13 @@ export default function App() {
       });
     });
     const { block: _b, stealthActive: _st, counterActive: _c, ...playerState } = newPlayer;
-    setPlayer(playerState);
     const room = dungeon.find((n) => n.id === currentRoomId);
     if (room?.type === "boss") {
+      setPlayer({ ...playerState, hp: playerState.maxHp });
       setScreen("victory");
       return;
     }
+    setPlayer(playerState);
     setScreen("map");
   }
 
