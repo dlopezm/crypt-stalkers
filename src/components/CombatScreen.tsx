@@ -23,6 +23,7 @@ import {
   COMBAT_LOG_MAX,
 } from "../data/constants";
 import type { DungeonNode, Player, Enemy, CombatPlayer, Ability, Consumable } from "../types";
+import type { CombatSave } from "../utils/save";
 
 type SubAction =
   | "none"
@@ -108,35 +109,48 @@ export function CombatScreen({
   onVictory,
   onDefeat,
   onFleeToMap,
+  onTurnEnd,
+  initialCombat,
 }: {
   room: DungeonNode;
   player: Player;
   onVictory: (p: CombatPlayer) => void;
   onDefeat: (gold: number) => void;
   onFleeToMap: (p: CombatPlayer) => void;
+  onTurnEnd: (combat: CombatSave) => void;
+  initialCombat: CombatSave | null;
 }) {
   const initEnemies = useCallback((): Enemy[] => {
+    if (initialCombat) return initialCombat.enemies;
     let enems = room.enemies.map((id) => makeEnemy(id));
     if (room.trap === "snare")
       enems = enems.map((e) => ({ ...e, statuses: { ...e.statuses, stun: 1 } }));
     if (room.trap === "flash") enems = enems.map((e) => ({ ...e, hp: Math.max(1, e.hp - 8) }));
     return enems;
-  }, [room]);
+  }, [room, initialCombat]);
 
   const [enemies, setEnemies] = useState(initEnemies);
-  const [p, setP] = useState<CombatPlayer>(() => ({
-    ...player,
-    block: 0,
-    stealthActive: false,
-    counterActive: false,
-  }));
+  const [p, setP] = useState<CombatPlayer>(() =>
+    initialCombat
+      ? initialCombat.combatPlayer
+      : {
+          ...player,
+          block: 0,
+          stealthActive: false,
+          counterActive: false,
+        },
+  );
   const [subAction, setSubAction] = useState<SubAction>("none");
   const [pendingAbility, setPendingAbility] = useState<Ability | null>(null);
   const [pendingItem, setPendingItem] = useState<{ item: Consumable; idx: number } | null>(null);
   const [targetIdx, setTargetIdx] = useState(0);
-  const [log, setLog] = useState([`\u2694 Combat begins: ${room.label}`]);
+  const [log, setLog] = useState(
+    initialCombat ? initialCombat.combatLog : [`\u2694 Combat begins: ${room.label}`],
+  );
   const [animating, setAnimating] = useState(false);
-  const [lightLevel, setLightLevel] = useState(LIGHT_START);
+  const [lightLevel, setLightLevel] = useState(
+    initialCombat ? initialCombat.lightLevel : LIGHT_START,
+  );
 
   const addLog = (msg: string) => setLog((prev) => [msg, ...prev].slice(0, COMBAT_LOG_MAX));
   const liveEnems = enemies.filter((e) => e.hp > 0);
@@ -626,6 +640,14 @@ export function CombatScreen({
     setAnimating(false);
     setSubAction("none");
     autoTarget(promoted);
+
+    // Save after turn completes
+    onTurnEnd({
+      enemies: promoted,
+      combatPlayer: np,
+      lightLevel,
+      combatLog: ["\u2014 Your Turn \u2014", ...lines, ...log].slice(0, COMBAT_LOG_MAX),
+    });
   }
 
   /* ── Target click handler ── */

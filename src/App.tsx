@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { TRAP_INFO, TYPE_COLOR } from "./data/rooms";
 import {
   REST_HEAL_FRACTION,
@@ -30,33 +30,29 @@ export default function App() {
   const [showDebug, setShowDebug] = useState(false);
   const [combatSave, setCombatSave] = useState<CombatSave | null>(null);
 
-  // Refs for latest state (used in save helper to avoid stale closures)
-  const playerRef = useRef(player);
-  playerRef.current = player;
-  const dungeonRef = useRef(dungeon);
-  dungeonRef.current = dungeon;
-  const dungeonDefRef = useRef(dungeonDef);
-  dungeonDefRef.current = dungeonDef;
-  const currentRoomIdRef = useRef(currentRoomId);
-  currentRoomIdRef.current = currentRoomId;
-  const dungeonLogRef = useRef(dungeonLog);
-  dungeonLogRef.current = dungeonLog;
-  const dungeonTurnRef = useRef(dungeonTurn);
-  dungeonTurnRef.current = dungeonTurn;
-
-  const doSave = useCallback((scr: Screen, combat: CombatSave | null = null) => {
-    if (!playerRef.current) return;
+  function doSave(opts: {
+    scr: Screen;
+    p?: Player;
+    d?: DungeonNode[] | null;
+    dd?: DungeonDef | null;
+    rid?: string | null;
+    dl?: DungeonLogEntry[];
+    dt?: number;
+    combat?: CombatSave | null;
+  }) {
+    const sp = opts.p ?? player;
+    if (!sp) return;
     saveGame({
-      player: playerRef.current,
-      screen: scr,
-      dungeon: dungeonRef.current,
-      dungeonDef: dungeonDefRef.current,
-      currentRoomId: currentRoomIdRef.current,
-      dungeonLog: dungeonLogRef.current,
-      dungeonTurn: dungeonTurnRef.current,
-      combat,
+      player: sp,
+      screen: opts.scr,
+      dungeon: opts.d !== undefined ? opts.d : dungeon,
+      dungeonDef: opts.dd !== undefined ? opts.dd : dungeonDef,
+      currentRoomId: opts.rid !== undefined ? opts.rid : currentRoomId,
+      dungeonLog: opts.dl ?? dungeonLog,
+      dungeonTurn: opts.dt ?? dungeonTurn,
+      combat: opts.combat ?? null,
     });
-  }, []);
+  }
 
   function addLog(entries: string[]) {
     const turn = dungeonTurn;
@@ -74,8 +70,7 @@ export default function App() {
 
   /* ── New Game ── */
   function startNewGame() {
-    const p = makeStarterPlayer();
-    setPlayer(p);
+    setPlayer(makeStarterPlayer());
     setScreen("town");
     clearSave();
   }
@@ -97,8 +92,7 @@ export default function App() {
   /* ── Town: update player (unlock, buy, upgrade) → save ── */
   function updatePlayerAndSave(p: Player) {
     setPlayer(p);
-    playerRef.current = p;
-    doSave("town");
+    doSave({ scr: "town", p });
   }
 
   /* ── Enter Dungeon from Town ── */
@@ -111,13 +105,7 @@ export default function App() {
     setDungeonLog([]);
     setDungeonTurn(0);
     setScreen("map");
-    // Save with new dungeon state
-    dungeonRef.current = d;
-    dungeonDefRef.current = def;
-    currentRoomIdRef.current = "start";
-    dungeonLogRef.current = [];
-    dungeonTurnRef.current = 0;
-    doSave("map");
+    doSave({ scr: "map", d, dd: def, rid: "start", dl: [], dt: 0 });
   }
 
   /* ── Return to Town ── */
@@ -128,13 +116,7 @@ export default function App() {
     setCurrentRoomId(null);
     setCombatSave(null);
     setScreen("town");
-    if (p) playerRef.current = p;
-    dungeonRef.current = null;
-    dungeonDefRef.current = null;
-    currentRoomIdRef.current = null;
-    dungeonLogRef.current = [];
-    dungeonTurnRef.current = 0;
-    doSave("town");
+    doSave({ scr: "town", p: p ?? undefined, d: null, dd: null, rid: null, dl: [], dt: 0 });
   }
 
   /* ── Dungeon Navigation ── */
@@ -149,17 +131,14 @@ export default function App() {
     setCurrentRoomId(roomId);
     const newScreen = room.type === "combat" || room.type === "boss" ? "combat" : "map";
     if (newScreen === "combat") setScreen("combat");
-    // Save after moving to a room
-    dungeonRef.current = afterAI;
-    currentRoomIdRef.current = roomId;
     setCombatSave(null);
-    doSave(newScreen as Screen);
+    doSave({ scr: newScreen as Screen, d: afterAI, rid: roomId });
   }
 
   /* ── Combat turn ended → save mid-combat state ── */
   function onCombatTurnEnd(combat: CombatSave) {
     setCombatSave(combat);
-    doSave("combat", combat);
+    doSave({ scr: "combat", combat });
   }
 
   function onCombatVictory(newPlayer: CombatPlayer) {
@@ -186,18 +165,13 @@ export default function App() {
       setPlayer(victoryPlayer);
       setScreen("victory");
       setCombatSave(null);
-      // Save with victory state (town return will clear dungeon)
-      playerRef.current = victoryPlayer;
-      dungeonRef.current = newDungeon;
-      doSave("victory");
+      doSave({ scr: "victory", p: victoryPlayer, d: newDungeon });
       return;
     }
     setPlayer(playerState);
     setScreen("map");
     setCombatSave(null);
-    playerRef.current = playerState;
-    dungeonRef.current = newDungeon;
-    doSave("map");
+    doSave({ scr: "map", p: playerState, d: newDungeon });
   }
 
   function onCombatDefeat(gold: number) {
@@ -206,8 +180,7 @@ export default function App() {
     setScreen("gameover");
     setCombatSave(null);
     if (newPlayer) {
-      playerRef.current = newPlayer;
-      doSave("gameover");
+      doSave({ scr: "gameover", p: newPlayer });
     }
   }
 
@@ -219,9 +192,7 @@ export default function App() {
     setPlayer(playerState);
     setScreen("map");
     setCombatSave(null);
-    playerRef.current = playerState;
-    dungeonRef.current = afterAI;
-    doSave("map");
+    doSave({ scr: "map", p: playerState, d: afterAI });
   }
 
   function onRestOnMap() {
@@ -231,9 +202,7 @@ export default function App() {
     setPlayer(newPlayer);
     const afterAI = tickAI(dungeon, currentRoomId, "rest");
     setDungeon(afterAI);
-    playerRef.current = newPlayer;
-    dungeonRef.current = afterAI;
-    doSave("map");
+    doSave({ scr: "map", p: newPlayer, d: afterAI });
   }
 
   function onSetTrap(roomId: string, trapKey: string) {
