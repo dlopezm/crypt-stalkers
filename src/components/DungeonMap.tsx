@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { btnStyle } from "../styles";
 import {
   TRAP_INFO,
@@ -13,7 +13,7 @@ import {
 import { REST_HEAL_FRACTION, BLOCK_DOOR_COST } from "../data/constants";
 import { getScoutIntel } from "../utils/dungeon";
 import { StatusBadges, HpBar } from "./shared";
-import type { DungeonNode, Player } from "../types";
+import type { DungeonNode, Player, DungeonLogEntry } from "../types";
 
 function corridorRect(a: DungeonNode, b: DungeonNode) {
   const hw = ROOM_W_SM / 2,
@@ -372,6 +372,7 @@ export function DungeonMap({
   dungeonName,
   debugMode,
   dungeonTurn,
+  dungeonLog,
   onEnterRoom,
   onScout,
   onSetTrap,
@@ -386,6 +387,7 @@ export function DungeonMap({
   dungeonName: string;
   debugMode: boolean;
   dungeonTurn: number;
+  dungeonLog: DungeonLogEntry[];
   onEnterRoom: (id: string) => void;
   onScout: (id: string, level: number) => void;
   onSetTrap: (id: string, trap: string) => void;
@@ -397,6 +399,37 @@ export function DungeonMap({
   const [selected, setSelected] = useState<string | null>(null);
   const [scoutResult, setScoutResult] = useState<string | null>(null);
   const [scoutLevel, setScoutLevel] = useState(0);
+
+  // Track sound icons that fade out over time
+  const [soundIcons, setSoundIcons] = useState<{ roomId: string; texts: string[]; key: number }[]>(
+    [],
+  );
+  const soundKeyRef = useRef(0);
+  const prevLogLen = useRef(dungeonLog.length);
+
+  useEffect(() => {
+    if (dungeonLog.length > prevLogLen.current) {
+      const newEntries = dungeonLog.slice(prevLogLen.current);
+      const monsterEntries = newEntries.filter((e) => e.source === "monster" && e.roomId);
+
+      if (monsterEntries.length > 0) {
+        // Group by roomId
+        const byRoom = new Map<string, string[]>();
+        for (const e of monsterEntries) {
+          const arr = byRoom.get(e.roomId!) || [];
+          arr.push(e.text);
+          byRoom.set(e.roomId!, arr);
+        }
+        const newIcons = [...byRoom.entries()].map(([roomId, texts]) => ({
+          roomId,
+          texts,
+          key: ++soundKeyRef.current,
+        }));
+        setSoundIcons((prev) => [...prev, ...newIcons]);
+      }
+    }
+    prevLogLen.current = dungeonLog.length;
+  }, [dungeonLog]);
 
   const node = selected ? dungeon.find((n) => n.id === selected) : null;
   const typeColor: Record<string, string> = {
@@ -568,6 +601,48 @@ export function DungeonMap({
                 }}
               >
                 {visited || debugMode ? n.label : "???"}
+              </div>
+            );
+          })}
+
+          {/* Sound icons on rooms */}
+          {soundIcons.map((icon) => {
+            const room = dungeon.find((n) => n.id === icon.roomId);
+            if (!room) return null;
+            const isCurrent = room.id === currentRoomId;
+            const topOffset = isCurrent ? ROOM_H_LG / 2 : ROOM_H_SM / 2;
+            return (
+              <div
+                key={icon.key}
+                title={icon.texts.join("\n")}
+                style={{
+                  position: "absolute",
+                  left: room.cx,
+                  top: room.cy - topOffset - 2,
+                  transform: "translate(-50%, -100%)",
+                  zIndex: 10,
+                  pointerEvents: "auto",
+                  cursor: "help",
+                  animation: "soundFadeIn 0.3s ease-out, soundPulse 1.5s ease-in-out infinite",
+                }}
+              >
+                <div
+                  style={{
+                    background: "rgba(140,20,20,0.9)",
+                    border: "1px solid #c41c1c",
+                    borderRadius: "4px",
+                    padding: "2px 6px",
+                    fontSize: "0.65rem",
+                    color: "#ffb0b0",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                    boxShadow: "0 0 12px rgba(196,28,28,0.6), 0 0 24px rgba(196,28,28,0.3)",
+                    textShadow: "0 0 6px rgba(255,100,100,0.5)",
+                  }}
+                >
+                  {"\u{1F442}"}{" "}
+                  {icon.texts.length > 1 ? `${icon.texts.length} sounds` : icon.texts[0]}
+                </div>
               </div>
             );
           })}
@@ -766,6 +841,37 @@ export function DungeonMap({
             {"\u{1FA79}"} Rest (+{Math.floor(player.maxHp * REST_HEAL_FRACTION)} HP)
           </button>
 
+          {/* Activity Log */}
+          <div className="panel" style={{ maxHeight: "240px", overflow: "hidden" }}>
+            <div className="text-sm text-crypt-dim mb-2 tracking-wider uppercase">Activity Log</div>
+            <div
+              className="flex flex-col gap-0.5"
+              style={{ maxHeight: "200px", overflowY: "auto" }}
+            >
+              {dungeonLog.length === 0 && (
+                <div className="text-xs text-crypt-dim italic">No activity yet.</div>
+              )}
+              {[...dungeonLog]
+                .reverse()
+                .slice(0, 20)
+                .map((entry, i) => (
+                  <div
+                    key={i}
+                    className={`text-xs leading-relaxed ${
+                      entry.source === "monster"
+                        ? "text-red-400 font-bold"
+                        : entry.source === "player"
+                          ? "text-crypt-gold"
+                          : "text-crypt-muted"
+                    }`}
+                    style={{ opacity: Math.max(0.4, 1 - i * 0.04) }}
+                  >
+                    <span className="text-crypt-dim font-normal">T{entry.turn}</span> {entry.text}
+                  </div>
+                ))}
+            </div>
+          </div>
+
           <button onClick={onReturnToTown} style={btnStyle("#3a2f25")} className="text-xs!">
             {"\u{1F3F0}"} Abandon Dungeon
           </button>
@@ -779,6 +885,17 @@ export function DungeonMap({
           </button>
         </div>
       </div>
+
+      <style>{`
+        @keyframes soundPulse {
+          0%, 100% { transform: translate(-50%, -100%) scale(1); opacity: 1; }
+          50% { transform: translate(-50%, -100%) scale(1.15); opacity: 0.85; }
+        }
+        @keyframes soundFadeIn {
+          from { opacity: 0; transform: translate(-50%, -100%) scale(0.5); }
+          to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import {
   AI_ROAM_CHANCE,
   AI_SCOUT_SEND_CHANCE,
 } from "../data/constants";
-import type { DungeonNode, DungeonDef, RoomTemplate } from "../types";
+import type { DungeonNode, DungeonDef, RoomTemplate, AILogEntry, SoundVolume } from "../types";
 import { shuffle, uid } from "./helpers";
 
 function connectNodes(a: DungeonNode, b: DungeonNode) {
@@ -165,6 +165,125 @@ export function generateDungeon(def: DungeonDef): DungeonNode[] {
   return nodes;
 }
 
+/* ── BFS distance from a room to all other rooms ── */
+export function roomDistances(rooms: DungeonNode[], fromId: string): Map<string, number> {
+  const dist = new Map<string, number>();
+  dist.set(fromId, 0);
+  const queue = [fromId];
+  while (queue.length) {
+    const cur = queue.shift()!;
+    const d = dist.get(cur)!;
+    const node = rooms.find((r) => r.id === cur);
+    if (!node) continue;
+    for (const nid of node.connections) {
+      if (!dist.has(nid)) {
+        dist.set(nid, d + 1);
+        queue.push(nid);
+      }
+    }
+  }
+  return dist;
+}
+
+/* ── Vague sound descriptions per enemy type and action ── */
+
+const MOVE_SOUNDS: Record<string, { texts: string[]; volume: SoundVolume }> = {
+  rat: {
+    volume: "quiet",
+    texts: [
+      "Skittering of tiny claws on stone",
+      "Small legs scrambling in the dark",
+      "Faint scratching echoes nearby",
+    ],
+  },
+  zombie: {
+    volume: "normal",
+    texts: [
+      "Heavy, shambling footsteps",
+      "Wet dragging across stone",
+      "A low groan and shuffling feet",
+    ],
+  },
+  ghost: {
+    volume: "quiet",
+    texts: [
+      "A chill breeze drifts through the corridor",
+      "Faint moaning from somewhere unseen",
+      "The air grows cold for a moment",
+    ],
+  },
+  vampire: {
+    volume: "normal",
+    texts: [
+      "A rush of cold air, something withdrawing",
+      "The flutter of a dark cloak",
+      "A sharp hiss fading into silence",
+    ],
+  },
+  shadow: {
+    volume: "quiet",
+    texts: [
+      "The shadows shift and deepen",
+      "Darkness crawls along the walls",
+      "A patch of black slithers out of sight",
+    ],
+  },
+  necromancer: {
+    volume: "normal",
+    texts: [
+      "Arcane whispers drift through the stone",
+      "A low chanting reverberates through the walls",
+    ],
+  },
+  skeleton: {
+    volume: "normal",
+    texts: ["The clatter of bones on stone", "Rattling from beyond the door"],
+  },
+  ghoul: {
+    volume: "quiet",
+    texts: ["Something pads softly in the darkness", "A faint, wet sniffing sound"],
+  },
+  banshee: {
+    volume: "loud",
+    texts: ["A distant wail pierces the silence", "An unearthly shriek echoes through the halls"],
+  },
+};
+
+const REPRODUCE_SOUNDS: Record<string, { texts: string[]; volume: SoundVolume }> = {
+  rat: {
+    volume: "quiet",
+    texts: [
+      "Frantic squeaking echoes from the dark",
+      "A chorus of high-pitched chittering",
+      "The sound of many small things multiplying",
+    ],
+  },
+};
+
+const BLOCKED_SOUNDS: Record<string, { texts: string[]; volume: SoundVolume }> = {
+  rat: { volume: "quiet", texts: ["Scratching against a barricade"] },
+  zombie: { volume: "normal", texts: ["Something pounds against a sealed door"] },
+  ghost: { volume: "quiet", texts: ["A cold presence presses against a barrier"] },
+  vampire: { volume: "normal", texts: ["Hissing from behind a sealed door"] },
+  shadow: { volume: "quiet", texts: ["Darkness pools against a blockade"] },
+  necromancer: { volume: "normal", texts: ["Muttering and scraping at a barred entrance"] },
+  skeleton: { volume: "normal", texts: ["Bones clatter against a blocked passage"] },
+  ghoul: { volume: "quiet", texts: ["Clawing at a sealed door"] },
+  banshee: { volume: "loud", texts: ["A wail of frustration from beyond a blockade"] },
+};
+
+const SCOUT_SEND_SOUNDS: { texts: string[]; volume: SoundVolume } = {
+  volume: "normal",
+  texts: [
+    "Arcane whispers, then shambling footsteps with purpose",
+    "A commanding murmur, followed by heavy shuffling",
+  ],
+};
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 const ACTION_NOISE: Record<string, string> = {
   move: "medium",
   scout: "quiet",
@@ -174,7 +293,7 @@ const ACTION_NOISE: Record<string, string> = {
 
 export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, action = "move") {
   const rooms = dungeon.map((r) => ({ ...r, enemies: [...r.enemies] }));
-  const log: string[] = [];
+  const aiLog: AILogEntry[] = [];
 
   const noise = ACTION_NOISE[action] || "medium";
   const isLoud = noise === "loud";
@@ -185,14 +304,31 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
   function moveEnemy(enemyId: string, fromRoom: DungeonNode, toRoom: DungeonNode, reason: string) {
     if (!fromRoom || !toRoom) return;
     if (toRoom.blocked) {
-      log.push(`\u{1F6A7} [AI] ${enemyId} tried to enter ${toRoom.label} \u2014 door blocked.`);
+      const sounds = BLOCKED_SOUNDS[enemyId] || {
+        volume: "normal" as SoundVolume,
+        texts: ["Something scrapes against a sealed door"],
+      };
+      aiLog.push({
+        text: pick(sounds.texts),
+        debugText: `\u{1F6A7} [AI] ${enemyId} tried to enter ${toRoom.label} \u2014 door blocked.`,
+        volume: sounds.volume,
+        roomId: toRoom.id,
+      });
       return;
     }
     fromRoom.enemies = fromRoom.enemies.filter((e) => e !== enemyId);
     toRoom.enemies = [...toRoom.enemies, enemyId];
-    log.push(
-      `\u{1F463} [AI] ${enemyId} moved from ${fromRoom.label} \u2192 ${toRoom.label} (${reason})`,
-    );
+    const sounds = MOVE_SOUNDS[enemyId] || {
+      volume: "normal" as SoundVolume,
+      texts: ["Something moves in the dark"],
+    };
+    aiLog.push({
+      text: pick(sounds.texts),
+      debugText: `\u{1F463} [AI] ${enemyId} moved from ${fromRoom.label} \u2192 ${toRoom.label} (${reason})`,
+      volume: sounds.volume,
+      roomId: fromRoom.id,
+      toRoomId: toRoom.id,
+    });
   }
 
   rooms.forEach((room) => {
@@ -210,9 +346,16 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
       if (ai.reproduce && room.enemies.filter((e) => e === eid).length > 0) {
         if (Math.random() < AI_REPRODUCE_CHANCE) {
           room.enemies = [...room.enemies, eid];
-          log.push(
-            `\u{1F400} [AI] Rats in ${room.label} reproduced. Now ${room.enemies.filter((e) => e === "rat").length} rats.`,
-          );
+          const sounds = REPRODUCE_SOUNDS[eid] || {
+            volume: "quiet" as SoundVolume,
+            texts: ["Strange sounds of multiplying"],
+          };
+          aiLog.push({
+            text: pick(sounds.texts),
+            debugText: `\u{1F400} [AI] Rats in ${room.label} reproduced. Now ${room.enemies.filter((e) => e === "rat").length} rats.`,
+            volume: sounds.volume,
+            roomId: room.id,
+          });
         }
       }
 
@@ -241,12 +384,19 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
         const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
         if (adjacentToCurrent && Math.random() < AI_SCOUT_SEND_CHANCE) {
           moveEnemy("zombie", room, adjacentToCurrent, "sent by Necromancer to investigate");
+          // Also log the necromancer's command separately
+          aiLog.push({
+            text: pick(SCOUT_SEND_SOUNDS.texts),
+            debugText: `\u{1F9D9} [AI] Necromancer in ${room.label} sent zombie to investigate`,
+            volume: SCOUT_SEND_SOUNDS.volume,
+            roomId: room.id,
+          });
         }
       }
     });
   });
 
-  return { newDungeon: rooms, log };
+  return { newDungeon: rooms, aiLog };
 }
 
 export function getScoutIntel(room: DungeonNode, scoutLevel: number): string {

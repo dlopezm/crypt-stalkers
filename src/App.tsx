@@ -7,7 +7,7 @@ import {
   DUNGEON_LOG_MAX,
 } from "./data/constants";
 import { makeStarterPlayer } from "./utils/helpers";
-import { generateDungeon, runDungeonAI } from "./utils/dungeon";
+import { generateDungeon, runDungeonAI, roomDistances } from "./utils/dungeon";
 import { saveGame, loadGame, clearSave, hasSave, type CombatSave } from "./utils/save";
 import { TitleScreen } from "./components/TitleScreen";
 import { TownScreen } from "./components/TownScreen";
@@ -54,17 +54,51 @@ export default function App() {
     });
   }
 
-  function addLog(entries: string[]) {
+  function addLog(
+    entries: { text: string; roomId?: string }[] | string[],
+    source: "player" | "monster" | "system" = "system",
+  ) {
     const turn = dungeonTurn;
     setDungeonLog((prev) =>
-      [...prev, ...entries.map((e) => ({ turn, text: e }))].slice(-DUNGEON_LOG_MAX),
+      [
+        ...prev,
+        ...entries.map((e) => {
+          const text = typeof e === "string" ? e : e.text;
+          const roomId = typeof e === "string" ? undefined : e.roomId;
+          return { turn, text, source, roomId };
+        }),
+      ].slice(-DUNGEON_LOG_MAX),
     );
   }
 
   function tickAI(currentDungeon: DungeonNode[], roomId: string, action: string) {
-    const { newDungeon, log } = runDungeonAI(currentDungeon, roomId, action);
+    const { newDungeon, aiLog } = runDungeonAI(currentDungeon, roomId, action);
     setDungeonTurn((t) => t + 1);
-    if (log.length) addLog(log);
+
+    if (aiLog.length) {
+      // Filter by distance: quiet=1 room, normal=2 rooms, loud=whole dungeon
+      const maxRange: Record<string, number> = { quiet: 1, normal: 2, loud: Infinity };
+      const dist = roomDistances(currentDungeon, roomId);
+      const audible = aiLog.filter((e) => {
+        const range = maxRange[e.volume] ?? 2;
+        const d1 = dist.get(e.roomId) ?? Infinity;
+        const d2 = e.toRoomId ? (dist.get(e.toRoomId) ?? Infinity) : Infinity;
+        return Math.min(d1, d2) <= range;
+      });
+      if (audible.length) {
+        // Pick the closest room (of from/to) to show the icon on
+        addLog(
+          audible.map((e) => {
+            const d1 = dist.get(e.roomId) ?? Infinity;
+            const d2 = e.toRoomId ? (dist.get(e.toRoomId) ?? Infinity) : Infinity;
+            const closestRoom = d2 < d1 ? e.toRoomId! : e.roomId;
+            return { text: e.text, roomId: closestRoom };
+          }),
+          "monster",
+        );
+      }
+    }
+
     return newDungeon;
   }
 
@@ -126,6 +160,7 @@ export default function App() {
     if (!room) return;
     const currentRoom = dungeon.find((n) => n.id === currentRoomId);
     if (!debugMode && currentRoom && !currentRoom.connections.includes(roomId)) return;
+    addLog([`\u{1F6B6} Moved to ${room.label}`], "player");
     const afterAI = tickAI(dungeon, roomId, "move");
     setDungeon(afterAI);
     setCurrentRoomId(roomId);
@@ -200,6 +235,7 @@ export default function App() {
     const healAmt = Math.floor(player.maxHp * REST_HEAL_FRACTION);
     const newPlayer = { ...player, hp: Math.min(player.maxHp, player.hp + healAmt) };
     setPlayer(newPlayer);
+    addLog([`\u{1FA79} Rested (+${healAmt} HP)`], "player");
     const afterAI = tickAI(dungeon, currentRoomId, "rest");
     setDungeon(afterAI);
     doSave({ scr: "map", p: newPlayer, d: afterAI });
@@ -210,9 +246,10 @@ export default function App() {
     setDungeon((prev) =>
       prev ? prev.map((n) => (n.id === roomId ? { ...n, trap: trapKey } : n)) : prev,
     );
-    addLog([
-      `\u{1FAA4} [T${dungeonTurn}] Trap set in ${dungeon?.find((n) => n.id === roomId)?.label || roomId}`,
-    ]);
+    addLog(
+      [`\u{1FAA4} Trap set in ${dungeon?.find((n) => n.id === roomId)?.label || roomId}`],
+      "player",
+    );
   }
 
   function onBlockDoor(roomId: string) {
@@ -220,18 +257,20 @@ export default function App() {
     setDungeon((prev) =>
       prev ? prev.map((n) => (n.id === roomId ? { ...n, blocked: true } : n)) : prev,
     );
-    addLog([
-      `\u{1F6A7} [T${dungeonTurn}] Door blocked in ${dungeon?.find((n) => n.id === roomId)?.label || roomId}`,
-    ]);
+    addLog(
+      [`\u{1F6A7} Door blocked in ${dungeon?.find((n) => n.id === roomId)?.label || roomId}`],
+      "player",
+    );
   }
 
-  function onScout(roomId: string, scoutLevel: number) {
+  function onScout(roomId: string, _scoutLevel: number) {
     if (!dungeon || !currentRoomId) return;
     const afterAI = tickAI(dungeon, currentRoomId, "scout");
     setDungeon(afterAI.map((n) => (n.id === roomId ? { ...n, scouted: true } : n)));
-    addLog([
-      `\u{1F50D} [T${dungeonTurn}] Scout (level ${scoutLevel}) on ${dungeon.find((n) => n.id === roomId)?.label || roomId}`,
-    ]);
+    addLog(
+      [`\u{1F50D} Scouted ${dungeon.find((n) => n.id === roomId)?.label || roomId}`],
+      "player",
+    );
   }
 
   /* ── Rendering ── */
@@ -350,6 +389,7 @@ export default function App() {
           dungeonName={dungeonName}
           debugMode={debugMode}
           dungeonTurn={dungeonTurn}
+          dungeonLog={dungeonLog}
           onEnterRoom={enterRoom}
           onScout={onScout}
           onSetTrap={onSetTrap}

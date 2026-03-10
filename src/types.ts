@@ -178,4 +178,16 @@ export interface TrapInfo {
 export interface DungeonLogEntry {
   turn: number;
   text: string;
+  source: "player" | "monster" | "system";
+  roomId?: string;
+}
+
+export type SoundVolume = "quiet" | "normal" | "loud";
+
+export interface AILogEntry {
+  text: string;
+  debugText: string;
+  volume: SoundVolume;
+  roomId: string;
+  toRoomId?: string;
 }
