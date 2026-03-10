@@ -125,6 +125,13 @@ export interface DungeonDef {
   bossRoom: RoomTemplate;
 }
 
+export interface RoomBBox {
+  minRow: number;
+  maxRow: number;
+  minCol: number;
+  maxCol: number;
+}
+
 export interface DungeonNode {
   id: string;
   slot: string;
@@ -133,14 +140,21 @@ export interface DungeonNode {
   enemies: string[];
   hint: string;
   state: RoomState;
-  col: number;
-  row: number;
   cx: number;
   cy: number;
   connections: string[];
   trap: string | null;
   blocked: boolean;
   scouted: boolean;
+  gridRoomId?: number;
+  bbox?: RoomBBox;
+}
+
+/** The raw grid + metadata produced by dungeon generation */
+export interface DungeonGrid {
+  cells: number[][];
+  width: number;
+  height: number;
 }
 
 /* ── Player ── */
@@ -178,6 +192,7 @@ export interface DungeonLogEntry {
   text: string;
   source: "player" | "monster" | "system";
   roomId?: string;
+  debugText?: string;
 }
 
 export type SoundVolume = "quiet" | "normal" | "loud";

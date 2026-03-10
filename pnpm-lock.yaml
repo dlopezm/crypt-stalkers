@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      random-dungeon-generator:
+        specifier: ^1.0.32
+        version: 1.0.32
       react:
         specifier: ^19.1.0
         version: 19.2.4
@@ -1072,6 +1075,9 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
+  random-dungeon-generator@1.0.32:
+    resolution: {integrity: sha512-N0SzFV15RvSMR7i8nHr90hJGweICXUqLbSSn5zdD1wJbg5Nu0qV+nYMD65MR08KS5VeLygngLWv1tLKNA9xXjw==}
+
   react-dom@19.2.4:
     resolution: {integrity: sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ==}
     peerDependencies:
@@ -2126,6 +2132,8 @@ snapshots:
   prettier@3.8.1: {}
 
   punycode@2.3.1: {}
+
+  random-dungeon-generator@1.0.32: {}
 
   react-dom@19.2.4(react@19.2.4):
     dependencies:

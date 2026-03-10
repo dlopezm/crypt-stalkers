@@ -6,164 +6,292 @@ import {
   AI_ROAM_CHANCE,
   AI_SCOUT_SEND_CHANCE,
 } from "../data/constants";
-import type { DungeonNode, DungeonDef, RoomTemplate, AILogEntry, SoundVolume } from "../types";
+import type {
+  DungeonNode,
+  DungeonDef,
+  DungeonGrid,
+  RoomTemplate,
+  RoomBBox,
+  AILogEntry,
+  SoundVolume,
+} from "../types";
 import { shuffle, uid } from "./helpers";
+import { NewDungeon } from "random-dungeon-generator";
 
-function connectNodes(a: DungeonNode, b: DungeonNode) {
-  if (!a || !b) return;
-  if (!a.connections.includes(b.id)) a.connections.push(b.id);
-  if (!b.connections.includes(a.id)) b.connections.push(a.id);
+/* ── Grid generation config per difficulty ── */
+const DIFFICULTY_CONFIG: Record<
+  number,
+  {
+    width: number;
+    height: number;
+    minRoomSize: number;
+    maxRoomSize: number;
+    minRooms: number;
+    maxRooms: number;
+  }
+> = {
+  1: { width: 30, height: 30, minRoomSize: 5, maxRoomSize: 10, minRooms: 4, maxRooms: 9 },
+  2: { width: 40, height: 40, minRoomSize: 5, maxRoomSize: 10, minRooms: 7, maxRooms: 16 },
+  3: { width: 50, height: 50, minRoomSize: 5, maxRoomSize: 10, minRooms: 10, maxRooms: 22 },
+};
+
+/* ── Extract rooms and connections from BSP grid ── */
+
+interface ExtractedRoom {
+  gridId: number;
+  bbox: RoomBBox;
+  cx: number;
+  cy: number;
 }
 
-export function generateDungeon(def: DungeonDef): DungeonNode[] {
-  const combatPool = shuffle([...def.combatRooms]);
+function extractRoomsFromGrid(grid: number[][]): {
+  rooms: ExtractedRoom[];
+  connections: [number, number][];
+} {
+  const height = grid.length;
+  const width = grid[0]?.length ?? 0;
 
+  // Find all room IDs and their bounding boxes
+  const bboxes = new Map<number, { minR: number; maxR: number; minC: number; maxC: number }>();
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      const v = grid[r][c];
+      if (v < 2) continue;
+      const bb = bboxes.get(v);
+      if (bb) {
+        bb.minR = Math.min(bb.minR, r);
+        bb.maxR = Math.max(bb.maxR, r);
+        bb.minC = Math.min(bb.minC, c);
+        bb.maxC = Math.max(bb.maxC, c);
+      } else {
+        bboxes.set(v, { minR: r, maxR: r, minC: c, maxC: c });
+      }
+    }
+  }
+
+  const rooms: ExtractedRoom[] = [];
+  for (const [gridId, bb] of bboxes) {
+    rooms.push({
+      gridId,
+      bbox: { minRow: bb.minR, maxRow: bb.maxR, minCol: bb.minC, maxCol: bb.maxC },
+      cx: (bb.minC + bb.maxC) / 2,
+      cy: (bb.minR + bb.maxR) / 2,
+    });
+  }
+
+  // Find connections: trace corridors (0 cells) to see which rooms they connect
+  const connSet = new Set<string>();
+  const dirs = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ];
+
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      if (grid[r][c] !== 0) continue;
+      // BFS from this corridor cell to find adjacent room IDs
+      const adjacentRooms = new Set<number>();
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr,
+          nc = c + dc;
+        if (nr >= 0 && nr < height && nc >= 0 && nc < width && grid[nr][nc] >= 2) {
+          adjacentRooms.add(grid[nr][nc]);
+        }
+      }
+      // If corridor is adjacent to 2+ rooms, they're connected
+      const roomIds = [...adjacentRooms];
+      for (let i = 0; i < roomIds.length; i++) {
+        for (let j = i + 1; j < roomIds.length; j++) {
+          const key = [Math.min(roomIds[i], roomIds[j]), Math.max(roomIds[i], roomIds[j])].join(
+            ",",
+          );
+          connSet.add(key);
+        }
+      }
+    }
+  }
+
+  // Also trace longer corridors: BFS along corridor cells
+  const visited = Array.from({ length: height }, () => new Array(width).fill(false));
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      if (grid[r][c] !== 0 || visited[r][c]) continue;
+      // BFS to find all rooms reachable through this corridor segment
+      const queue: [number, number][] = [[r, c]];
+      visited[r][c] = true;
+      const reachableRooms = new Set<number>();
+      while (queue.length) {
+        const [cr, cc] = queue.shift()!;
+        for (const [dr, dc] of dirs) {
+          const nr = cr + dr,
+            nc = cc + dc;
+          if (nr < 0 || nr >= height || nc < 0 || nc >= width) continue;
+          if (grid[nr][nc] >= 2) {
+            reachableRooms.add(grid[nr][nc]);
+          } else if (grid[nr][nc] === 0 && !visited[nr][nc]) {
+            visited[nr][nc] = true;
+            queue.push([nr, nc]);
+          }
+        }
+      }
+      const roomIds = [...reachableRooms];
+      for (let i = 0; i < roomIds.length; i++) {
+        for (let j = i + 1; j < roomIds.length; j++) {
+          const key = [Math.min(roomIds[i], roomIds[j]), Math.max(roomIds[i], roomIds[j])].join(
+            ",",
+          );
+          connSet.add(key);
+        }
+      }
+    }
+  }
+
+  const connections: [number, number][] = [...connSet].map((k) => {
+    const [a, b] = k.split(",").map(Number);
+    return [a, b];
+  });
+
+  return { rooms, connections };
+}
+
+/* ── Generate dungeon using BSP grid ── */
+
+export interface GenerateDungeonResult {
+  nodes: DungeonNode[];
+  grid: DungeonGrid;
+}
+
+export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
+  const cfg = DIFFICULTY_CONFIG[def.difficulty] || DIFFICULTY_CONFIG[1];
+
+  // Generate grid, retry if room count is outside range
+  let grid: number[][];
+  let extracted: ReturnType<typeof extractRoomsFromGrid>;
+  let attempts = 0;
+  do {
+    grid = NewDungeon({
+      width: cfg.width,
+      height: cfg.height,
+      minRoomSize: cfg.minRoomSize,
+      maxRoomSize: cfg.maxRoomSize,
+    });
+    extracted = extractRoomsFromGrid(grid);
+    attempts++;
+  } while (
+    (extracted.rooms.length < cfg.minRooms || extracted.rooms.length > cfg.maxRooms) &&
+    attempts < 20
+  );
+
+  const { rooms: extractedRooms, connections } = extracted;
+
+  // Pick start room (closest to top-left corner)
+  const sortedByCorner = [...extractedRooms].sort((a, b) => a.cx + a.cy - (b.cx + b.cy));
+  const startGridId = sortedByCorner[0].gridId;
+
+  // Build temporary adjacency for BFS to find farthest room for boss
+  const adjMap = new Map<number, Set<number>>();
+  for (const room of extractedRooms) {
+    adjMap.set(room.gridId, new Set());
+  }
+  for (const [a, b] of connections) {
+    adjMap.get(a)?.add(b);
+    adjMap.get(b)?.add(a);
+  }
+
+  // BFS from start to find farthest room
+  const distFromStart = new Map<number, number>();
+  distFromStart.set(startGridId, 0);
+  const bfsQueue = [startGridId];
+  while (bfsQueue.length) {
+    const cur = bfsQueue.shift()!;
+    const d = distFromStart.get(cur)!;
+    for (const nb of adjMap.get(cur) || []) {
+      if (!distFromStart.has(nb)) {
+        distFromStart.set(nb, d + 1);
+        bfsQueue.push(nb);
+      }
+    }
+  }
+
+  let bossGridId = startGridId;
+  let maxDist = 0;
+  for (const [gid, d] of distFromStart) {
+    if (d > maxDist) {
+      maxDist = d;
+      bossGridId = gid;
+    }
+  }
+
+  // Scale grid coords to pixel positions
+  const CELL_PX = 14;
+  const gridIdToNodeId = new Map<number, string>();
+  const combatPool = shuffle([...def.combatRooms]);
   let combatIdx = 0;
 
-  function pickTemplate(slot: "start" | "combat" | "boss"): RoomTemplate {
-    if (slot === "start") return { label: "Entrance", enemies: [], hint: "" };
-    if (slot === "boss") return { ...def.bossRoom };
+  function pickCombatTemplate(): RoomTemplate {
     const t = combatPool[combatIdx % combatPool.length];
     combatIdx++;
     return { ...t };
   }
 
-  // Generate rows procedurally based on difficulty
-  // More difficulty = more rows and wider rows
-  const midRowCount = def.difficulty + 2; // 3, 4, 5 middle rows
-  const rows: { type: "start" | "combat" | "boss"; col: number }[][] = [];
+  const nodes: DungeonNode[] = extractedRooms.map((room) => {
+    const isStart = room.gridId === startGridId;
+    const isBoss = room.gridId === bossGridId;
+    const nodeId = isStart ? "start" : uid("room");
+    gridIdToNodeId.set(room.gridId, nodeId);
 
-  // Start row
-  rows.push([{ type: "start", col: 1 }]);
-
-  // Middle rows: randomize width (1-3 rooms), all combat
-  for (let r = 0; r < midRowCount; r++) {
-    const maxWidth = Math.min(3, 1 + def.difficulty);
-    const width = 1 + Math.floor(Math.random() * maxWidth);
-    const row: { type: "combat"; col: number }[] = [];
-    for (let c = 0; c < width; c++) {
-      row.push({ type: "combat", col: c });
-    }
-    rows.push(row);
-  }
-
-  // Boss row
-  rows.push([{ type: "boss", col: 1 }]);
-
-  // Compute positions
-  const rowSpacing = 140;
-  const colSpacing = 200;
-  const totalRows = rows.length;
-  const mapH = (totalRows - 1) * rowSpacing + 120;
-
-  const nodes: DungeonNode[] = [];
-  const nodesByRow: DungeonNode[][] = [];
-
-  for (let r = 0; r < totalRows; r++) {
-    const row = rows[r];
-    const rowWidth = row.length;
-    const totalW = (rowWidth - 1) * colSpacing;
-    const baseX = 340 - totalW / 2;
-    const cy = mapH - 60 - r * rowSpacing;
-    const rowNodes: DungeonNode[] = [];
-
-    for (let c = 0; c < rowWidth; c++) {
-      const slot = row[c];
-      const jitterX = rowWidth > 1 ? Math.floor(Math.random() * 40 - 20) : 0;
-      const jitterY = Math.floor(Math.random() * 20 - 10);
-      const cx = baseX + c * colSpacing + jitterX;
-      const tmpl = pickTemplate(slot.type);
-      const isStart = slot.type === "start";
-      const isBoss = slot.type === "boss";
-      const node: DungeonNode = {
-        id: isStart ? "start" : uid("room"),
-        slot: isStart ? "start" : uid("slot"),
-        label: tmpl.label,
-        boss: isBoss,
-        enemies: tmpl.enemies ? [...tmpl.enemies] : [],
-        hint: tmpl.hint || "",
-        state: isStart ? "visited" : "locked",
-        col: c,
-        row: r,
-        cx,
-        cy: cy + jitterY,
-        connections: [],
-        trap: null,
-        blocked: false,
-        scouted: false,
-      };
-      nodes.push(node);
-      rowNodes.push(node);
-    }
-    nodesByRow.push(rowNodes);
-  }
-
-  // Connect rooms between adjacent rows
-  for (let r = 0; r < nodesByRow.length - 1; r++) {
-    const currentRow = nodesByRow[r];
-    const nextRow = nodesByRow[r + 1];
-
-    // Every node must have at least one connection forward
-    // Every node in next row must have at least one connection backward
-    const forwardConnected = new Set<DungeonNode>();
-    const backwardConnected = new Set<DungeonNode>();
-
-    // Connect each current node to nearest next-row node
-    for (const node of currentRow) {
-      let nearest = nextRow[0];
-      let nearestDist = Math.abs(node.cx - nearest.cx);
-      for (const n of nextRow) {
-        const d = Math.abs(node.cx - n.cx);
-        if (d < nearestDist) {
-          nearest = n;
-          nearestDist = d;
-        }
-      }
-      connectNodes(node, nearest);
-      forwardConnected.add(nearest);
-      backwardConnected.add(node);
+    let tmpl: RoomTemplate;
+    if (isStart) {
+      tmpl = { label: "Entrance", enemies: [], hint: "" };
+    } else if (isBoss) {
+      tmpl = { ...def.bossRoom };
+    } else {
+      tmpl = pickCombatTemplate();
     }
 
-    // Ensure all next-row nodes have at least one backward connection
-    for (const nextNode of nextRow) {
-      if (!forwardConnected.has(nextNode)) {
-        let nearest = currentRow[0];
-        let nearestDist = Math.abs(nextNode.cx - nearest.cx);
-        for (const n of currentRow) {
-          const d = Math.abs(nextNode.cx - n.cx);
-          if (d < nearestDist) {
-            nearest = n;
-            nearestDist = d;
-          }
-        }
-        connectNodes(nearest, nextNode);
-      }
-    }
+    return {
+      id: nodeId,
+      slot: isStart ? "start" : uid("slot"),
+      label: tmpl.label,
+      boss: isBoss,
+      enemies: tmpl.enemies ? [...tmpl.enemies] : [],
+      hint: tmpl.hint || "",
+      state: isStart ? ("visited" as const) : ("locked" as const),
+      cx: room.cx * CELL_PX,
+      cy: room.cy * CELL_PX,
+      connections: [],
+      trap: null,
+      blocked: false,
+      scouted: false,
+      gridRoomId: room.gridId,
+      bbox: room.bbox,
+    };
+  });
 
-    // Add random cross-connections for variety
-    if (currentRow.length > 1 && nextRow.length > 1 && Math.random() < 0.5) {
-      const a = currentRow[Math.floor(Math.random() * currentRow.length)];
-      const b = nextRow[Math.floor(Math.random() * nextRow.length)];
-      connectNodes(a, b);
-    }
-  }
-
-  // Occasional same-row connections
-  for (const rowNodes of nodesByRow) {
-    if (rowNodes.length >= 2 && Math.random() < 0.3) {
-      const idx = Math.floor(Math.random() * (rowNodes.length - 1));
-      connectNodes(rowNodes[idx], rowNodes[idx + 1]);
-    }
+  // Wire up connections
+  for (const [a, b] of connections) {
+    const aId = gridIdToNodeId.get(a);
+    const bId = gridIdToNodeId.get(b);
+    if (!aId || !bId) continue;
+    const aNode = nodes.find((n) => n.id === aId)!;
+    const bNode = nodes.find((n) => n.id === bId)!;
+    if (!aNode.connections.includes(bId)) aNode.connections.push(bId);
+    if (!bNode.connections.includes(aId)) bNode.connections.push(aId);
   }
 
   // Mark rooms adjacent to start as reachable
   const startNode = nodes.find((n) => n.id === "start")!;
-  startNode.connections.forEach((id) => {
-    const n = nodes.find((n) => n.id === id);
+  for (const cid of startNode.connections) {
+    const n = nodes.find((n) => n.id === cid);
     if (n && n.state === "locked") n.state = "reachable";
-  });
+  }
 
-  return nodes;
+  return {
+    nodes,
+    grid: { cells: grid, width: grid[0]?.length ?? 0, height: grid.length },
+  };
 }
 
 /* ── BFS distance from a room to all other rooms ── */

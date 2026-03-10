@@ -14,13 +14,21 @@ import { TownScreen } from "./components/TownScreen";
 import { DungeonMap } from "./components/DungeonMap";
 import { CombatScreen } from "./components/CombatScreen";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
-import type { DungeonNode, DungeonDef, Player, CombatPlayer, DungeonLogEntry } from "./types";
+import type {
+  DungeonNode,
+  DungeonDef,
+  DungeonGrid,
+  Player,
+  CombatPlayer,
+  DungeonLogEntry,
+} from "./types";
 
 type Screen = "title" | "town" | "map" | "combat" | "victory" | "gameover";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("title");
   const [dungeon, setDungeon] = useState<DungeonNode[] | null>(null);
+  const [dungeonGrid, setDungeonGrid] = useState<DungeonGrid | null>(null);
   const [dungeonDef, setDungeonDef] = useState<DungeonDef | null>(null);
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
@@ -34,6 +42,7 @@ export default function App() {
     scr: Screen;
     p?: Player;
     d?: DungeonNode[] | null;
+    dg?: DungeonGrid | null;
     dd?: DungeonDef | null;
     rid?: string | null;
     dl?: DungeonLogEntry[];
@@ -46,6 +55,7 @@ export default function App() {
       player: sp,
       screen: opts.scr,
       dungeon: opts.d !== undefined ? opts.d : dungeon,
+      dungeonGrid: opts.dg !== undefined ? opts.dg : dungeonGrid,
       dungeonDef: opts.dd !== undefined ? opts.dd : dungeonDef,
       currentRoomId: opts.rid !== undefined ? opts.rid : currentRoomId,
       dungeonLog: opts.dl ?? dungeonLog,
@@ -57,6 +67,7 @@ export default function App() {
   function addLog(
     entries: { text: string; roomId?: string }[] | string[],
     source: "player" | "monster" | "system" = "system",
+    debugOnly = false,
   ) {
     const turn = dungeonTurn;
     setDungeonLog((prev) =>
@@ -65,7 +76,7 @@ export default function App() {
         ...entries.map((e) => {
           const text = typeof e === "string" ? e : e.text;
           const roomId = typeof e === "string" ? undefined : e.roomId;
-          return { turn, text, source, roomId };
+          return { turn, text, source, roomId, ...(debugOnly ? { debugText: text } : {}) };
         }),
       ].slice(-DUNGEON_LOG_MAX),
     );
@@ -76,7 +87,14 @@ export default function App() {
     setDungeonTurn((t) => t + 1);
 
     if (aiLog.length) {
-      // Filter by distance: quiet=1 room, normal=2 rooms, loud=whole dungeon
+      // Always log all AI actions with debugText for the debug overlay
+      addLog(
+        aiLog.map((e) => ({ text: e.debugText, roomId: e.roomId })),
+        "monster",
+        true,
+      );
+
+      // Filter by distance for audible flavor text: quiet=1 room, normal=2 rooms, loud=whole dungeon
       const maxRange: Record<string, number> = { quiet: 1, normal: 2, loud: Infinity };
       const dist = roomDistances(currentDungeon, roomId);
       const audible = aiLog.filter((e) => {
@@ -115,6 +133,7 @@ export default function App() {
     if (!save) return;
     setPlayer(save.player);
     setDungeon(save.dungeon);
+    setDungeonGrid(save.dungeonGrid ?? null);
     setDungeonDef(save.dungeonDef);
     setCurrentRoomId(save.currentRoomId);
     setDungeonLog(save.dungeonLog);
@@ -132,25 +151,36 @@ export default function App() {
   /* ── Enter Dungeon from Town ── */
   function enterDungeon(def: DungeonDef) {
     if (!player) return;
-    const d = generateDungeon(def);
-    setDungeon(d);
+    const { nodes, grid } = generateDungeon(def);
+    setDungeon(nodes);
+    setDungeonGrid(grid);
     setDungeonDef(def);
     setCurrentRoomId("start");
     setDungeonLog([]);
     setDungeonTurn(0);
     setScreen("map");
-    doSave({ scr: "map", d, dd: def, rid: "start", dl: [], dt: 0 });
+    doSave({ scr: "map", d: nodes, dg: grid, dd: def, rid: "start", dl: [], dt: 0 });
   }
 
   /* ── Return to Town ── */
   function returnToTown(p?: Player) {
     if (p) setPlayer(p);
     setDungeon(null);
+    setDungeonGrid(null);
     setDungeonDef(null);
     setCurrentRoomId(null);
     setCombatSave(null);
     setScreen("town");
-    doSave({ scr: "town", p: p ?? undefined, d: null, dd: null, rid: null, dl: [], dt: 0 });
+    doSave({
+      scr: "town",
+      p: p ?? undefined,
+      d: null,
+      dg: null,
+      dd: null,
+      rid: null,
+      dl: [],
+      dt: 0,
+    });
   }
 
   /* ── Dungeon Navigation ── */
@@ -162,13 +192,23 @@ export default function App() {
     const currentRoom = dungeon.find((n) => n.id === currentRoomId);
     if (!debugMode && currentRoom && !currentRoom.connections.includes(roomId)) return;
     addLog([`\u{1F6B6} Moved to ${room.label}`], "player");
-    const marked = dungeon.map((n) =>
-      n.id === roomId && n.state !== "cleared" ? { ...n, state: "visited" as const } : n,
-    );
-    const afterAI = tickAI(marked, roomId, "move");
+    const hasEnemies = room.enemies.length > 0;
+    const marked = dungeon.map((n) => {
+      if (n.id !== roomId || n.state === "cleared") return n;
+      // Rooms with no enemies are immediately cleared
+      return { ...n, state: hasEnemies ? ("visited" as const) : ("cleared" as const) };
+    });
+    // If room has no enemies (now cleared), unlock its neighbors
+    const unlocked = hasEnemies
+      ? marked
+      : marked.map((n) =>
+          n.state === "locked" && room.connections.includes(n.id)
+            ? { ...n, state: "reachable" as const }
+            : n,
+        );
+    const afterAI = tickAI(unlocked, roomId, "move");
     setDungeon(afterAI);
     setCurrentRoomId(roomId);
-    const hasEnemies = room.enemies.length > 0;
     if (hasEnemies) {
       setScreen("combat");
       setCombatSave(null);
@@ -369,7 +409,7 @@ export default function App() {
         {[...dungeonLog].reverse().map((entry, i) => (
           <div
             key={i}
-            className="text-[#9a8aaa] leading-relaxed border-b border-[#1a1428] pb-0.5 mb-0.5"
+            className={`leading-relaxed border-b border-[#1a1428] pb-0.5 mb-0.5 ${entry.debugText ? "text-crypt-purple" : "text-[#9a8aaa]"}`}
           >
             <span className="text-[#6a5a8a]">[T{entry.turn}]</span> {entry.text}
           </div>
@@ -393,6 +433,7 @@ export default function App() {
         )}
         <DungeonMap
           dungeon={dungeon}
+          dungeonGrid={dungeonGrid}
           player={player}
           currentRoomId={currentRoomId}
           dungeonName={dungeonName}

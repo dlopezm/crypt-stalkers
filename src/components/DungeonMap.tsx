@@ -1,293 +1,329 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { btnStyle } from "../styles";
-import { TRAP_INFO, ROOM_W_SM, ROOM_H_SM, ROOM_W_LG, ROOM_H_LG, COR_THICK } from "../data/rooms";
+import { TRAP_INFO } from "../data/rooms";
 import { REST_HEAL_FRACTION, BLOCK_DOOR_COST } from "../data/constants";
 import { getScoutIntel } from "../utils/dungeon";
 import { StatusBadges, HpBar } from "./shared";
-import type { DungeonNode, Player, DungeonLogEntry } from "../types";
+import type { DungeonNode, DungeonGrid, Player, DungeonLogEntry } from "../types";
 
-function corridorRect(a: DungeonNode, b: DungeonNode) {
-  const hw = ROOM_W_SM / 2,
-    hh = ROOM_H_SM / 2;
-  const ax = a.cx,
-    ay = a.cy,
-    bx = b.cx,
-    by = b.cy;
-  if (Math.abs(by - ay) >= Math.abs(bx - ax)) {
-    const top = Math.min(ay, by) + hh,
-      bottom = Math.max(ay, by) - hh;
-    return {
-      x: (ax + bx) / 2 - COR_THICK / 2,
-      y: Math.min(top, bottom),
-      w: COR_THICK,
-      h: Math.abs(bottom - top),
-    };
-  } else {
-    const left = Math.min(ax, bx) + hw,
-      right = Math.max(ax, bx) - hw;
-    return {
-      x: Math.min(left, right),
-      y: (ay + by) / 2 - COR_THICK / 2,
-      w: Math.abs(right - left),
-      h: COR_THICK,
-    };
+const CELL_PX = 14;
+
+/* ── Room fill color by state ── */
+function roomColor(node: DungeonNode, currentRoomId: string): string {
+  if (node.id === currentRoomId) return "#3a2808";
+  if (node.state === "cleared") return "#0e1a0a";
+  if (node.state === "visited") return "#2a1c08";
+  if (node.state === "reachable") return "#1a1006";
+  return "#0c0a10";
+}
+
+/* ── Determine which rooms are visible ── */
+function visibleRooms(dungeon: DungeonNode[], debugMode: boolean): Set<string> {
+  const vis = new Set<string>();
+  for (const node of dungeon) {
+    if (
+      debugMode ||
+      node.state === "visited" ||
+      node.state === "cleared" ||
+      node.state === "reachable"
+    ) {
+      vis.add(node.id);
+    }
   }
+  return vis;
 }
 
-function RoomTile({
-  node,
-  isSelected,
-  isAdjacent,
-  debugMode,
-  onClick,
-}: {
-  node: DungeonNode;
-  isSelected: boolean;
-  isAdjacent: boolean;
-  debugMode?: boolean;
-  onClick: () => void;
-}) {
-  const { state, trap } = node;
-  const visited = state === "visited" || state === "cleared";
-  const cleared = state === "cleared";
-  const canClick = debugMode || isAdjacent || visited;
-
-  const bg = cleared ? "#0e1a0a" : visited ? "#1c1608" : isAdjacent ? "#1a1006" : "#0c0a10";
-  const border = isSelected
-    ? "#e74c3c"
-    : isAdjacent && !visited
-      ? "#7a4018"
-      : visited
-        ? "#3a2a14"
-        : "#18121e";
-  const wallCol = visited ? "#4a3a1e" : isAdjacent ? "#382818" : "#201828";
-  const dotCol = visited ? "#342810" : isAdjacent ? "#28180c" : "#181220";
-  const featColor = "#e88070";
-  const featGlyph = "\u00B7";
-
-  const COLS = 4,
-    ROWS = 3;
-  const grid = Array.from({ length: ROWS }, (_, r) =>
-    Array.from({ length: COLS }, (_, c) => {
-      if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) return "wall";
-      if (r === 1 && c === 2 && visited) return "feat";
-      return "floor";
-    }),
-  );
-
-  return (
-    <div
-      onClick={canClick ? onClick : undefined}
-      style={{
-        position: "absolute",
-        left: node.cx - ROOM_W_SM / 2,
-        top: node.cy - ROOM_H_SM / 2,
-        width: ROOM_W_SM,
-        height: ROOM_H_SM,
-        background: bg,
-        border: `2px solid ${border}`,
-        borderRadius: "3px",
-        cursor: canClick ? "pointer" : "default",
-        boxShadow: isSelected
-          ? "0 0 14px rgba(231,76,60,0.5)"
-          : isAdjacent
-            ? "0 0 10px rgba(120,64,24,0.4)"
-            : "none",
-        opacity: !visited && !isAdjacent && !debugMode ? 0.18 : 1,
-        overflow: "hidden",
-        zIndex: 2,
-        transition: "all 0.2s",
-        userSelect: "none",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "grid",
-          gridTemplateColumns: `repeat(${COLS},1fr)`,
-          gridTemplateRows: `repeat(${ROWS},1fr)`,
-          padding: "2px",
-        }}
-      >
-        {grid.flat().map((cell, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: cell === "feat" ? "0.65rem" : "0.35rem",
-              color: cell === "wall" ? wallCol : cell === "floor" ? dotCol : featColor,
-              fontWeight: cell === "feat" ? "bold" : "normal",
-              lineHeight: 1,
-            }}
-          >
-            {cell === "wall" ? "\u25AA" : cell === "floor" ? "\u00B7" : featGlyph}
-          </div>
-        ))}
-      </div>
-
-      {!visited && !isAdjacent && !debugMode && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "#080610e0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "0.9rem",
-            color: "#201830",
-          }}
-        >
-          ?
-        </div>
-      )}
-
-      {trap && (
-        <div style={{ position: "absolute", top: "2px", left: "3px", fontSize: "0.6rem" }}>
-          {TRAP_INFO[trap]?.icon}
-        </div>
-      )}
-    </div>
-  );
+/* ── Compute the closest edge points between two room bboxes ── */
+function connectorEndpoints(
+  a: NonNullable<DungeonNode["bbox"]>,
+  b: NonNullable<DungeonNode["bbox"]>,
+): { x1: number; y1: number; x2: number; y2: number } {
+  // Room pixel rects
+  const ax1 = a.minCol * CELL_PX,
+    ay1 = a.minRow * CELL_PX;
+  const ax2 = (a.maxCol + 1) * CELL_PX,
+    ay2 = (a.maxRow + 1) * CELL_PX;
+  const bx1 = b.minCol * CELL_PX,
+    by1 = b.minRow * CELL_PX;
+  const bx2 = (b.maxCol + 1) * CELL_PX,
+    by2 = (b.maxRow + 1) * CELL_PX;
+  // Centers
+  const acx = (ax1 + ax2) / 2,
+    acy = (ay1 + ay2) / 2;
+  const bcx = (bx1 + bx2) / 2,
+    bcy = (by1 + by2) / 2;
+  // Clamp connector start/end to the edge of each room along the center-to-center line
+  function clampToEdge(
+    cx: number,
+    cy: number,
+    tx: number,
+    ty: number,
+    rx1: number,
+    ry1: number,
+    rx2: number,
+    ry2: number,
+  ) {
+    const dx = tx - cx,
+      dy = ty - cy;
+    if (dx === 0 && dy === 0) return { x: cx, y: cy };
+    let t = Infinity;
+    if (dx !== 0) {
+      const tl = (dx > 0 ? rx2 : rx1) - cx;
+      const tv = tl / dx;
+      if (tv > 0) t = Math.min(t, tv);
+    }
+    if (dy !== 0) {
+      const tl = (dy > 0 ? ry2 : ry1) - cy;
+      const tv = tl / dy;
+      if (tv > 0) t = Math.min(t, tv);
+    }
+    return { x: cx + dx * t, y: cy + dy * t };
+  }
+  const from = clampToEdge(acx, acy, bcx, bcy, ax1, ay1, ax2, ay2);
+  const to = clampToEdge(bcx, bcy, acx, acy, bx1, by1, bx2, by2);
+  return { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
 }
 
-function CurrentRoomTile({
-  node,
-  isSelected,
-  onClick,
+/* ── Grid Canvas Renderer (rectangle-based) ── */
+function GridCanvas({
+  grid,
+  dungeon,
+  currentRoomId,
+  visible,
+  onClickRoom,
 }: {
-  node: DungeonNode;
-  isSelected: boolean;
-  onClick: () => void;
+  grid: DungeonGrid;
+  dungeon: DungeonNode[];
+  currentRoomId: string;
+  visible: Set<string>;
+  onClickRoom: (nodeId: string) => void;
 }) {
-  const { trap, blocked } = node;
-  const featColor = "#e88070";
-  const featGlyph = "\u00B7";
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const COLS = 9,
-    ROWS = 6;
-  const grid = Array.from({ length: ROWS }, (_, r) =>
-    Array.from({ length: COLS }, (_, c) => {
-      if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) return "wall";
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const { height, width } = grid;
+    canvas.width = width * CELL_PX;
+    canvas.height = height * CELL_PX;
+
+    ctx.fillStyle = "#080610";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw connectors between visible connected rooms (edge-to-edge)
+    ctx.strokeStyle = "#2a1c10";
+    ctx.lineWidth = 4;
+    const drawnConnections = new Set<string>();
+    for (const node of dungeon) {
+      if (!visible.has(node.id) || !node.bbox) continue;
+      for (const connId of node.connections) {
+        const connKey = [node.id, connId].sort().join("-");
+        if (drawnConnections.has(connKey)) continue;
+        drawnConnections.add(connKey);
+        const other = dungeon.find((n) => n.id === connId);
+        if (!other?.bbox || !visible.has(other.id)) continue;
+        const { x1, y1, x2, y2 } = connectorEndpoints(node.bbox, other.bbox);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+    }
+
+    // Draw rooms as solid rectangles
+    for (const node of dungeon) {
+      if (!visible.has(node.id) || !node.bbox) continue;
+      const { minRow, maxRow, minCol, maxCol } = node.bbox;
+      const x = minCol * CELL_PX;
+      const y = minRow * CELL_PX;
+      const w = (maxCol - minCol + 1) * CELL_PX;
+      const h = (maxRow - minRow + 1) * CELL_PX;
+
+      // Fill
+      ctx.fillStyle = roomColor(node, currentRoomId);
+      ctx.fillRect(x, y, w, h);
+
+      // Subtle grid lines inside room
+      ctx.strokeStyle = "rgba(255,255,255,0.03)";
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
+          ctx.strokeRect(c * CELL_PX, r * CELL_PX, CELL_PX, CELL_PX);
+        }
+      }
+    }
+
+    // Highlight current room border
+    const curNode = dungeon.find((n) => n.id === currentRoomId);
+    if (curNode?.bbox && visible.has(curNode.id)) {
+      const { minRow, maxRow, minCol, maxCol } = curNode.bbox;
+      ctx.strokeStyle = "#d4a830";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        minCol * CELL_PX - 1,
+        minRow * CELL_PX - 1,
+        (maxCol - minCol + 1) * CELL_PX + 2,
+        (maxRow - minRow + 1) * CELL_PX + 2,
+      );
+    }
+
+    // Highlight reachable room borders
+    for (const node of dungeon) {
+      if (node.state === "reachable" && node.bbox && visible.has(node.id)) {
+        const { minRow, maxRow, minCol, maxCol } = node.bbox;
+        ctx.strokeStyle = "#7a4018";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(
+          minCol * CELL_PX,
+          minRow * CELL_PX,
+          (maxCol - minCol + 1) * CELL_PX,
+          (maxRow - minRow + 1) * CELL_PX,
+        );
+      }
+    }
+  }, [grid, dungeon, currentRoomId, visible]);
+
+  useEffect(() => {
+    draw();
+  }, [draw]);
+
+  function handleClick(e: React.MouseEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    // Check which room bbox contains the click
+    for (const node of dungeon) {
+      if (!node.bbox || !visible.has(node.id)) continue;
+      const { minRow, maxRow, minCol, maxCol } = node.bbox;
       if (
-        (r === 1 && c === 1) ||
-        (r === 1 && c === COLS - 2) ||
-        (r === ROWS - 2 && c === 1) ||
-        (r === ROWS - 2 && c === COLS - 2)
-      )
-        return "pillar";
-      if (r === Math.floor(ROWS / 2) && c === Math.floor(COLS / 2)) return "feat";
-      return "floor";
-    }),
-  );
+        x >= minCol * CELL_PX &&
+        x < (maxCol + 1) * CELL_PX &&
+        y >= minRow * CELL_PX &&
+        y < (maxRow + 1) * CELL_PX
+      ) {
+        onClickRoom(node.id);
+        return;
+      }
+    }
+  }
 
   return (
-    <div
-      onClick={onClick}
-      style={{
-        position: "absolute",
-        left: node.cx - ROOM_W_LG / 2,
-        top: node.cy - ROOM_H_LG / 2,
-        width: ROOM_W_LG,
-        height: ROOM_H_LG,
-        background: "#201808",
-        border: `2px solid ${isSelected ? "#e74c3c" : "#d4a830"}`,
-        borderRadius: "5px",
-        boxShadow:
-          "0 0 35px rgba(212,168,48,0.3), 0 0 70px rgba(212,168,48,0.1), inset 0 0 25px rgba(0,0,0,0.5)",
-        overflow: "hidden",
-        zIndex: 5,
-        cursor: "pointer",
-        userSelect: "none",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "grid",
-          gridTemplateColumns: `repeat(${COLS},1fr)`,
-          gridTemplateRows: `repeat(${ROWS},1fr)`,
-          padding: "4px",
-        }}
-      >
-        {grid.flat().map((cell, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: cell === "feat" ? "1.2rem" : cell === "pillar" ? "0.55rem" : "0.38rem",
-              color:
-                cell === "wall"
-                  ? "#5a4828"
-                  : cell === "floor"
-                    ? "#382c18"
-                    : cell === "pillar"
-                      ? "#6a5230"
-                      : featColor,
-              fontWeight: cell === "feat" ? "bold" : "normal",
-              lineHeight: 1,
-            }}
-          >
-            {cell === "wall"
-              ? "\u25AA"
-              : cell === "floor"
-                ? "\u00B7"
-                : cell === "pillar"
-                  ? "\u25AA"
-                  : featGlyph}
-          </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: "linear-gradient(transparent,rgba(0,0,0,0.9) 40%)",
-          padding: "14px 12px 8px",
-        }}
-      >
-        <div className="text-lg font-bold leading-tight" style={{ color: "#ece0c0" }}>
-          {node.label}
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          top: "6px",
-          right: "8px",
-          fontSize: "1rem",
-          filter: "drop-shadow(0 0 6px #d4a830)",
-        }}
-      >
-        {"\u2691"}
-      </div>
-
-      {trap && (
-        <div style={{ position: "absolute", top: "30px", left: "8px", fontSize: "0.9rem" }}>
-          {TRAP_INFO[trap]?.icon}
-        </div>
-      )}
-      {blocked && (
-        <div style={{ position: "absolute", top: "30px", right: "8px", fontSize: "0.85rem" }}>
-          {"\u{1F6A7}"}
-        </div>
-      )}
-    </div>
+    <canvas
+      ref={canvasRef}
+      style={{ imageRendering: "pixelated", cursor: "pointer" }}
+      onClick={handleClick}
+    />
   );
 }
 
+/* ── Room labels overlay ── */
+function RoomLabels({
+  dungeon,
+  currentRoomId,
+  adjacentIds,
+  debugMode,
+  soundIcons,
+}: {
+  dungeon: DungeonNode[];
+  currentRoomId: string;
+  adjacentIds: Set<string>;
+  debugMode: boolean;
+  soundIcons: { roomId: string; texts: string[]; key: number }[];
+}) {
+  return (
+    <>
+      {dungeon.map((n) => {
+        if (!n.bbox) return null;
+        const visited = n.state === "visited" || n.state === "cleared";
+        const reachable = n.state === "reachable";
+        if (!debugMode && !visited && !reachable && !adjacentIds.has(n.id)) return null;
+
+        const { minRow, maxRow, minCol, maxCol } = n.bbox;
+        const cx = ((minCol + maxCol) / 2) * CELL_PX + CELL_PX / 2;
+        const cy = ((minRow + maxRow) / 2) * CELL_PX + CELL_PX / 2;
+        const isCurrent = n.id === currentRoomId;
+
+        return (
+          <div
+            key={n.id + "-lbl"}
+            style={{
+              position: "absolute",
+              left: cx,
+              top: cy,
+              transform: "translate(-50%, -50%)",
+              fontSize: isCurrent ? "0.75rem" : "0.65rem",
+              color: isCurrent ? "#ece0c0" : visited ? "#7f8c8d" : "#5a4028",
+              whiteSpace: "nowrap",
+              textShadow: "0 1px 4px #000, 0 0 8px #000",
+              letterSpacing: "0.04em",
+              zIndex: 3,
+              pointerEvents: "none",
+              fontWeight: isCurrent ? "bold" : "normal",
+              maxWidth: `${(maxCol - minCol + 1) * CELL_PX}px`,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              textAlign: "center",
+            }}
+          >
+            {isCurrent && <span style={{ marginRight: "3px" }}>{"\u2691"}</span>}
+            {visited || debugMode ? n.label : "???"}
+          </div>
+        );
+      })}
+
+      {/* Sound icons */}
+      {soundIcons.map((icon) => {
+        const room = dungeon.find((n) => n.id === icon.roomId);
+        if (!room?.bbox) return null;
+        const { minRow, maxRow, minCol, maxCol } = room.bbox;
+        const cx = ((minCol + maxCol) / 2) * CELL_PX + CELL_PX / 2;
+        const cy = ((minRow + maxRow) / 2) * CELL_PX + CELL_PX / 2;
+        return (
+          <div
+            key={icon.key}
+            title={icon.texts.join("\n")}
+            style={{
+              position: "absolute",
+              left: cx,
+              top: cy,
+              transform: "translate(-50%, -50%)",
+              zIndex: 10,
+              pointerEvents: "auto",
+              cursor: "help",
+              animation: "soundFadeIn 0.3s ease-out, soundPulse 1.5s ease-in-out infinite",
+            }}
+          >
+            <div
+              style={{
+                background: "rgba(140,20,20,0.9)",
+                border: "1px solid #c41c1c",
+                borderRadius: "4px",
+                padding: "2px 6px",
+                fontSize: "0.6rem",
+                color: "#ffb0b0",
+                fontWeight: "bold",
+                whiteSpace: "nowrap",
+                boxShadow: "0 0 12px rgba(196,28,28,0.6), 0 0 24px rgba(196,28,28,0.3)",
+                textShadow: "0 0 6px rgba(255,100,100,0.5)",
+              }}
+            >
+              {"\u{1F442}"} {icon.texts.length > 1 ? `${icon.texts.length} sounds` : icon.texts[0]}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/* ── Main DungeonMap Component ── */
 export function DungeonMap({
   dungeon,
+  dungeonGrid,
   player,
   currentRoomId,
   dungeonName,
@@ -303,6 +339,7 @@ export function DungeonMap({
   onReturnToTown,
 }: {
   dungeon: DungeonNode[];
+  dungeonGrid: DungeonGrid | null;
   player: Player;
   currentRoomId: string;
   dungeonName: string;
@@ -320,62 +357,75 @@ export function DungeonMap({
   const [selected, setSelected] = useState<string | null>(null);
   const [scoutResult, setScoutResult] = useState<string | null>(null);
   const [scoutLevel, setScoutLevel] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Track sound icons that fade out over time
+  // Track sound icons — cleared each new dungeon turn, only shows current turn's sounds
   const [soundIcons, setSoundIcons] = useState<{ roomId: string; texts: string[]; key: number }[]>(
     [],
   );
   const soundKeyRef = useRef(0);
   const prevLogLen = useRef(dungeonLog.length);
+  const prevTurn = useRef(dungeonTurn);
 
   useEffect(() => {
-    if (dungeonLog.length > prevLogLen.current) {
-      const newEntries = dungeonLog.slice(prevLogLen.current);
-      const monsterEntries = newEntries.filter((e) => e.source === "monster" && e.roomId);
+    // New turn started — clear old icons and show only this turn's sounds
+    if (dungeonTurn !== prevTurn.current) {
+      prevTurn.current = dungeonTurn;
 
-      if (monsterEntries.length > 0) {
-        // Group by roomId
-        const byRoom = new Map<string, string[]>();
-        for (const e of monsterEntries) {
-          const arr = byRoom.get(e.roomId!) || [];
-          arr.push(e.text);
-          byRoom.set(e.roomId!, arr);
+      if (dungeonLog.length > prevLogLen.current) {
+        const newEntries = dungeonLog.slice(prevLogLen.current);
+        const monsterEntries = newEntries.filter(
+          (e) => e.source === "monster" && e.roomId && !e.debugText,
+        );
+
+        if (monsterEntries.length > 0) {
+          const byRoom = new Map<string, string[]>();
+          for (const e of monsterEntries) {
+            const arr = byRoom.get(e.roomId!) || [];
+            arr.push(e.text);
+            byRoom.set(e.roomId!, arr);
+          }
+          const newIcons = [...byRoom.entries()].map(([roomId, texts]) => ({
+            roomId,
+            texts,
+            key: ++soundKeyRef.current,
+          }));
+          // Replace (not append) — only current turn's sounds shown
+          setSoundIcons(newIcons);
+        } else {
+          setSoundIcons([]);
         }
-        const newIcons = [...byRoom.entries()].map(([roomId, texts]) => ({
-          roomId,
-          texts,
-          key: ++soundKeyRef.current,
-        }));
-        setSoundIcons((prev) => [...prev, ...newIcons]);
+      } else {
+        setSoundIcons([]);
       }
     }
     prevLogLen.current = dungeonLog.length;
-  }, [dungeonLog]);
+  }, [dungeonLog, dungeonTurn]);
+
+  // Auto-scroll to current room on mount or room change
+  useEffect(() => {
+    const curNode = dungeon.find((n) => n.id === currentRoomId);
+    if (!curNode?.bbox || !scrollRef.current) return;
+    const { minRow, maxRow, minCol, maxCol } = curNode.bbox;
+    const cx = ((minCol + maxCol) / 2) * CELL_PX;
+    const cy = ((minRow + maxRow) / 2) * CELL_PX;
+    const container = scrollRef.current;
+    container.scrollTo({
+      left: cx - container.clientWidth / 2,
+      top: cy - container.clientHeight / 2,
+      behavior: "smooth",
+    });
+  }, [currentRoomId, dungeon]);
 
   const node = selected ? dungeon.find((n) => n.id === selected) : null;
-
-  const mapW = Math.max(...dungeon.map((n) => n.cx)) + 140;
-  const mapH = Math.max(...dungeon.map((n) => n.cy)) + 80;
-
-  const corridors = useMemo(() => {
-    const result: { a: DungeonNode; b: DungeonNode; key: string }[] = [];
-    const seen = new Set<string>();
-    dungeon.forEach((a) => {
-      a.connections.forEach((bid) => {
-        const key = [a.id, bid].sort().join("|");
-        if (seen.has(key)) return;
-        seen.add(key);
-        const b = dungeon.find((n) => n.id === bid);
-        if (b) result.push({ a, b, key });
-      });
-    });
-    return result;
-  }, [dungeon]);
-
   const currentRoom = dungeon.find((n) => n.id === currentRoomId);
   const adjacentIds = new Set(currentRoom?.connections || []);
 
-  function handleClick(n: DungeonNode) {
+  const visible = useMemo(() => visibleRooms(dungeon, debugMode), [dungeon, debugMode]);
+
+  function handleClickRoom(nodeId: string) {
+    const n = dungeon.find((nd) => nd.id === nodeId);
+    if (!n) return;
     const vis = n.state === "visited" || n.state === "cleared";
     if (!debugMode && n.id !== currentRoomId && !adjacentIds.has(n.id) && !vis) return;
     setSelected(n.id === selected ? null : n.id);
@@ -392,19 +442,17 @@ export function DungeonMap({
     onScout(node.id, level);
   }
 
-  function corColor(a: DungeonNode, b: DungeonNode) {
-    const states = [a.state, b.state];
-    if (states.includes("reachable")) return "#5a3618";
-    if (states.includes("visited") || states.includes("cleared")) return "#3a2814";
-    return "#1c140c";
-  }
+  if (!dungeonGrid) return null;
+
+  const mapPxW = dungeonGrid.width * CELL_PX;
+  const mapPxH = dungeonGrid.height * CELL_PX;
 
   return (
-    <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-3 relative overflow-y-auto p-4">
+    <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-3 relative overflow-hidden p-4">
       <div className="vignette" />
 
       {/* Top bar */}
-      <div className="flex gap-4 items-center relative z-1 flex-wrap justify-center">
+      <div className="flex gap-4 items-center relative z-1 flex-wrap justify-center shrink-0">
         <h2
           className="text-xl tracking-[0.15em] uppercase text-crypt-red-glow font-bold"
           style={{ textShadow: "0 0 20px #8b0000" }}
@@ -424,144 +472,33 @@ export function DungeonMap({
         </div>
       </div>
 
-      <div className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full px-4">
-        {/* Map canvas */}
+      <div className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full flex-1 min-h-0">
+        {/* Map canvas — scrollable */}
         <div
-          className="relative shrink-0 overflow-hidden rounded-md border border-crypt-border-dim"
-          style={{ width: `${mapW}px`, height: `${mapH}px`, background: "#0a0810" }}
+          ref={scrollRef}
+          className="relative shrink-0 overflow-auto rounded-md border border-crypt-border-dim"
+          style={{
+            maxWidth: "min(700px, 60vw)",
+            maxHeight: "calc(100vh - 140px)",
+            background: "#080610",
+          }}
         >
-          {/* Grid texture */}
-          <div
-            className="absolute inset-0 pointer-events-none z-0 opacity-[0.04]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(0deg,#ccc 0,#ccc 1px,transparent 1px,transparent 10px),repeating-linear-gradient(90deg,#ccc 0,#ccc 1px,transparent 1px,transparent 10px)",
-            }}
-          />
-
-          <svg
-            className="absolute inset-0 w-full h-full"
-            style={{ zIndex: 1, pointerEvents: "none" }}
-          >
-            {corridors.map(({ a, b, key }) => {
-              const aSeen =
-                a.id === currentRoomId || a.state === "visited" || a.state === "cleared";
-              const bSeen =
-                b.id === currentRoomId || b.state === "visited" || b.state === "cleared";
-              if (!debugMode && !aSeen && !bSeen) return null;
-              const r = corridorRect(a, b);
-              const col = corColor(a, b);
-              const isHot = a.id === currentRoomId || b.id === currentRoomId;
-              return (
-                <g key={key}>
-                  <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={col} />
-                  <rect
-                    x={r.w > r.h ? r.x + 1 : r.x + 2}
-                    y={r.w > r.h ? r.y + 2 : r.y + 1}
-                    width={r.w > r.h ? r.w - 2 : r.w - 4}
-                    height={r.w > r.h ? r.h - 4 : r.h - 2}
-                    fill={isHot ? "#7a4820" : "#342010"}
-                    opacity="0.6"
-                  />
-                </g>
-              );
-            })}
-          </svg>
-
-          {dungeon.map((n) => {
-            if (n.id === currentRoomId)
-              return (
-                <CurrentRoomTile
-                  key={n.id}
-                  node={n}
-                  isSelected={selected === n.id}
-                  onClick={() => handleClick(n)}
-                />
-              );
-            return (
-              <RoomTile
-                key={n.id}
-                node={n}
-                isSelected={selected === n.id}
-                isAdjacent={adjacentIds.has(n.id)}
-                debugMode={debugMode}
-                onClick={() => handleClick(n)}
-              />
-            );
-          })}
-
-          {/* Room labels */}
-          {dungeon.map((n) => {
-            if (n.id === currentRoomId) return null;
-            const visited = n.state === "visited" || n.state === "cleared";
-            if (!debugMode && !visited && !adjacentIds.has(n.id)) return null;
-            const tc = "#7f8c8d";
-            return (
-              <div
-                key={n.id + "-lbl"}
-                style={{
-                  position: "absolute",
-                  left: n.cx,
-                  top: n.cy + ROOM_H_SM / 2 + 4,
-                  transform: "translateX(-50%)",
-                  fontSize: "0.7rem",
-                  color: visited ? tc : "#5a4028",
-                  whiteSpace: "nowrap",
-                  textShadow: "0 1px 4px #000",
-                  letterSpacing: "0.04em",
-                  zIndex: 3,
-                  pointerEvents: "none",
-                  maxWidth: "90px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {visited || debugMode ? n.label : "???"}
-              </div>
-            );
-          })}
-
-          {/* Sound icons on rooms */}
-          {soundIcons.map((icon) => {
-            const room = dungeon.find((n) => n.id === icon.roomId);
-            if (!room) return null;
-            const isCurrent = room.id === currentRoomId;
-            const topOffset = isCurrent ? ROOM_H_LG / 2 : ROOM_H_SM / 2;
-            return (
-              <div
-                key={icon.key}
-                title={icon.texts.join("\n")}
-                style={{
-                  position: "absolute",
-                  left: room.cx,
-                  top: room.cy - topOffset - 2,
-                  transform: "translate(-50%, -100%)",
-                  zIndex: 10,
-                  pointerEvents: "auto",
-                  cursor: "help",
-                  animation: "soundFadeIn 0.3s ease-out, soundPulse 1.5s ease-in-out infinite",
-                }}
-              >
-                <div
-                  style={{
-                    background: "rgba(140,20,20,0.9)",
-                    border: "1px solid #c41c1c",
-                    borderRadius: "4px",
-                    padding: "2px 6px",
-                    fontSize: "0.65rem",
-                    color: "#ffb0b0",
-                    fontWeight: "bold",
-                    whiteSpace: "nowrap",
-                    boxShadow: "0 0 12px rgba(196,28,28,0.6), 0 0 24px rgba(196,28,28,0.3)",
-                    textShadow: "0 0 6px rgba(255,100,100,0.5)",
-                  }}
-                >
-                  {"\u{1F442}"}{" "}
-                  {icon.texts.length > 1 ? `${icon.texts.length} sounds` : icon.texts[0]}
-                </div>
-              </div>
-            );
-          })}
+          <div style={{ position: "relative", width: mapPxW, height: mapPxH }}>
+            <GridCanvas
+              grid={dungeonGrid}
+              dungeon={dungeon}
+              currentRoomId={currentRoomId}
+              visible={visible}
+              onClickRoom={handleClickRoom}
+            />
+            <RoomLabels
+              dungeon={dungeon}
+              currentRoomId={currentRoomId}
+              adjacentIds={adjacentIds}
+              debugMode={debugMode}
+              soundIcons={soundIcons}
+            />
+          </div>
         </div>
 
         {/* Side panel */}
@@ -741,6 +678,7 @@ export function DungeonMap({
                 <div className="text-xs text-crypt-dim italic">No activity yet.</div>
               )}
               {[...dungeonLog]
+                .filter((e) => !e.debugText)
                 .reverse()
                 .slice(0, 20)
                 .map((entry, i) => (
@@ -777,12 +715,12 @@ export function DungeonMap({
 
       <style>{`
         @keyframes soundPulse {
-          0%, 100% { transform: translate(-50%, -100%) scale(1); opacity: 1; }
-          50% { transform: translate(-50%, -100%) scale(1.15); opacity: 0.85; }
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+          50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.85; }
         }
         @keyframes soundFadeIn {
-          from { opacity: 0; transform: translate(-50%, -100%) scale(0.5); }
-          to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+          from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+          to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
       `}</style>
     </div>

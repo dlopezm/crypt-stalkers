@@ -2,6 +2,7 @@ import type {
   Player,
   DungeonNode,
   DungeonDef,
+  DungeonGrid,
   DungeonLogEntry,
   Enemy,
   CombatPlayer,
@@ -20,6 +21,7 @@ export interface SaveGame {
   player: Player;
   screen: Screen;
   dungeon: DungeonNode[] | null;
+  dungeonGrid?: DungeonGrid | null;
   dungeonDef: DungeonDef | null;
   currentRoomId: string | null;
   dungeonLog: DungeonLogEntry[];
