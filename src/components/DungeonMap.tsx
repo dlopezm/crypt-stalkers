@@ -1,15 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { btnStyle } from "../styles";
-import {
-  TRAP_INFO,
-  TYPE_COLOR,
-  TYPE_ICON,
-  ROOM_W_SM,
-  ROOM_H_SM,
-  ROOM_W_LG,
-  ROOM_H_LG,
-  COR_THICK,
-} from "../data/rooms";
+import { TRAP_INFO, ROOM_W_SM, ROOM_H_SM, ROOM_W_LG, ROOM_H_LG, COR_THICK } from "../data/rooms";
 import { REST_HEAL_FRACTION, BLOCK_DOOR_COST } from "../data/constants";
 import { getScoutIntel } from "../utils/dungeon";
 import { StatusBadges, HpBar } from "./shared";
@@ -56,10 +47,10 @@ function RoomTile({
   debugMode?: boolean;
   onClick: () => void;
 }) {
-  const { type, state, enemies, trap } = node;
+  const { state, trap } = node;
   const visited = state === "visited" || state === "cleared";
   const cleared = state === "cleared";
-  const canClick = debugMode || (isAdjacent && state !== "locked");
+  const canClick = debugMode || isAdjacent || visited;
 
   const bg = cleared ? "#0e1a0a" : visited ? "#1c1608" : isAdjacent ? "#1a1006" : "#0c0a10";
   const border = isSelected
@@ -71,14 +62,8 @@ function RoomTile({
         : "#18121e";
   const wallCol = visited ? "#4a3a1e" : isAdjacent ? "#382818" : "#201828";
   const dotCol = visited ? "#342810" : isAdjacent ? "#28180c" : "#181220";
-  const featColor = type === "boss" ? "#e74c3c" : "#e88070";
-  const featGlyph = cleared
-    ? "\u2713"
-    : type === "combat"
-      ? "\u2716"
-      : type === "boss"
-        ? "\u2620"
-        : "\u2191";
+  const featColor = "#e88070";
+  const featGlyph = "\u00B7";
 
   const COLS = 4,
     ROWS = 3;
@@ -160,25 +145,6 @@ function RoomTile({
         </div>
       )}
 
-      {(visited || isAdjacent || debugMode) && !cleared && enemies.length > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            top: "2px",
-            right: "3px",
-            background: "rgba(196,28,28,0.9)",
-            borderRadius: "2px",
-            fontSize: "0.55rem",
-            color: "#ffd0d0",
-            padding: "0px 3px",
-            lineHeight: 1.5,
-            fontWeight: "bold",
-          }}
-        >
-          {enemies.length}
-          {"\u2716"}
-        </div>
-      )}
       {trap && (
         <div style={{ position: "absolute", top: "2px", left: "3px", fontSize: "0.6rem" }}>
           {TRAP_INFO[trap]?.icon}
@@ -197,17 +163,9 @@ function CurrentRoomTile({
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const { type, state, enemies, trap, blocked } = node;
-  const cleared = state === "cleared";
-  const tc = TYPE_COLOR[type] || "#7f8c8d";
-  const featColor = type === "boss" ? "#e74c3c" : type === "start" ? "#a0b0b8" : "#e88070";
-  const featGlyph = cleared
-    ? "\u2713"
-    : type === "combat"
-      ? "\u2716"
-      : type === "boss"
-        ? "\u2620"
-        : "\u2191";
+  const { trap, blocked } = node;
+  const featColor = "#e88070";
+  const featGlyph = "\u00B7";
 
   const COLS = 9,
     ROWS = 6;
@@ -297,9 +255,6 @@ function CurrentRoomTile({
           padding: "14px 12px 8px",
         }}
       >
-        <div className="text-sm tracking-widest uppercase leading-none mb-1" style={{ color: tc }}>
-          {TYPE_ICON[type]} {type}
-        </div>
         <div className="text-lg font-bold leading-tight" style={{ color: "#ece0c0" }}>
           {node.label}
         </div>
@@ -317,40 +272,6 @@ function CurrentRoomTile({
         {"\u2691"}
       </div>
 
-      {!cleared && enemies.length > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            top: "6px",
-            left: "8px",
-            background: "rgba(196,28,28,0.92)",
-            borderRadius: "3px",
-            fontSize: "0.75rem",
-            color: "#ffd5c8",
-            padding: "2px 8px",
-            fontWeight: "bold",
-          }}
-        >
-          {enemies.length}
-          {"\u2716"}
-        </div>
-      )}
-      {cleared && (
-        <div
-          style={{
-            position: "absolute",
-            top: "6px",
-            left: "8px",
-            background: "rgba(30,100,30,0.85)",
-            borderRadius: "3px",
-            fontSize: "0.7rem",
-            color: "#b0f0b0",
-            padding: "2px 8px",
-          }}
-        >
-          cleared
-        </div>
-      )}
       {trap && (
         <div style={{ position: "absolute", top: "30px", left: "8px", fontSize: "0.9rem" }}>
           {TRAP_INFO[trap]?.icon}
@@ -432,11 +353,6 @@ export function DungeonMap({
   }, [dungeonLog]);
 
   const node = selected ? dungeon.find((n) => n.id === selected) : null;
-  const typeColor: Record<string, string> = {
-    combat: "#c0392b",
-    boss: "#e74c3c",
-    start: "#7f8c8d",
-  };
 
   const mapW = Math.max(...dungeon.map((n) => n.cx)) + 140;
   const mapH = Math.max(...dungeon.map((n) => n.cy)) + 80;
@@ -460,8 +376,8 @@ export function DungeonMap({
   const adjacentIds = new Set(currentRoom?.connections || []);
 
   function handleClick(n: DungeonNode) {
-    if (n.state === "locked" && !debugMode) return;
-    if (!debugMode && n.id !== currentRoomId && !adjacentIds.has(n.id)) return;
+    const vis = n.state === "visited" || n.state === "cleared";
+    if (!debugMode && n.id !== currentRoomId && !adjacentIds.has(n.id) && !vis) return;
     setSelected(n.id === selected ? null : n.id);
     setScoutResult(null);
     setScoutLevel(0);
@@ -579,7 +495,7 @@ export function DungeonMap({
             if (n.id === currentRoomId) return null;
             const visited = n.state === "visited" || n.state === "cleared";
             if (!debugMode && !visited && !adjacentIds.has(n.id)) return null;
-            const tc = TYPE_COLOR[n.type] || "#7f8c8d";
+            const tc = "#7f8c8d";
             return (
               <div
                 key={n.id + "-lbl"}
@@ -652,51 +568,40 @@ export function DungeonMap({
         <div className="flex-1 min-w-[280px] max-w-[360px] flex flex-col gap-3">
           {node ? (
             <div className="panel">
-              <div
-                className="text-sm tracking-widest mb-1 uppercase"
-                style={{ color: typeColor[node.type] }}
-              >
-                {TYPE_ICON[node.type]} {node.type}
-              </div>
               <div className="text-lg font-bold text-crypt-text mb-2 leading-tight">
                 {node.state === "locked" && !debugMode ? "???" : node.label}
               </div>
-
-              {node.state === "cleared" && (
-                <p className="text-sm text-crypt-green mb-1">Room cleared.</p>
-              )}
               {node.id === currentRoomId && (
                 <p className="text-sm text-crypt-gold mb-1">{"\u2691"} You are here.</p>
               )}
 
-              {(node.state === "reachable" || node.state === "visited") &&
-                node.type === "combat" && (
-                  <div className="text-sm text-crypt-muted mb-2 leading-relaxed">
-                    {debugMode ? (
-                      <span className="text-crypt-purple">
-                        {node.enemies.length} enemies: {node.enemies.join(", ")}
+              {node.id !== currentRoomId && node.enemies.length > 0 && (
+                <div className="text-sm text-crypt-muted mb-2 leading-relaxed">
+                  {debugMode ? (
+                    <span className="text-crypt-purple">
+                      {node.enemies.length} enemies: {node.enemies.join(", ")}
+                    </span>
+                  ) : scoutLevel === 0 ? (
+                    <span className="text-crypt-dim italic">Unknown. Scout to learn more.</span>
+                  ) : (
+                    scoutResult
+                  )}
+                  {node.trap && (
+                    <>
+                      <br />
+                      <span style={{ color: TRAP_INFO[node.trap].color }}>
+                        {TRAP_INFO[node.trap].icon} {TRAP_INFO[node.trap].label} set.
                       </span>
-                    ) : scoutLevel === 0 ? (
-                      <span className="text-crypt-dim italic">Unknown. Scout to learn more.</span>
-                    ) : (
-                      scoutResult
-                    )}
-                    {node.trap && (
-                      <>
-                        <br />
-                        <span style={{ color: TRAP_INFO[node.trap].color }}>
-                          {TRAP_INFO[node.trap].icon} {TRAP_INFO[node.trap].label} set.
-                        </span>
-                      </>
-                    )}
-                    {node.blocked && (
-                      <>
-                        <br />
-                        <span className="text-crypt-blue">{"\u{1F6A7}"} Blocked.</span>
-                      </>
-                    )}
-                  </div>
-                )}
+                    </>
+                  )}
+                  {node.blocked && (
+                    <>
+                      <br />
+                      <span className="text-crypt-blue">{"\u{1F6A7}"} Blocked.</span>
+                    </>
+                  )}
+                </div>
+              )}
 
               {scoutResult && scoutLevel > 0 && (
                 <div className="text-sm text-amber-500 mb-2 italic leading-relaxed border-l-2 border-crypt-red-glow/30 pl-2">
@@ -706,20 +611,20 @@ export function DungeonMap({
 
               <div className="flex flex-col gap-1.5">
                 {(adjacentIds.has(node.id) || debugMode) &&
-                  node.state !== "cleared" &&
-                  node.state !== "locked" && (
+                  !node.blocked &&
+                  node.id !== currentRoomId && (
                     <button
-                      style={btnStyle(typeColor[node.type] || "#8b0000")}
+                      style={btnStyle("#8b0000")}
                       onClick={() => {
                         onEnterRoom(node.id);
                         setSelected(null);
                       }}
                     >
-                      {node.type === "boss" ? "\u2620 Enter \u2014 Boss" : "\u2694 Enter"}
+                      Enter
                     </button>
                   )}
 
-                {adjacentIds.has(node.id) && node.type === "combat" && node.state !== "cleared" && (
+                {adjacentIds.has(node.id) && node.enemies.length > 0 && (
                   <div className="flex gap-1">
                     <button
                       title="Listen at door (quiet, safe)"
@@ -749,9 +654,8 @@ export function DungeonMap({
                 )}
 
                 {(adjacentIds.has(node.id) || node.id === currentRoomId) &&
-                  node.type === "combat" &&
-                  !node.trap &&
-                  node.state !== "cleared" && (
+                  node.enemies.length > 0 &&
+                  !node.trap && (
                     <div className="flex gap-1 flex-wrap">
                       {Object.entries(TRAP_INFO).map(([key, t]) => (
                         <button
@@ -774,9 +678,8 @@ export function DungeonMap({
                   )}
 
                 {(adjacentIds.has(node.id) || node.id === currentRoomId) &&
-                  node.type === "combat" &&
-                  !node.blocked &&
-                  node.state !== "cleared" && (
+                  node.enemies.length > 0 &&
+                  !node.blocked && (
                     <button
                       style={btnStyle("#2980b9", player.gold < BLOCK_DOOR_COST)}
                       className="text-xs! px-2! py-1!"
@@ -803,21 +706,7 @@ export function DungeonMap({
             </div>
           ) : (
             <div className="panel">
-              <p className="text-base text-crypt-muted leading-relaxed mb-3">
-                Click any visible room.
-              </p>
-              <div className="flex flex-col gap-1.5">
-                {(
-                  [
-                    ["\u2694", "combat", "#c0392b"],
-                    ["\u2620", "boss", "#e74c3c"],
-                  ] as const
-                ).map(([icon, label, color]) => (
-                  <span key={label} className="text-sm" style={{ color }}>
-                    {icon} {label}
-                  </span>
-                ))}
-              </div>
+              <p className="text-base text-crypt-muted leading-relaxed">Click any visible room.</p>
             </div>
           )}
 

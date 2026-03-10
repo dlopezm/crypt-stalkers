@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TRAP_INFO, TYPE_COLOR } from "./data/rooms";
+import { TRAP_INFO } from "./data/rooms";
 import {
   REST_HEAL_FRACTION,
   BLOCK_DOOR_COST,
@@ -158,16 +158,25 @@ export default function App() {
     if (!dungeon || !currentRoomId) return;
     const room = dungeon.find((n) => n.id === roomId);
     if (!room) return;
+    if (room.blocked) return;
     const currentRoom = dungeon.find((n) => n.id === currentRoomId);
     if (!debugMode && currentRoom && !currentRoom.connections.includes(roomId)) return;
     addLog([`\u{1F6B6} Moved to ${room.label}`], "player");
-    const afterAI = tickAI(dungeon, roomId, "move");
+    const marked = dungeon.map((n) =>
+      n.id === roomId && n.state !== "cleared" ? { ...n, state: "visited" as const } : n,
+    );
+    const afterAI = tickAI(marked, roomId, "move");
     setDungeon(afterAI);
     setCurrentRoomId(roomId);
-    const newScreen = room.type === "combat" || room.type === "boss" ? "combat" : "map";
-    if (newScreen === "combat") setScreen("combat");
-    setCombatSave(null);
-    doSave({ scr: newScreen as Screen, d: afterAI, rid: roomId });
+    const hasEnemies = room.enemies.length > 0;
+    if (hasEnemies) {
+      setScreen("combat");
+      setCombatSave(null);
+      doSave({ scr: "combat", d: afterAI, rid: roomId });
+    } else {
+      setCombatSave(null);
+      doSave({ scr: "map", d: afterAI, rid: roomId });
+    }
   }
 
   /* ── Combat turn ended → save mid-combat state ── */
@@ -195,7 +204,7 @@ export default function App() {
     setDungeon(newDungeon);
     const { block: _b, stealthActive: _st, counterActive: _c, ...playerState } = newPlayer;
     const room = dungeon.find((n) => n.id === currentRoomId);
-    if (room?.type === "boss") {
+    if (room?.boss) {
       const victoryPlayer = { ...playerState, hp: playerState.maxHp };
       setPlayer(victoryPlayer);
       setScreen("victory");
@@ -335,7 +344,7 @@ export default function App() {
             className={`mb-1 leading-relaxed ${n.id === currentRoomId ? "text-crypt-gold" : "text-crypt-muted"}`}
           >
             {n.id === currentRoomId ? "\u25B6 " : "  "}
-            <span style={{ color: TYPE_COLOR[n.type] || "#7f8c8d" }}>{n.label}</span> [{n.state}]
+            <span style={{ color: "#7f8c8d" }}>{n.label}</span> [{n.state}]
             {n.enemies.length > 0 && (
               <span className="text-red-400">
                 {" "}

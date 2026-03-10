@@ -20,9 +20,9 @@ export function generateDungeon(def: DungeonDef): DungeonNode[] {
 
   let combatIdx = 0;
 
-  function pickTemplate(type: "start" | "combat" | "boss"): RoomTemplate {
-    if (type === "start") return { type: "start", label: "Entrance", enemies: [], hint: "" };
-    if (type === "boss") return { ...def.bossRoom };
+  function pickTemplate(slot: "start" | "combat" | "boss"): RoomTemplate {
+    if (slot === "start") return { label: "Entrance", enemies: [], hint: "" };
+    if (slot === "boss") return { ...def.bossRoom };
     const t = combatPool[combatIdx % combatPool.length];
     combatIdx++;
     return { ...t };
@@ -74,11 +74,12 @@ export function generateDungeon(def: DungeonDef): DungeonNode[] {
       const cx = baseX + c * colSpacing + jitterX;
       const tmpl = pickTemplate(slot.type);
       const isStart = slot.type === "start";
+      const isBoss = slot.type === "boss";
       const node: DungeonNode = {
         id: isStart ? "start" : uid("room"),
         slot: isStart ? "start" : uid("slot"),
         label: tmpl.label,
-        type: tmpl.type,
+        boss: isBoss,
         enemies: tmpl.enemies ? [...tmpl.enemies] : [],
         hint: tmpl.hint || "",
         state: isStart ? "visited" : "locked",
@@ -400,7 +401,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
 }
 
 export function getScoutIntel(room: DungeonNode, scoutLevel: number): string {
-  if (!room || room.type !== "combat") return "Nothing unusual.";
+  if (!room) return "Nothing unusual.";
   const count = room.enemies.length;
   if (count === 0) {
     return scoutLevel >= 2 ? "The room appears empty." : "...silence.";

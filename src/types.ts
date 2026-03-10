@@ -108,11 +108,9 @@ export interface Enemy extends EnemyType {
 
 /* ── Dungeon ── */
 
-export type RoomType = "combat" | "boss" | "start";
 export type RoomState = "locked" | "reachable" | "visited" | "cleared";
 
 export interface RoomTemplate {
-  type: RoomType;
   label: string;
   enemies: string[];
   hint: string;
@@ -131,7 +129,7 @@ export interface DungeonNode {
   id: string;
   slot: string;
   label: string;
-  type: RoomType;
+  boss: boolean;
   enemies: string[];
   hint: string;
   state: RoomState;
