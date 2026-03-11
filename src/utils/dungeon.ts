@@ -423,6 +423,7 @@ const ACTION_NOISE: Record<string, string> = {
 export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, action = "move") {
   const rooms = dungeon.map((r) => ({ ...r, enemies: [...r.enemies] }));
   const aiLog: AILogEntry[] = [];
+  const arrivedInPlayerRoom: string[] = [];
 
   const noise = ACTION_NOISE[action] || "medium";
   const isLoud = noise === "loud";
@@ -447,6 +448,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
     }
     fromRoom.enemies = fromRoom.enemies.filter((e) => e !== enemyId);
     toRoom.enemies = [...toRoom.enemies, enemyId];
+    if (toRoom.id === currentRoomId) arrivedInPlayerRoom.push(enemyId);
     const sounds = MOVE_SOUNDS[enemyId] || {
       volume: "normal" as SoundVolume,
       texts: ["Something moves in the dark"],
@@ -503,9 +505,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
       }
 
       if (ai.roam && Math.random() < AI_ROAM_CHANCE) {
-        const target = shuffle(
-          neighbours.filter((n) => n.state !== "cleared" && n.id !== currentRoomId),
-        )[0];
+        const target = shuffle(neighbours.filter((n) => n.state !== "cleared"))[0];
         if (target) moveEnemy(eid, room, target, "roaming");
       }
 
@@ -525,7 +525,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
     });
   });
 
-  return { newDungeon: rooms, aiLog };
+  return { newDungeon: rooms, aiLog, arrivedInPlayerRoom };
 }
 
 export function getScoutIntel(room: DungeonNode, scoutLevel: number): string {

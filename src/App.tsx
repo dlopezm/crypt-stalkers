@@ -37,6 +37,8 @@ export default function App() {
   const [debugMode, setDebugMode] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [combatSave, setCombatSave] = useState<CombatSave | null>(null);
+  const [surpriseRound, setSurpriseRound] = useState(false);
+  const [combatKey, setCombatKey] = useState(0);
 
   function doSave(opts: {
     scr: Screen;
@@ -83,7 +85,7 @@ export default function App() {
   }
 
   function tickAI(currentDungeon: DungeonNode[], roomId: string, action: string) {
-    const { newDungeon, aiLog } = runDungeonAI(currentDungeon, roomId, action);
+    const { newDungeon, aiLog, arrivedInPlayerRoom } = runDungeonAI(currentDungeon, roomId, action);
     setDungeonTurn((t) => t + 1);
 
     if (aiLog.length) {
@@ -117,7 +119,7 @@ export default function App() {
       }
     }
 
-    return newDungeon;
+    return { newDungeon, arrivedInPlayerRoom };
   }
 
   /* ── New Game ── */
@@ -183,6 +185,26 @@ export default function App() {
     });
   }
 
+  /* ── Check if the player's room has enemies after an AI tick ── */
+  function checkAmbush(
+    afterAI: DungeonNode[],
+    roomId: string,
+    opts?: { player?: Player },
+  ): boolean {
+    const roomAfterAI = afterAI.find((n) => n.id === roomId);
+    if (!roomAfterAI || roomAfterAI.enemies.length === 0) return false;
+    // Mark room as visited (it has enemies now)
+    const updated = afterAI.map((n) => (n.id === roomId ? { ...n, state: "visited" as const } : n));
+    setDungeon(updated);
+    addLog(["\u26A0\uFE0F Monsters have found you!"], "system");
+    setSurpriseRound(true);
+    setCombatKey((k) => k + 1);
+    setScreen("combat");
+    setCombatSave(null);
+    doSave({ scr: "combat", p: opts?.player, d: updated, rid: roomId });
+    return true;
+  }
+
   /* ── Dungeon Navigation ── */
   function enterRoom(roomId: string) {
     if (!dungeon || !currentRoomId) return;
@@ -206,14 +228,19 @@ export default function App() {
             ? { ...n, state: "reachable" as const }
             : n,
         );
-    const afterAI = tickAI(unlocked, roomId, "move");
-    setDungeon(afterAI);
+    const { newDungeon: afterAI } = tickAI(unlocked, roomId, "move");
     setCurrentRoomId(roomId);
     if (hasEnemies) {
+      // Room already had enemies — normal combat (not surprise)
+      setSurpriseRound(false);
+      setCombatKey((k) => k + 1);
+      setDungeon(afterAI);
       setScreen("combat");
       setCombatSave(null);
       doSave({ scr: "combat", d: afterAI, rid: roomId });
-    } else {
+    } else if (!checkAmbush(afterAI, roomId)) {
+      // No enemies arrived — stay on map
+      setDungeon(afterAI);
       setCombatSave(null);
       doSave({ scr: "map", d: afterAI, rid: roomId });
     }
@@ -227,16 +254,14 @@ export default function App() {
 
   function onCombatVictory(newPlayer: CombatPlayer) {
     if (!dungeon || !currentRoomId) return;
-    const afterAI = tickAI(dungeon, currentRoomId, "combat");
+    // No dungeon tick after combat — just clear the room and unlock neighbors
     const newDungeon = (() => {
-      const base = afterAI.map((n) =>
+      const base = dungeon.map((n) =>
         n.id === currentRoomId ? { ...n, state: "cleared" as const, enemies: [] } : n,
       );
+      const curRoom = dungeon.find((r) => r.id === currentRoomId);
       return base.map((n) => {
-        if (
-          n.state === "locked" &&
-          afterAI.find((r) => r.id === currentRoomId)?.connections.includes(n.id)
-        )
+        if (n.state === "locked" && curRoom?.connections.includes(n.id))
           return { ...n, state: "reachable" as const };
         return n;
       });
@@ -270,7 +295,8 @@ export default function App() {
 
   function onFleeToMap(newPlayer: CombatPlayer) {
     if (!dungeon || !currentRoomId) return;
-    const afterAI = tickAI(dungeon, currentRoomId, "move");
+    // After flee, no auto-combat — player always sees the map and can move away
+    const { newDungeon: afterAI } = tickAI(dungeon, currentRoomId, "move");
     setDungeon(afterAI);
     const { block: _b, stealthActive: _st, counterActive: _c, ...playerState } = newPlayer;
     setPlayer(playerState);
@@ -285,9 +311,11 @@ export default function App() {
     const newPlayer = { ...player, hp: Math.min(player.maxHp, player.hp + healAmt) };
     setPlayer(newPlayer);
     addLog([`\u{1FA79} Rested (+${healAmt} HP)`], "player");
-    const afterAI = tickAI(dungeon, currentRoomId, "rest");
-    setDungeon(afterAI);
-    doSave({ scr: "map", p: newPlayer, d: afterAI });
+    const { newDungeon: afterAI } = tickAI(dungeon, currentRoomId, "rest");
+    if (!checkAmbush(afterAI, currentRoomId, { player: newPlayer })) {
+      setDungeon(afterAI);
+      doSave({ scr: "map", p: newPlayer, d: afterAI });
+    }
   }
 
   function onSetTrap(roomId: string, trapKey: string) {
@@ -314,12 +342,15 @@ export default function App() {
 
   function onScout(roomId: string, _scoutLevel: number) {
     if (!dungeon || !currentRoomId) return;
-    const afterAI = tickAI(dungeon, currentRoomId, "scout");
-    setDungeon(afterAI.map((n) => (n.id === roomId ? { ...n, scouted: true } : n)));
+    const { newDungeon: afterAI } = tickAI(dungeon, currentRoomId, "scout");
+    const scoutedDungeon = afterAI.map((n) => (n.id === roomId ? { ...n, scouted: true } : n));
     addLog(
       [`\u{1F50D} Scouted ${dungeon.find((n) => n.id === roomId)?.label || roomId}`],
       "player",
     );
+    if (!checkAmbush(scoutedDungeon, currentRoomId)) {
+      setDungeon(scoutedDungeon);
+    }
   }
 
   /* ── Rendering ── */
@@ -456,6 +487,7 @@ export default function App() {
     if (!room) return null;
     return (
       <CombatScreen
+        key={combatKey}
         room={room}
         player={player}
         onVictory={onCombatVictory}
@@ -463,6 +495,7 @@ export default function App() {
         onFleeToMap={onFleeToMap}
         onTurnEnd={onCombatTurnEnd}
         initialCombat={combatSave}
+        surpriseRound={surpriseRound}
       />
     );
   }

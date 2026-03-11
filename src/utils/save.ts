@@ -15,6 +15,7 @@ export interface CombatSave {
   combatPlayer: CombatPlayer;
   lightLevel: number;
   combatLog: string[];
+  surpriseRound?: boolean;
 }
 
 export interface SaveGame {

@@ -561,7 +561,7 @@ export function DungeonMap({
                     </button>
                   )}
 
-                {adjacentIds.has(node.id) && node.enemies.length > 0 && (
+                {adjacentIds.has(node.id) && node.id !== currentRoomId && (
                   <div className="flex gap-1">
                     <button
                       title="Listen at door (quiet, safe)"

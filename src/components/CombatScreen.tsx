@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, useEffect, useRef, memo } from "react";
 import { btnStyle } from "../styles";
 import { ENEMY_TYPES } from "../data/enemies";
 import { ABILITIES } from "../data/abilities";
@@ -111,6 +111,7 @@ export function CombatScreen({
   onFleeToMap,
   onTurnEnd,
   initialCombat,
+  surpriseRound,
 }: {
   room: DungeonNode;
   player: Player;
@@ -119,6 +120,7 @@ export function CombatScreen({
   onFleeToMap: (p: CombatPlayer) => void;
   onTurnEnd: (combat: CombatSave) => void;
   initialCombat: CombatSave | null;
+  surpriseRound?: boolean;
 }) {
   const initEnemies = useCallback((): Enemy[] => {
     if (initialCombat) return initialCombat.enemies;
@@ -144,10 +146,14 @@ export function CombatScreen({
   const [pendingAbility, setPendingAbility] = useState<Ability | null>(null);
   const [pendingItem, setPendingItem] = useState<{ item: Consumable; idx: number } | null>(null);
   const [targetIdx, setTargetIdx] = useState(0);
-  const [log, setLog] = useState(
-    initialCombat ? initialCombat.combatLog : [`\u2694 Combat begins: ${room.label}`],
-  );
+  const [log, setLog] = useState(() => {
+    if (initialCombat) return initialCombat.combatLog;
+    if (surpriseRound && !initialCombat)
+      return [`\u26A0\uFE0F Ambush! Enemies burst into the room!`];
+    return [`\u2694 Combat begins: ${room.label}`];
+  });
   const [animating, setAnimating] = useState(false);
+  const surpriseRoundDone = useRef(!!initialCombat);
   const [lightLevel, setLightLevel] = useState(
     initialCombat ? initialCombat.lightLevel : LIGHT_START,
   );
@@ -235,6 +241,16 @@ export function CombatScreen({
       setTargetIdx(first >= 0 ? first : 0);
     }
   }
+
+  /* ── Surprise round: enemies get a free turn before the player acts ── */
+  useEffect(() => {
+    if (surpriseRound && !surpriseRoundDone.current) {
+      surpriseRoundDone.current = true;
+      const enems = cloneEnemies(enemies);
+      doEnemyTurn({ ...p }, enems, false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ── After any player action, run enemy turn ── */
   function endPlayerAction(np: CombatPlayer, enems: Enemy[]) {
