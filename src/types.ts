@@ -123,6 +123,7 @@ export interface DungeonDef {
   difficulty: number;
   combatRooms: RoomTemplate[];
   bossRoom: RoomTemplate;
+  generator?: "stamp";
 }
 
 export interface RoomBBox {

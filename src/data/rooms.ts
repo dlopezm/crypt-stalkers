@@ -90,6 +90,7 @@ export const DUNGEONS: DungeonDef[] = [
     name: "Shallow Graves",
     desc: "A small burial site on the outskirts. Rats and old bones.",
     difficulty: 1,
+    generator: "stamp",
     combatRooms: EASY_COMBAT,
     bossRoom: {
       label: "The Bone Throne",
@@ -102,6 +103,7 @@ export const DUNGEONS: DungeonDef[] = [
     name: "The Crypt",
     desc: "A branching dungeon of 7 rooms. Undead, wraiths, and worse.",
     difficulty: 2,
+    generator: "stamp",
     combatRooms: MED_COMBAT,
     bossRoom: {
       label: "The Blood Altar",
@@ -114,6 +116,7 @@ export const DUNGEONS: DungeonDef[] = [
     name: "The Lich's Domain",
     desc: "A sprawling tomb complex. Necromancers, shadows, and the Lich King himself.",
     difficulty: 3,
+    generator: "stamp",
     combatRooms: HARD_COMBAT,
     bossRoom: {
       label: "The Lich's Throne",

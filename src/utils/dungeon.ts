@@ -16,23 +16,16 @@ import type {
   SoundVolume,
 } from "../types";
 import { shuffle, uid } from "./helpers";
-import { NewDungeon } from "random-dungeon-generator";
+import { generateStampGrid } from "./stamp-dungeon";
 
-/* ── Grid generation config per difficulty ── */
-const DIFFICULTY_CONFIG: Record<
+/* ── Stamp generation config per difficulty ── */
+const STAMP_CONFIG: Record<
   number,
-  {
-    width: number;
-    height: number;
-    minRoomSize: number;
-    maxRoomSize: number;
-    minRooms: number;
-    maxRooms: number;
-  }
+  { gridW: number; gridH: number; minRooms: number; maxRooms: number }
 > = {
-  1: { width: 30, height: 30, minRoomSize: 5, maxRoomSize: 10, minRooms: 4, maxRooms: 9 },
-  2: { width: 40, height: 40, minRoomSize: 5, maxRoomSize: 10, minRooms: 7, maxRooms: 16 },
-  3: { width: 50, height: 50, minRoomSize: 5, maxRoomSize: 10, minRooms: 10, maxRooms: 22 },
+  1: { gridW: 40, gridH: 40, minRooms: 4, maxRooms: 9 },
+  2: { gridW: 50, gridH: 50, minRooms: 7, maxRooms: 16 },
+  3: { gridW: 55, gridH: 55, minRooms: 10, maxRooms: 22 },
 };
 
 /* ── Extract rooms and connections from BSP grid ── */
@@ -156,33 +149,31 @@ function extractRoomsFromGrid(grid: number[][]): {
   return { rooms, connections };
 }
 
-/* ── Generate dungeon using BSP grid ── */
-
 export interface GenerateDungeonResult {
   nodes: DungeonNode[];
   grid: DungeonGrid;
 }
 
-export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
-  const cfg = DIFFICULTY_CONFIG[def.difficulty] || DIFFICULTY_CONFIG[1];
+function generateGrid(def: DungeonDef): {
+  grid: number[][];
+  extracted: ReturnType<typeof extractRoomsFromGrid>;
+} {
+  const cfg = STAMP_CONFIG[def.difficulty] || STAMP_CONFIG[1];
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const grid = generateStampGrid(cfg);
+    if (grid) {
+      const extracted = extractRoomsFromGrid(grid);
+      if (extracted.rooms.length >= cfg.minRooms) return { grid, extracted };
+    }
+  }
+  // Last resort: keep trying until we get something
+  let grid: number[][] | null = null;
+  while (!grid) grid = generateStampGrid(cfg);
+  return { grid, extracted: extractRoomsFromGrid(grid) };
+}
 
-  // Generate grid, retry if room count is outside range
-  let grid: number[][];
-  let extracted: ReturnType<typeof extractRoomsFromGrid>;
-  let attempts = 0;
-  do {
-    grid = NewDungeon({
-      width: cfg.width,
-      height: cfg.height,
-      minRoomSize: cfg.minRoomSize,
-      maxRoomSize: cfg.maxRoomSize,
-    });
-    extracted = extractRoomsFromGrid(grid);
-    attempts++;
-  } while (
-    (extracted.rooms.length < cfg.minRooms || extracted.rooms.length > cfg.maxRooms) &&
-    attempts < 20
-  );
+export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
+  const { grid, extracted } = generateGrid(def);
 
   const { rooms: extractedRooms, connections } = extracted;
 

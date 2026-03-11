@@ -33,69 +33,20 @@ function visibleRooms(dungeon: DungeonNode[], debugMode: boolean): Set<string> {
   return vis;
 }
 
-/* ── Compute the closest edge points between two room bboxes ── */
-function connectorEndpoints(
-  a: NonNullable<DungeonNode["bbox"]>,
-  b: NonNullable<DungeonNode["bbox"]>,
-): { x1: number; y1: number; x2: number; y2: number } {
-  // Room pixel rects
-  const ax1 = a.minCol * CELL_PX,
-    ay1 = a.minRow * CELL_PX;
-  const ax2 = (a.maxCol + 1) * CELL_PX,
-    ay2 = (a.maxRow + 1) * CELL_PX;
-  const bx1 = b.minCol * CELL_PX,
-    by1 = b.minRow * CELL_PX;
-  const bx2 = (b.maxCol + 1) * CELL_PX,
-    by2 = (b.maxRow + 1) * CELL_PX;
-  // Centers
-  const acx = (ax1 + ax2) / 2,
-    acy = (ay1 + ay2) / 2;
-  const bcx = (bx1 + bx2) / 2,
-    bcy = (by1 + by2) / 2;
-  // Clamp connector start/end to the edge of each room along the center-to-center line
-  function clampToEdge(
-    cx: number,
-    cy: number,
-    tx: number,
-    ty: number,
-    rx1: number,
-    ry1: number,
-    rx2: number,
-    ry2: number,
-  ) {
-    const dx = tx - cx,
-      dy = ty - cy;
-    if (dx === 0 && dy === 0) return { x: cx, y: cy };
-    let t = Infinity;
-    if (dx !== 0) {
-      const tl = (dx > 0 ? rx2 : rx1) - cx;
-      const tv = tl / dx;
-      if (tv > 0) t = Math.min(t, tv);
-    }
-    if (dy !== 0) {
-      const tl = (dy > 0 ? ry2 : ry1) - cy;
-      const tv = tl / dy;
-      if (tv > 0) t = Math.min(t, tv);
-    }
-    return { x: cx + dx * t, y: cy + dy * t };
-  }
-  const from = clampToEdge(acx, acy, bcx, bcy, ax1, ay1, ax2, ay2);
-  const to = clampToEdge(bcx, bcy, acx, acy, bx1, by1, bx2, by2);
-  return { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
-}
-
-/* ── Grid Canvas Renderer (rectangle-based) ── */
+/* ── Grid Canvas Renderer (cell-based) ── */
 function GridCanvas({
   grid,
   dungeon,
   currentRoomId,
   visible,
+  debugMode,
   onClickRoom,
 }: {
   grid: DungeonGrid;
   dungeon: DungeonNode[];
   currentRoomId: string;
   visible: Set<string>;
+  debugMode: boolean;
   onClickRoom: (nodeId: string) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -106,84 +57,184 @@ function GridCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const { height, width } = grid;
+    const { height, width, cells } = grid;
     canvas.width = width * CELL_PX;
     canvas.height = height * CELL_PX;
 
     ctx.fillStyle = "#080610";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw connectors between visible connected rooms (edge-to-edge)
-    ctx.strokeStyle = "#2a1c10";
-    ctx.lineWidth = 4;
-    const drawnConnections = new Set<string>();
+    // Build gridRoomId → node lookup for coloring
+    const gridIdToNode = new Map<number, DungeonNode>();
     for (const node of dungeon) {
-      if (!visible.has(node.id) || !node.bbox) continue;
-      for (const connId of node.connections) {
-        const connKey = [node.id, connId].sort().join("-");
-        if (drawnConnections.has(connKey)) continue;
-        drawnConnections.add(connKey);
-        const other = dungeon.find((n) => n.id === connId);
-        if (!other?.bbox || !visible.has(other.id)) continue;
-        const { x1, y1, x2, y2 } = connectorEndpoints(node.bbox, other.bbox);
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-      }
+      if (node.gridRoomId != null) gridIdToNode.set(node.gridRoomId, node);
     }
 
-    // Draw rooms as solid rectangles
+    // Build corridor visibility map
+    // debug mode: all corridors visible
+    // visited/cleared rooms: BFS flood all reachable corridor cells
+    // reachable rooms: only corridor cells directly adjacent to room cells
+    const corVisible = Array.from({ length: height }, () => new Uint8Array(width));
+    const dirs4 = [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+    ];
+
+    if (debugMode) {
+      for (let r = 0; r < height; r++)
+        for (let c = 0; c < width; c++) if (cells[r][c] === 0) corVisible[r][c] = 1;
+    }
+
+    // Pass 1: flood corridors from visited/cleared rooms
     for (const node of dungeon) {
-      if (!visible.has(node.id) || !node.bbox) continue;
-      const { minRow, maxRow, minCol, maxCol } = node.bbox;
-      const x = minCol * CELL_PX;
-      const y = minRow * CELL_PX;
-      const w = (maxCol - minCol + 1) * CELL_PX;
-      const h = (maxRow - minRow + 1) * CELL_PX;
-
-      // Fill
-      ctx.fillStyle = roomColor(node, currentRoomId);
-      ctx.fillRect(x, y, w, h);
-
-      // Subtle grid lines inside room
-      ctx.strokeStyle = "rgba(255,255,255,0.03)";
-      for (let r = minRow; r <= maxRow; r++) {
-        for (let c = minCol; c <= maxCol; c++) {
-          ctx.strokeRect(c * CELL_PX, r * CELL_PX, CELL_PX, CELL_PX);
+      if (node.gridRoomId == null || !visible.has(node.id)) continue;
+      const isExplored = node.state === "visited" || node.state === "cleared";
+      if (!isExplored) continue;
+      // Find corridor cells adjacent to this room's cells, then BFS
+      const queue: [number, number][] = [];
+      for (let r = 0; r < height; r++) {
+        for (let c = 0; c < width; c++) {
+          if (cells[r][c] !== node.gridRoomId) continue;
+          for (const [dr, dc] of dirs4) {
+            const nr = r + dr,
+              nc = c + dc;
+            if (
+              nr >= 0 &&
+              nr < height &&
+              nc >= 0 &&
+              nc < width &&
+              cells[nr][nc] === 0 &&
+              !corVisible[nr][nc]
+            ) {
+              corVisible[nr][nc] = 1;
+              queue.push([nr, nc]);
+            }
+          }
+        }
+      }
+      // BFS through corridor cells
+      let qi = 0;
+      while (qi < queue.length) {
+        const [cr, cc] = queue[qi++];
+        for (const [dr, dc] of dirs4) {
+          const nr = cr + dr,
+            nc = cc + dc;
+          if (
+            nr >= 0 &&
+            nr < height &&
+            nc >= 0 &&
+            nc < width &&
+            cells[nr][nc] === 0 &&
+            !corVisible[nr][nc]
+          ) {
+            corVisible[nr][nc] = 1;
+            queue.push([nr, nc]);
+          }
         }
       }
     }
 
-    // Highlight current room border
-    const curNode = dungeon.find((n) => n.id === currentRoomId);
-    if (curNode?.bbox && visible.has(curNode.id)) {
-      const { minRow, maxRow, minCol, maxCol } = curNode.bbox;
-      ctx.strokeStyle = "#d4a830";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(
-        minCol * CELL_PX - 1,
-        minRow * CELL_PX - 1,
-        (maxCol - minCol + 1) * CELL_PX + 2,
-        (maxRow - minRow + 1) * CELL_PX + 2,
-      );
-    }
-
-    // Highlight reachable room borders
+    // Pass 2: reachable rooms — only 1 cell deep into corridors
     for (const node of dungeon) {
-      if (node.state === "reachable" && node.bbox && visible.has(node.id)) {
-        const { minRow, maxRow, minCol, maxCol } = node.bbox;
-        ctx.strokeStyle = "#7a4018";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(
-          minCol * CELL_PX,
-          minRow * CELL_PX,
-          (maxCol - minCol + 1) * CELL_PX,
-          (maxRow - minRow + 1) * CELL_PX,
-        );
+      if (node.gridRoomId == null || !visible.has(node.id)) continue;
+      if (node.state !== "reachable") continue;
+      for (let r = 0; r < height; r++) {
+        for (let c = 0; c < width; c++) {
+          if (cells[r][c] !== node.gridRoomId) continue;
+          for (const [dr, dc] of dirs4) {
+            const nr = r + dr,
+              nc = c + dc;
+            if (
+              nr >= 0 &&
+              nr < height &&
+              nc >= 0 &&
+              nc < width &&
+              cells[nr][nc] === 0 &&
+              !corVisible[nr][nc]
+            ) {
+              corVisible[nr][nc] = 1;
+            }
+          }
+        }
       }
     }
-  }, [grid, dungeon, currentRoomId, visible]);
+
+    // Paint every cell from the raw grid
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        const v = cells[r][c];
+        if (v === 1) continue;
+
+        const x = c * CELL_PX;
+        const y = r * CELL_PX;
+
+        if (v === 0) {
+          if (corVisible[r][c]) {
+            ctx.fillStyle = "#1a1208";
+            ctx.fillRect(x, y, CELL_PX, CELL_PX);
+            ctx.strokeStyle = "rgba(255,255,255,0.02)";
+            ctx.strokeRect(x, y, CELL_PX, CELL_PX);
+          }
+        } else {
+          // Room cell (v >= 2)
+          const node = gridIdToNode.get(v);
+          if (!node || !visible.has(node.id)) continue;
+          ctx.fillStyle = roomColor(node, currentRoomId);
+          ctx.fillRect(x, y, CELL_PX, CELL_PX);
+          ctx.strokeStyle = "rgba(255,255,255,0.03)";
+          ctx.strokeRect(x, y, CELL_PX, CELL_PX);
+        }
+      }
+    }
+
+    // Draw organic outline around room cells (highlight edges adjacent to walls)
+    function outlineRoomCells(roomGridId: number, color: string, lw: number) {
+      if (!ctx) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      for (let r = 0; r < height; r++) {
+        for (let c = 0; c < width; c++) {
+          if (cells[r][c] !== roomGridId) continue;
+          const x = c * CELL_PX,
+            y = r * CELL_PX;
+          // Draw edge segments where neighbor is wall or out of bounds
+          if (r === 0 || cells[r - 1][c] !== roomGridId) {
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + CELL_PX, y);
+          }
+          if (r === height - 1 || cells[r + 1][c] !== roomGridId) {
+            ctx.moveTo(x, y + CELL_PX);
+            ctx.lineTo(x + CELL_PX, y + CELL_PX);
+          }
+          if (c === 0 || cells[r][c - 1] !== roomGridId) {
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + CELL_PX);
+          }
+          if (c === width - 1 || cells[r][c + 1] !== roomGridId) {
+            ctx.moveTo(x + CELL_PX, y);
+            ctx.lineTo(x + CELL_PX, y + CELL_PX);
+          }
+        }
+      }
+      ctx.stroke();
+    }
+
+    // Highlight current room
+    const curNode = dungeon.find((n) => n.id === currentRoomId);
+    if (curNode?.gridRoomId != null && visible.has(curNode.id)) {
+      outlineRoomCells(curNode.gridRoomId, "#d4a830", 2);
+    }
+
+    // Highlight reachable rooms
+    for (const node of dungeon) {
+      if (node.state === "reachable" && node.gridRoomId != null && visible.has(node.id)) {
+        outlineRoomCells(node.gridRoomId, "#7a4018", 1);
+      }
+    }
+  }, [grid, dungeon, currentRoomId, visible, debugMode]);
 
   useEffect(() => {
     draw();
@@ -192,10 +243,12 @@ function GridCanvas({
   function handleClick(e: React.MouseEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    // Check which room bbox contains the click
+    const bcr = canvas.getBoundingClientRect();
+    // Scale click coords from CSS size to canvas pixel size
+    const scaleX = canvas.width / bcr.width;
+    const scaleY = canvas.height / bcr.height;
+    const x = (e.clientX - bcr.left) * scaleX;
+    const y = (e.clientY - bcr.top) * scaleY;
     for (const node of dungeon) {
       if (!node.bbox || !visible.has(node.id)) continue;
       const { minRow, maxRow, minCol, maxCol } = node.bbox;
@@ -214,7 +267,7 @@ function GridCanvas({
   return (
     <canvas
       ref={canvasRef}
-      style={{ imageRendering: "pixelated", cursor: "pointer" }}
+      style={{ imageRendering: "pixelated", cursor: "pointer", width: "100%", height: "100%" }}
       onClick={handleClick}
     />
   );
@@ -227,12 +280,16 @@ function RoomLabels({
   adjacentIds,
   debugMode,
   soundIcons,
+  gridWidth,
+  gridHeight,
 }: {
   dungeon: DungeonNode[];
   currentRoomId: string;
   adjacentIds: Set<string>;
   debugMode: boolean;
   soundIcons: { roomId: string; texts: string[]; key: number }[];
+  gridWidth: number;
+  gridHeight: number;
 }) {
   return (
     <>
@@ -243,8 +300,8 @@ function RoomLabels({
         if (!debugMode && !visited && !reachable && !adjacentIds.has(n.id)) return null;
 
         const { minRow, maxRow, minCol, maxCol } = n.bbox;
-        const cx = ((minCol + maxCol) / 2) * CELL_PX + CELL_PX / 2;
-        const cy = ((minRow + maxRow) / 2) * CELL_PX + CELL_PX / 2;
+        const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
+        const cyPct = ((minRow + maxRow + 1) / 2 / gridHeight) * 100;
         const isCurrent = n.id === currentRoomId;
 
         return (
@@ -252,8 +309,8 @@ function RoomLabels({
             key={n.id + "-lbl"}
             style={{
               position: "absolute",
-              left: cx,
-              top: cy,
+              left: `${cxPct}%`,
+              top: `${cyPct}%`,
               transform: "translate(-50%, -50%)",
               fontSize: isCurrent ? "0.75rem" : "0.65rem",
               color: isCurrent ? "#ece0c0" : visited ? "#7f8c8d" : "#5a4028",
@@ -263,7 +320,6 @@ function RoomLabels({
               zIndex: 3,
               pointerEvents: "none",
               fontWeight: isCurrent ? "bold" : "normal",
-              maxWidth: `${(maxCol - minCol + 1) * CELL_PX}px`,
               overflow: "hidden",
               textOverflow: "ellipsis",
               textAlign: "center",
@@ -280,16 +336,16 @@ function RoomLabels({
         const room = dungeon.find((n) => n.id === icon.roomId);
         if (!room?.bbox) return null;
         const { minRow, maxRow, minCol, maxCol } = room.bbox;
-        const cx = ((minCol + maxCol) / 2) * CELL_PX + CELL_PX / 2;
-        const cy = ((minRow + maxRow) / 2) * CELL_PX + CELL_PX / 2;
+        const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
+        const cyPct = ((minRow + maxRow + 1) / 2 / gridHeight) * 100;
         return (
           <div
             key={icon.key}
             title={icon.texts.join("\n")}
             style={{
               position: "absolute",
-              left: cx,
-              top: cy,
+              left: `${cxPct}%`,
+              top: `${cyPct}%`,
               transform: "translate(-50%, -50%)",
               zIndex: 10,
               pointerEvents: "auto",
@@ -402,21 +458,6 @@ export function DungeonMap({
     prevLogLen.current = dungeonLog.length;
   }, [dungeonLog, dungeonTurn]);
 
-  // Auto-scroll to current room on mount or room change
-  useEffect(() => {
-    const curNode = dungeon.find((n) => n.id === currentRoomId);
-    if (!curNode?.bbox || !scrollRef.current) return;
-    const { minRow, maxRow, minCol, maxCol } = curNode.bbox;
-    const cx = ((minCol + maxCol) / 2) * CELL_PX;
-    const cy = ((minRow + maxRow) / 2) * CELL_PX;
-    const container = scrollRef.current;
-    container.scrollTo({
-      left: cx - container.clientWidth / 2,
-      top: cy - container.clientHeight / 2,
-      behavior: "smooth",
-    });
-  }, [currentRoomId, dungeon]);
-
   const node = selected ? dungeon.find((n) => n.id === selected) : null;
   const currentRoom = dungeon.find((n) => n.id === currentRoomId);
   const adjacentIds = new Set(currentRoom?.connections || []);
@@ -473,22 +514,24 @@ export function DungeonMap({
       </div>
 
       <div className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full flex-1 min-h-0">
-        {/* Map canvas — scrollable */}
+        {/* Map canvas */}
         <div
           ref={scrollRef}
-          className="relative shrink-0 overflow-auto rounded-md border border-crypt-border-dim"
+          className="relative shrink-0 rounded-md border border-crypt-border-dim"
           style={{
-            maxWidth: "min(700px, 60vw)",
-            maxHeight: "calc(100vh - 140px)",
+            width: "min(700px, 55vw, calc(100vh - 160px))",
+            aspectRatio: `${mapPxW} / ${mapPxH}`,
+            maxHeight: "calc(100vh - 160px)",
             background: "#080610",
           }}
         >
-          <div style={{ position: "relative", width: mapPxW, height: mapPxH }}>
+          <div style={{ position: "relative", width: "100%", height: "100%" }}>
             <GridCanvas
               grid={dungeonGrid}
               dungeon={dungeon}
               currentRoomId={currentRoomId}
               visible={visible}
+              debugMode={debugMode}
               onClickRoom={handleClickRoom}
             />
             <RoomLabels
@@ -497,6 +540,8 @@ export function DungeonMap({
               adjacentIds={adjacentIds}
               debugMode={debugMode}
               soundIcons={soundIcons}
+              gridWidth={dungeonGrid.width}
+              gridHeight={dungeonGrid.height}
             />
           </div>
         </div>
