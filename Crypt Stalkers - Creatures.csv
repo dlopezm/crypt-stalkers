@@ -1,0 +1,30 @@
+Name,Evokes,Why do you need to deal with it?,Combat Mechanic,Effective way to deal with it,Out of combat mechanic,Movement,HP,Damage,Sees in the dark,Reacts to light,Corporeal,On closed doors
+Rat,Small and omnipresent,Reproduces,"Low HP, low damage, each rat has a chance to reproduce each turn",Attacks that affect multiple enemies,Each rat has a chance to reproduce each dungeon turn,"Frequent, random",3,1,No,No,Yes,Squeezes under
+Wailing Banshee,Scream shatters soul,Makes it harder to deal with other monsters,"Ranged, Scream drains strength and can cause you to lose a turn",Attack it with ranged weapons before it drains you,"Makes a lot of noise
+Destroys valuables?","Occasional, random",12,3,Yes,No,No,Is blocked by them
+Vampire,Ancient presence,,,,,,,,Yes,,Yes,
+Ghost,Threat through tranquility,"You don't
+Weird?",Does nothing unless you make loud noises,Ignore it,"Armor penetriation, ethereal (hits can miss?)",No,"12, 75% of normal attacks miss","5, ignores armor and defense",Yes,No,No,Ignores them
+Ghoul,Attacks from darkness,"It will hide, so you’ll lose the chance, and then it will hit you hard","Starts hidden, attacks hard, hides again","- Hit it when it becomes visible to attack
+- Time the attack, and defend yourself in the turn before, to minimize the impact
+-Don't lose sight of it (perception abilities?)","Finds nearest human, tries to hide or ambush it to feed from it (can attack other monsters)",Tends to hide? Or moves to ambush if he detects potential victims?,14,"5, 15 if attacking from hidden",Yes,Moves away so it can hide,Yes,"Ignores them, waits behind"
+Shadow,"Hunger, void",,- Devours light,,,,,,Yes,,No,Goes through
+Bat,,,Sees in the dark - so what?,,,,,,Yes,,Yes,Is blocked
+Necromancer,His body contains the violent energies he wields,"It will keep bringing back enemies, it weakens you","ranged attacks, curses, brings back fallen zombies/skeletons",kill it fast with ranged attacks? too much like banshee,"summons zombies every 3 turns, always keeps a few around him but if he has enough and he's aware of the player, he sends them to attack him","Stationary, doing something where he was spawned",8,6,No,"Carries it
+Sends zombies to investigate other lights",Yes,Opens
+Grave Robber,"Profanity, greed","He'll flee and deny you treasure he looted, the bastard","Moves away, then looks for an opening, then flees",Block its exits and corner him,"Loots everything it can.
+Carries a torch, makes light","Away from any perceived danger, towards the exit. If reaches the exit, leaves",10,0,No,"Carries it, evades other lights",Yes,"Opens, picks locks, disables traps"
+Zombie,Mindless slave,"It chases you, though doesn't pose a particular threat",Just attacks,"Destroy its commander, it becomes inert","Tied and controlled by a necromancer, cultist, or witch","Intelligently organizes and goes where master commands, back to master if it's under attack",8,3,No,Ignores,Yes,Bashes them
+Witch,,,"Powerful telegraphed magic attacks? 
+Puts you in trance/stun?",,,,10,,No,,Yes,Opens
+Skullflower,Consumption as propagation,It grows,Controls other dead enemies?,"Burn it, expose it to light","Slowly grows and becomes bigger (HP increases), spreads to other rooms if they're unlit. If lit, it loses HP over time.
+Transforms the environment (destroys loot? weakens doors?)?","No, but it propagates to other rooms","12 base, increases over time
+Fire or light stops growth",5,"No vision, but it can sense",Withers,Yes,Can spread through
+Cultist,Fanatic,,,,,,10,4,No,,Yes,Opens
+Skeleton,"Static, unchanging, militaristic, persistent",No strong reason,"Attacks, becomes a pile of bones when defeated, which becomes a skeleton again after a turn","Kill it before it comes back
+Bludgeoning weapons defeat it without becoming a heap of bones",Scouts the dungeon,Scouts the dungeon,16,7,Yes,Investigates it,Yes,Bashes them
+Demon,,,,Don’t let it be summoned,"regenerates, multiple attacks per turn?",,150,20,Yes,,Yes,Destroys
+Gutborn,Violates bodily autonomy,"Will generate larvae, making it harder to eradicate",Whatever the host did + generate larvae,"Kill it while larva, or deal with it as if it was the host (minus advanced abilities)",Spawns a larva,Seeks more hosts,Depends on host,"Depends on host, can't use advanced abilities (magic, summon, etc)",Depends on host,Avoids,Yes,As host
+Gutborn Larva,"Silent, sneaky, will take you over",Will take over a host and reproduce,"Tries to take you or other creatures over
+Telegraphs the attack","Kill it before it infects anything else, redirect it to enemies with advanced abilities so it takes them over and weakens them","Infects a corporeal host. After 3 turns, becomes a Gutborn","Towards any sign of life, to find a host
+Flees the light",1,"0, but if it attacks unseen it can take you over",No,Flees,Yes,Squeezes under

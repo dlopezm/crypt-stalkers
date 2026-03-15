@@ -80,6 +80,53 @@ export interface EnemyAI {
   sendScout?: boolean;
 }
 
+/* ── Combat Mechanics ── */
+
+export type CombatAction =
+  | { type: "damage_player"; amount: number }
+  | { type: "apply_status_player"; status: StatusKey; stacks: number }
+  | { type: "heal_self"; amount: number }
+  | {
+      type: "spawn";
+      enemyId: string;
+      row?: "front" | "back";
+      reassembled?: boolean;
+      summonCooldown?: number;
+    }
+  | { type: "drain_light"; amount: number }
+  | { type: "log"; message: string }
+  | { type: "skip_attack" };
+
+export interface AttackResult {
+  skip?: boolean;
+  damageMultiplier?: number;
+  lifestealFraction?: number;
+  atkOverride?: number;
+  extraActions?: CombatAction[];
+}
+
+export interface HitResponse {
+  evade?: boolean;
+  damageMultiplier?: number;
+}
+
+export interface CombatContext {
+  enemies: Enemy[];
+  player: CombatPlayer;
+  lightLevel: { value: number };
+}
+
+export interface CombatMechanics {
+  onTurnStart?: (self: Enemy, ctx: CombatContext) => CombatAction[];
+  onAttack?: (self: Enemy, ctx: CombatContext) => AttackResult | null;
+  onReceiveHit?: (
+    self: Enemy,
+    ctx: CombatContext,
+    hit: { damage: number; holy: boolean; finishing: boolean },
+  ) => HitResponse;
+  onDeath?: (self: Enemy, ctx: CombatContext, killingHit: { finishing: boolean }) => CombatAction[];
+}
+
 export interface EnemyType {
   id: string;
   name: string;
@@ -94,6 +141,14 @@ export interface EnemyType {
   ambushTurns?: number;
   isBoss?: boolean;
   defaultRow: "front" | "back";
+  combatMechanics?: CombatMechanics;
+  /* ── CSV fields ── */
+  outOfCombatMechanic?: string;
+  movement?: string;
+  seesInDark?: boolean;
+  reactsToLight?: string;
+  corporeal?: boolean;
+  onClosedDoors?: string;
 }
 
 export interface Enemy extends EnemyType {

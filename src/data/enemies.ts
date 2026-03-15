@@ -1,4 +1,17 @@
 import type { EnemyType } from "../types";
+import {
+  ratMechanics,
+  skeletonMechanics,
+  heapOfBonesMechanics,
+  ghostMechanics,
+  vampireMechanics,
+  bansheeMechanics,
+  necromancerMechanics,
+  zombieMechanics,
+  ghoulMechanics,
+  shadowMechanics,
+  lichMechanics,
+} from "../combat/mechanics";
 
 export const ENEMY_TYPES: EnemyType[] = [
   {
@@ -12,6 +25,13 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanicDesc: "Each living rat deals 1 chip dmg/turn. Kill them fast.",
     defaultRow: "front",
     ai: { noiseAttract: true, roam: true, reproduce: true },
+    combatMechanics: ratMechanics,
+    outOfCombatMechanic: "Each rat has a chance to reproduce each dungeon turn",
+    movement: "Frequent, random",
+    seesInDark: false,
+    reactsToLight: "No",
+    corporeal: true,
+    onClosedDoors: "Squeezes under",
   },
   {
     id: "skeleton",
@@ -25,6 +45,13 @@ export const ENEMY_TYPES: EnemyType[] = [
       "Collapses into a heap of bones, then reassembles next turn. Finishing weapon kills permanently.",
     defaultRow: "front",
     ai: { roam: false },
+    combatMechanics: skeletonMechanics,
+    outOfCombatMechanic: "Scouts the dungeon",
+    movement: "Scouts the dungeon",
+    seesInDark: true,
+    reactsToLight: "Investigates",
+    corporeal: true,
+    onClosedDoors: "Bashes them",
   },
   {
     id: "zombie",
@@ -37,6 +64,13 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanicDesc: "Doubles ATK if Necromancer is alive. Kill necro first.",
     defaultRow: "front",
     ai: { noiseAttract: true, roam: true },
+    combatMechanics: zombieMechanics,
+    outOfCombatMechanic: "Tied and controlled by necromancer, cultist, or witch",
+    movement: "Goes where master commands; returns to master if under attack",
+    seesInDark: false,
+    reactsToLight: "Ignores",
+    corporeal: true,
+    onClosedDoors: "Bashes them",
   },
   {
     id: "ghost",
@@ -50,6 +84,12 @@ export const ENEMY_TYPES: EnemyType[] = [
     evadeChance: 0.5,
     defaultRow: "front",
     ai: { lightFlee: true, roam: true },
+    combatMechanics: ghostMechanics,
+    movement: "No",
+    seesInDark: true,
+    reactsToLight: "No",
+    corporeal: false,
+    onClosedDoors: "Ignores them",
   },
   {
     id: "vampire",
@@ -62,6 +102,9 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanicDesc: "Heals 50% of dmg dealt. Holy dmg \u00D71.5. Burst him down.",
     defaultRow: "front",
     ai: { lightFlee: true, roam: false },
+    combatMechanics: vampireMechanics,
+    seesInDark: true,
+    corporeal: true,
   },
   {
     id: "banshee",
@@ -74,6 +117,13 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanicDesc: "Applies Weaken each turn. Silence or kill fast.",
     defaultRow: "back",
     ai: { roam: false },
+    combatMechanics: bansheeMechanics,
+    outOfCombatMechanic: "Makes a lot of noise. Destroys valuables?",
+    movement: "Occasional, random",
+    seesInDark: true,
+    reactsToLight: "No",
+    corporeal: false,
+    onClosedDoors: "Blocked",
   },
   {
     id: "necromancer",
@@ -86,6 +136,14 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanicDesc: "Revives/summons a Zombie every 2 turns. Priority target.",
     defaultRow: "back",
     ai: { noiseAttract: false, sendScout: true },
+    combatMechanics: necromancerMechanics,
+    outOfCombatMechanic:
+      "Summons zombies every 3 turns; keeps a few around, sends rest to attack player if aware",
+    movement: "Stationary",
+    seesInDark: false,
+    reactsToLight: "Carries light; sends zombies to investigate",
+    corporeal: true,
+    onClosedDoors: "Opens",
   },
   {
     id: "ghoul",
@@ -99,6 +157,14 @@ export const ENEMY_TYPES: EnemyType[] = [
     ambushTurns: 2,
     defaultRow: "front",
     ai: { roam: false },
+    combatMechanics: ghoulMechanics,
+    outOfCombatMechanic:
+      "Finds nearest human, tries to hide or ambush to feed (can attack other monsters)",
+    movement: "Tends to hide, or moves to ambush if detecting victims",
+    seesInDark: true,
+    reactsToLight: "Moves away to hide",
+    corporeal: true,
+    onClosedDoors: "Ignores, waits behind",
   },
   {
     id: "shadow",
@@ -111,6 +177,10 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanicDesc: "Reduces light/turn. In darkness, take 3 dmg/turn.",
     defaultRow: "front",
     ai: { lightFlee: false, roam: true },
+    combatMechanics: shadowMechanics,
+    seesInDark: true,
+    corporeal: false,
+    onClosedDoors: "Goes through",
   },
 
   {
@@ -124,6 +194,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanicDesc: "Will reassemble into a Skeleton next turn if not destroyed.",
     defaultRow: "front",
     ai: { roam: false },
+    combatMechanics: heapOfBonesMechanics,
   },
 
   /* ── Bosses ── */
@@ -140,6 +211,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     isBoss: true,
     defaultRow: "front",
     ai: { roam: false },
+    combatMechanics: skeletonMechanics,
   },
   {
     id: "boss_vampire_lord",
@@ -153,6 +225,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     isBoss: true,
     defaultRow: "front",
     ai: { roam: false },
+    combatMechanics: vampireMechanics,
   },
   {
     id: "boss_lich",
@@ -166,5 +239,9 @@ export const ENEMY_TYPES: EnemyType[] = [
     isBoss: true,
     defaultRow: "back",
     ai: { roam: false },
+    combatMechanics: lichMechanics,
+    outOfCombatMechanic: "Static. Boss room only.",
+    movement: "Static",
+    seesInDark: true,
   },
 ];

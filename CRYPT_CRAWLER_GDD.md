@@ -83,25 +83,15 @@ Every player action advances the dungeon clock by one **Dungeon Turn**. Between 
 
 ### Monster AI Behaviours (per turn)
 
-Each monster type has specific inter-room AI that fires every dungeon turn:
-
-| Monster | Behaviour |
-|---------|-----------|
-| **Ravager Rat** | Noise-attracted (moves toward player on medium+ noise). Roams randomly. **Reproduces** 40% chance/turn (+1 rat in their room). |
-| **Rotting Zombie** | Noise-attracted. Roams. Sent by Necromancer to investigate. |
-| **Mournful Ghost** | **Light-flees** on loud noise (moves away from player). Roams. |
-| **Blood Wraith** | Light-flees on loud noise. Stays put otherwise. |
-| **Necromancer** | **Sends a Zombie** to investigate adjacent rooms on medium+ noise (60% chance). Does not roam itself. |
-| **Skeleton** | Static. Does not roam or react. |
-| **Wailing Banshee** | Static. Does not roam. |
-| **Lurking Ghoul** | Static. Does not roam. |
-| **The Shadow** | Roams randomly (20%/turn). |
-| **Boss Lich** | Static. Boss room only. |
+Each monster type has specific inter-room AI that fires every dungeon turn. See the **Monster Roster** section below for the full table including both combat and out-of-combat mechanics.
 
 **Consequences of AI movement:**
 - A monster that moves into a previously-cleared room restores it to `reachable` with new enemies.
 - Rats breeding can overflow a room unexpectedly.
 - The Necromancer's zombie scout may appear in an adjacent room you thought was safe.
+- The Grave Robber will loot treasure and try to escape the dungeon.
+- Skullflower spreads to unlit rooms, transforming the environment.
+- Gutborn Larvae seek hosts — if they infect a creature, it becomes a Gutborn with the host's abilities.
 
 ---
 
@@ -173,22 +163,52 @@ The player can attempt to flee combat at any time, towards any direction. If uns
 
 ---
 
-## Monster Roster & Combat Mechanics
+## Weapons
+There are 10 different main weapons, to be used in the main/side hand:
+- Longsword
+- Dagger
+- Claymore
+- Battleaxe
+- Halberd
+- Flail
+- Bow
+- Arquebus
+- Fists
+- Shield
 
-Each monster has a **unique in-combat mechanic** that requires a different strategy:
+Each weapon:
+- is one-handed or two handed.
+- has different reach
+- has different associated abilities
 
-| Monster | HP | ATK | Mechanic | Strategy |
-|---------|----|-----|----------|----------|
-| 🐀 Ravager Rat | 8 | 3 | **Swarm**: each living rat chips 1 dmg/turn | Use AoE (Mass Smite, Cleave). Kill fast. |
-| 💀 Skeleton | 28 | 7 | **Reassemble**: revives at 5 HP unless killed with 10+ finishing blow | Save Burst Strike for the kill. |
-| 🧟 Rotting Zombie | 40 | 9 | **Controlled**: doubles ATK if Necromancer is alive | Kill the Necromancer first. |
-| 👻 Mournful Ghost | 22 | 12 | **Phase**: 50% evade vs physical. Holy always hits | Use Holy Water, Holy Smite. |
-| 🧛 Blood Wraith | 30 | 10 | **Lifesteal**: heals 50% of damage dealt. Holy ×1.5 | Burst it down; holy cards are essential. |
-| 👁️ Wailing Banshee | 22 | 8 | **Drain Aura**: −1 max energy/turn (min 1). Silence stops it | Bell of Silence immediately. |
-| 🧙 Necromancer | 20 | 6 | **Summon**: revives/summons a Zombie every 2 turns | Priority target 1. |
-| 🦴 Lurking Ghoul | 32 | 6 | **Ambush**: crouches 2 turns, then leaps for 3× damage | Don't idle. Build block fast. |
-| 🌑 The Shadow | 25 | 11 | **Light Drain**: reduces light level each turn. Darkness = discard a card | Kill quickly or carry torches. |
-| ☠️ Lich King (Boss) | 90 | 15 | **Raise Dead**: revives fallen enemies each round | AoE to keep adds down. High DPS. |
+There can be other weapons for quick use from the belt, like thrown daggers, darts, thrown axes... Those will be defined later.
+
+---
+
+## Monster Roster
+
+Each monster has unique **combat** and **out-of-combat** mechanics:
+
+| Monster | HP | ATK | Combat Mechanic | Strategy | Out of Combat Mechanic | Movement | Sees in Dark | Reacts to Light | On Closed Doors |
+|---------|----|-----|-----------------|----------|------------------------|----------|:------------:|-----------------|-----------------|
+| 🐀 Ravager Rat | 3 | 1 | Low HP, low damage, each rat has a chance to reproduce each turn | Attacks that affect multiple enemies | Each rat has a chance to reproduce each dungeon turn | Frequent, random | No | No | Squeezes under |
+| 👁️ Wailing Banshee | 12 | 3 | Ranged. Scream drains strength and can cause you to lose a turn | Attack with ranged weapons before it drains you | Makes a lot of noise. Destroys valuables? | Occasional, random | Yes | No | Blocked |
+| 🧛 Vampire | TBD | TBD | TBD | TBD | TBD | TBD | Yes | TBD | TBD |
+| 👻 Mournful Ghost | 12 (75% miss) | 5 (ignores armor) | Does nothing unless you make loud noises. Armor penetration, ethereal (hits can miss?) | Ignore it | Armor penetration, ethereal (hits can miss?) | No | Yes | No | Ignores them |
+| 🦴 Lurking Ghoul | 14 | 5 (15 from hidden) | Starts hidden, attacks hard, hides again | Hit when visible. Time attacks, defend the turn before. Don't lose sight. | Finds nearest human, tries to hide or ambush to feed (can attack other monsters) | Tends to hide, or moves to ambush if detecting victims | Yes | Moves away to hide | Ignores, waits behind |
+| 🌑 The Shadow | TBD | TBD | Devours light | TBD | TBD | TBD | Yes | TBD | Goes through |
+| 🦇 Bat | TBD | TBD | Sees in the dark — TBD | TBD | TBD | TBD | Yes | TBD | Blocked |
+| 🧙 Necromancer | 8 | 6 | Ranged attacks, curses, brings back fallen zombies/skeletons | Kill it fast with ranged attacks | Summons zombies every 3 turns; keeps a few around, sends rest to attack player if aware | Stationary | No | Carries light; sends zombies to investigate | Opens |
+| 🗡️ Grave Robber | 10 | 0 | Moves away, looks for an opening, then flees | Block exits and corner him | Loots everything it can. Carries a torch, makes light. | Away from danger, towards exit. Leaves if reaches exit. | No | Carries light, evades other lights | Opens, picks locks, disables traps |
+| 🧟 Rotting Zombie | 8 | 3 | Just attacks | Destroy its commander, it becomes inert | Tied and controlled by necromancer, cultist, or witch | Goes where master commands; returns to master if under attack | No | Ignores | Bashes them |
+| 🧹 Witch | 10 | TBD | Powerful telegraphed magic attacks? Puts you in trance/stun? | TBD | TBD | TBD | No | TBD | Opens |
+| 🌿 Skullflower | 12 base (increases; fire/light stops growth) | 5 | Controls other dead enemies? | Burn it, expose it to light | Slowly grows bigger (HP increases). Spreads to unlit rooms. Loses HP in lit rooms. Transforms environment (destroys loot? weakens doors?)? | No, but propagates to other rooms | Senses (no vision) | Withers | Can spread through |
+| ⛪ Cultist | 10 | 4 | TBD | TBD | TBD | TBD | No | TBD | Opens |
+| 💀 Skeleton | 16 | 7 | Attacks, becomes pile of bones when defeated, reassembles after a turn | Kill before it comes back. Bludgeoning defeats permanently. | Scouts the dungeon | Scouts the dungeon | Yes | Investigates | Bashes them |
+| 👿 Demon | 150 | 20 | Regenerates, multiple attacks per turn? | Don't let it be summoned | Regenerates, multiple attacks per turn? | TBD | Yes | TBD | Destroys |
+| 🪱 Gutborn | Depends on host | Depends on host (no advanced abilities) | Whatever the host did + generate larvae | Kill while larva, or deal with as host (minus advanced abilities) | Spawns a larva | Seeks more hosts | Depends on host | Avoids | As host |
+| 🐛 Gutborn Larva | 1 | 0 (takeover if unseen) | Tries to take you or other creatures over. Telegraphs attack. | Kill before it infects. Redirect to enemies. | Infects a corporeal host. After 3 turns, becomes Gutborn. | Towards life, flees light | No | Flees | Squeezes under |
+| ☠️ Lich King (Boss) | 90 | 15 | Revives fallen enemies each round | AoE to keep adds down. High DPS. | Static. Boss room only. | Static | Yes | TBD | N/A |
 
 
 ## Map Fog of War
