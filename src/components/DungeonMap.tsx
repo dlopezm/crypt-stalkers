@@ -32,6 +32,7 @@ function GridCanvas({
   grid,
   dungeon,
   currentRoomId,
+  selectedRoomId,
   visible,
   debugMode,
   onClickRoom,
@@ -39,6 +40,7 @@ function GridCanvas({
   grid: DungeonGrid;
   dungeon: DungeonNode[];
   currentRoomId: string;
+  selectedRoomId: string | null;
   visible: Set<string>;
   debugMode: boolean;
   onClickRoom: (nodeId: string) => void;
@@ -228,7 +230,15 @@ function GridCanvas({
         outlineRoomCells(node.gridRoomId, "#7a4018", 1);
       }
     }
-  }, [grid, dungeon, currentRoomId, visible, debugMode]);
+
+    // Highlight selected room
+    if (selectedRoomId && selectedRoomId !== currentRoomId) {
+      const selNode = dungeon.find((n) => n.id === selectedRoomId);
+      if (selNode?.gridRoomId != null && visible.has(selNode.id)) {
+        outlineRoomCells(selNode.gridRoomId, "#c09838", 1.5);
+      }
+    }
+  }, [grid, dungeon, currentRoomId, selectedRoomId, visible, debugMode]);
 
   useEffect(() => {
     draw();
@@ -325,7 +335,6 @@ function SoundIcon({
 function RoomLabels({
   dungeon,
   currentRoomId,
-  adjacentIds,
   debugMode,
   soundIcons,
   gridWidth,
@@ -334,7 +343,6 @@ function RoomLabels({
 }: {
   dungeon: DungeonNode[];
   currentRoomId: string;
-  adjacentIds: Set<string>;
   debugMode: boolean;
   soundIcons: { roomId: string; texts: string[]; key: number }[];
   gridWidth: number;
@@ -345,14 +353,13 @@ function RoomLabels({
     <>
       {dungeon.map((n) => {
         if (!n.bbox) return null;
+        const isCurrent = n.id === currentRoomId;
         const visited = n.state === "visited";
-        const reachable = n.state === "reachable";
-        if (!debugMode && !visited && !reachable && !adjacentIds.has(n.id)) return null;
+        if (!debugMode && !isCurrent && !visited) return null;
 
         const { minRow, maxRow, minCol, maxCol } = n.bbox;
         const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
         const cyPct = ((minRow + maxRow + 1) / 2 / gridHeight) * 100;
-        const isCurrent = n.id === currentRoomId;
 
         return (
           <div
@@ -376,7 +383,7 @@ function RoomLabels({
             }}
           >
             {isCurrent && <span style={{ marginRight: "3px" }}>{"\u2691"}</span>}
-            {visited || debugMode ? n.label : "???"}
+            {n.label}
           </div>
         );
       })}
@@ -553,6 +560,7 @@ export function DungeonMap({
               grid={dungeonGrid}
               dungeon={dungeon}
               currentRoomId={currentRoomId}
+              selectedRoomId={selected}
               visible={visible}
               debugMode={debugMode}
               onClickRoom={handleClickRoom}
@@ -560,7 +568,6 @@ export function DungeonMap({
             <RoomLabels
               dungeon={dungeon}
               currentRoomId={currentRoomId}
-              adjacentIds={adjacentIds}
               debugMode={debugMode}
               soundIcons={soundIcons}
               gridWidth={dungeonGrid.width}
@@ -575,7 +582,9 @@ export function DungeonMap({
           {node ? (
             <div className="panel">
               <div className="text-lg font-bold text-crypt-text mb-2 leading-tight">
-                {node.state === "locked" && !debugMode ? "???" : node.label}
+                {!debugMode && node.state !== "visited" && node.id !== currentRoomId
+                  ? "???"
+                  : node.label}
               </div>
               {node.id === currentRoomId && (
                 <p className="text-sm text-crypt-gold mb-1">{"\u2691"} You are here.</p>
