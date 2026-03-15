@@ -318,6 +318,10 @@ export default function App() {
     }
   }
 
+  function onSwitchWeaponOnMap(idx: number) {
+    setPlayer((p) => (p ? { ...p, activeWeaponIdx: idx } : p));
+  }
+
   function onSetTrap(roomId: string, trapKey: string) {
     setPlayer((p) => (p ? { ...p, gold: p.gold - TRAP_INFO[trapKey].cost } : p));
     setDungeon((prev) =>
@@ -476,6 +480,7 @@ export default function App() {
           onSetTrap={onSetTrap}
           onBlockDoor={onBlockDoor}
           onRest={onRestOnMap}
+          onSwitchWeapon={onSwitchWeaponOnMap}
           onToggleDebug={() => setDebugMode((d) => !d)}
           onReturnToTown={() => returnToTown()}
         />

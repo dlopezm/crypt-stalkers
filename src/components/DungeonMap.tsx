@@ -417,6 +417,7 @@ export function DungeonMap({
   onSetTrap,
   onBlockDoor,
   onRest,
+  onSwitchWeapon,
   onToggleDebug,
   onReturnToTown,
 }: {
@@ -433,12 +434,14 @@ export function DungeonMap({
   onSetTrap: (id: string, trap: string) => void;
   onBlockDoor: (id: string) => void;
   onRest: () => void;
+  onSwitchWeapon: (idx: number) => void;
   onToggleDebug: () => void;
   onReturnToTown: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [scoutResult, setScoutResult] = useState<string | null>(null);
   const [scoutLevel, setScoutLevel] = useState(0);
+  const [showWeaponPicker, setShowWeaponPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Track sound icons — cleared each new dungeon turn, only shows current turn's sounds
@@ -729,6 +732,38 @@ export function DungeonMap({
             <div className="text-sm text-crypt-muted mt-2">
               {"\u{1F392}"} {player.consumables.length} items
             </div>
+            {player.weapons.length > 1 && (
+              <div className="mt-2">
+                <button
+                  style={btnStyle("#5a4a20")}
+                  className="text-xs! px-2! py-1!"
+                  onClick={() => setShowWeaponPicker((v) => !v)}
+                >
+                  {"\u{1F504}"} Switch Weapon
+                </button>
+                {showWeaponPicker && (
+                  <div className="flex gap-1 flex-wrap mt-1">
+                    {player.weapons.map((w, i) => (
+                      <button
+                        key={w.id}
+                        style={btnStyle(
+                          i === player.activeWeaponIdx ? "#3a3020" : "#6a3a1a",
+                          i === player.activeWeaponIdx,
+                        )}
+                        className="text-xs! px-2! py-1!"
+                        disabled={i === player.activeWeaponIdx}
+                        onClick={() => {
+                          onSwitchWeapon(i);
+                          setShowWeaponPicker(false);
+                        }}
+                      >
+                        {w.icon} {w.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <button
