@@ -11,7 +11,6 @@ const CELL_PX = 14;
 /* ── Room fill color by state ── */
 function roomColor(node: DungeonNode, currentRoomId: string): string {
   if (node.id === currentRoomId) return "#3a2808";
-  if (node.state === "cleared") return "#0e1a0a";
   if (node.state === "visited") return "#2a1c08";
   if (node.state === "reachable") return "#1a1006";
   return "#0c0a10";
@@ -21,12 +20,7 @@ function roomColor(node: DungeonNode, currentRoomId: string): string {
 function visibleRooms(dungeon: DungeonNode[], debugMode: boolean): Set<string> {
   const vis = new Set<string>();
   for (const node of dungeon) {
-    if (
-      debugMode ||
-      node.state === "visited" ||
-      node.state === "cleared" ||
-      node.state === "reachable"
-    ) {
+    if (debugMode || node.state === "visited" || node.state === "reachable") {
       vis.add(node.id);
     }
   }
@@ -72,7 +66,7 @@ function GridCanvas({
 
     // Build corridor visibility map
     // debug mode: all corridors visible
-    // visited/cleared rooms: BFS flood all reachable corridor cells
+    // visited rooms: BFS flood all reachable corridor cells
     // reachable rooms: only corridor cells directly adjacent to room cells
     const corVisible = Array.from({ length: height }, () => new Uint8Array(width));
     const dirs4 = [
@@ -87,10 +81,10 @@ function GridCanvas({
         for (let c = 0; c < width; c++) if (cells[r][c] === 0) corVisible[r][c] = 1;
     }
 
-    // Pass 1: flood corridors from visited/cleared rooms
+    // Pass 1: flood corridors from visited rooms
     for (const node of dungeon) {
       if (node.gridRoomId == null || !visible.has(node.id)) continue;
-      const isExplored = node.state === "visited" || node.state === "cleared";
+      const isExplored = node.state === "visited";
       if (!isExplored) continue;
       // Find corridor cells adjacent to this room's cells, then BFS
       const queue: [number, number][] = [];
@@ -351,7 +345,7 @@ function RoomLabels({
     <>
       {dungeon.map((n) => {
         if (!n.bbox) return null;
-        const visited = n.state === "visited" || n.state === "cleared";
+        const visited = n.state === "visited";
         const reachable = n.state === "reachable";
         if (!debugMode && !visited && !reachable && !adjacentIds.has(n.id)) return null;
 
@@ -496,7 +490,7 @@ export function DungeonMap({
   function handleClickRoom(nodeId: string) {
     const n = dungeon.find((nd) => nd.id === nodeId);
     if (!n) return;
-    const vis = n.state === "visited" || n.state === "cleared";
+    const vis = n.state === "visited";
     if (!debugMode && n.id !== currentRoomId && !adjacentIds.has(n.id) && !vis) return;
     setSelected(n.id === selected ? null : n.id);
     setScoutResult(null);

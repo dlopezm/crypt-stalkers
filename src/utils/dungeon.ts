@@ -429,6 +429,18 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
     toRoom: DungeonNode,
     reason: string,
   ) {
+    if (!fromRoom.connections.includes(toRoom.id)) {
+      console.warn(
+        "Tried to move from ",
+        fromRoom.label,
+        "to ",
+        toRoom.label,
+        ", which are not adjacent.",
+      );
+      throw new Error(
+        `Tried to move from ${fromRoom.label} to ${toRoom.label}, which are not adjacent.`,
+      );
+    }
     if (toRoom.blocked) {
       const sounds = BLOCKED_SOUNDS[enemy.typeId] || {
         volume: "normal" as SoundVolume,
@@ -459,7 +471,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
   }
 
   rooms.forEach((room) => {
-    if (room.state === "cleared" || room.id === currentRoomId) return;
+    if (room.id === currentRoomId) return;
     if (!room.enemies.length) return;
 
     const neighbours = room.connections.map((id) => byId(id)).filter(Boolean) as DungeonNode[];
@@ -502,7 +514,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
       }
 
       if (!moved && ai.lightFlee && isLoud) {
-        const awayRoom = neighbours.find((n) => n.id !== currentRoomId && n.state !== "cleared");
+        const awayRoom = neighbours.find((n) => n.id !== currentRoomId && n.state !== "visited");
         if (awayRoom && Math.random() < AI_LIGHT_FLEE_CHANCE) {
           moveEnemy(enemy, room, awayRoom, "fleeing light/noise");
           moved = true;
@@ -510,7 +522,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
       }
 
       if (!moved && ai.roam && Math.random() < AI_ROAM_CHANCE) {
-        const target = shuffle(neighbours.filter((n) => n.state !== "cleared"))[0];
+        const target = shuffle(neighbours)[0];
         if (target) {
           moveEnemy(enemy, room, target, "roaming");
         }

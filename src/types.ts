@@ -176,7 +176,7 @@ export interface DungeonEnemy {
   uid: string; // unique instance id — carried into combat via makeEnemyData
 }
 
-export type RoomState = "locked" | "reachable" | "visited" | "cleared";
+export type RoomState = "locked" | "reachable" | "visited";
 
 export interface RoomTemplate {
   label: string;

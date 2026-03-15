@@ -65,7 +65,7 @@ export function combatVictory(newPlayer: CombatPlayer) {
     if (!dungeon || !currentRoomId) return;
 
     const base = dungeon.map((n) =>
-      n.id === currentRoomId ? { ...n, state: "cleared" as const, enemies: [] } : n,
+      n.id === currentRoomId ? { ...n, state: "visited" as const, enemies: [] } : n,
     );
     const curRoom = dungeon.find((r) => r.id === currentRoomId);
     const newDungeon = base.map((n) => {

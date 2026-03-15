@@ -160,8 +160,8 @@ export default function App() {
     addLog([`\u{1F6B6} Moved to ${room.label}`], "player");
     const hasEnemies = room.enemies.length > 0;
     const marked = dungeon.map((n) => {
-      if (n.id !== roomId || n.state === "cleared") return n;
-      return { ...n, state: hasEnemies ? ("visited" as const) : ("cleared" as const) };
+      if (n.id !== roomId) return n;
+      return { ...n, state: "visited" as const };
     });
     const unlocked = hasEnemies
       ? marked
