@@ -1,11 +1,11 @@
 /* ── Balance & Gameplay Constants ── */
 
 // Player defaults
-export const PLAYER_START_HP = 60;
+export const PLAYER_START_HP = 40;
 export const PLAYER_START_GOLD = 0;
 
 // Rest & Recovery
-export const REST_HEAL_FRACTION = 0.1;
+export const REST_HEAL_FRACTION = 0.05;
 
 // Combat multipliers
 export const WEAKEN_DMG_MULT = 0.75;

@@ -59,11 +59,10 @@ Randomly generated, number of rooms depending on difficulty.
 | `locked` | Invisible to player. Cannot be entered or selected. |
 | `reachable` | Adjacent to visited room. Visible but fog-of-war on contents. |
 | `visited` | Player has been here. Name revealed. |
-| `cleared` | All enemies defeated (or room was non-combat). Connections unlocked. |
 
 ### Movement Rules
 - Player can only move to rooms **directly connected** to their current position.
-- Cleared rooms stay accessible for backtracking.
+- Previously visited rooms stay accessible for backtracking.
 - **Blocked doors** (🚧, 10g) prevent monster roaming through that connection.
 
 ---
@@ -127,9 +126,7 @@ Once a room is cleared, the player can set traps for incoming monsters:
 Turn-based card game. Player goes first.
 
 ### Resources
-- **HP**: Starts at 60. Carried between rooms.
-- **Energy**: 3 per turn (can be permanently upgraded to 4 or 5 via Soul Crystal).
-- **Block**: Absorbs damage before HP. Resets each turn.
+- **HP**: Starts at 40. Carried between rooms. Fully restored on dungeon exit.
 
 ### Positioning
 - Enemies can be in front or back row
@@ -217,7 +214,7 @@ Each monster has unique **combat** and **out-of-combat** mechanics:
 - **Adjacent unvisited rooms** appear at full opacity but show `???` name and no enemy count.
 - **Enemy count badge** is hidden unless the room has been scouted (Peek or Full Scout tier).
 - **Corridors** only appear if at least one connected room has been visited.
-- **Labels** only appear on visited/cleared rooms, or on the current room (always labeled).
+- **Labels** only appear on visited rooms, or on the current room (always labeled).
 
 ---
 
