@@ -18,11 +18,11 @@ export function uid(p: string): string {
   return `${p}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function makeEnemyData(id: string): EnemyData {
+export function makeEnemyData(id: string, existingUid?: string): EnemyData {
   const b = ENEMY_TYPES.find((e) => e.id === id)!;
   return {
     id,
-    uid: uid(id),
+    uid: existingUid ?? uid(id),
     hp: b.maxHp,
     block: 0,
     statuses: {},
@@ -39,7 +39,15 @@ export function hydrateEnemy(data: EnemyData): Enemy {
 }
 
 export function toEnemyData({
-  id, uid, hp, block, statuses, reassembled, summonCooldown, row, ambushTurns,
+  id,
+  uid,
+  hp,
+  block,
+  statuses,
+  reassembled,
+  summonCooldown,
+  row,
+  ambushTurns,
 }: Enemy): EnemyData {
   return { id, uid, hp, block, statuses, reassembled, summonCooldown, row, ambushTurns };
 }

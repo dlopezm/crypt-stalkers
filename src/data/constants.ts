@@ -43,7 +43,7 @@ export const BLOCK_DOOR_COST = 10;
 export const GAME_OVER_GOLD_KEEP = 0.75;
 
 // Dungeon AI
-export const AI_REPRODUCE_CHANCE = 0.4;
+export const AI_REPRODUCE_CHANCE = 0.25;
 export const AI_NOISE_ATTRACT_CHANCE = 0.55;
 export const AI_LIGHT_FLEE_CHANCE = 0.45;
 export const AI_ROAM_CHANCE = 0.2;

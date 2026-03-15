@@ -3,7 +3,13 @@ import { btnStyle } from "../styles";
 import { ENEMY_TYPES } from "../data/enemies";
 import { ABILITIES } from "../data/abilities";
 import { STATUS_ICONS } from "../data/status";
-import { hydrateEnemy, makeEnemyData, toEnemyData, tickStatuses, cloneEnemies } from "../utils/helpers";
+import {
+  hydrateEnemy,
+  makeEnemyData,
+  toEnemyData,
+  tickStatuses,
+  cloneEnemies,
+} from "../utils/helpers";
 import { StatusBadges, HpBar } from "./shared";
 import {
   WEAKEN_DMG_MULT,
@@ -15,7 +21,14 @@ import {
   COMBAT_LOG_MAX,
 } from "../data/constants";
 import { executeActions } from "../combat/actions";
-import type { DungeonNode, Enemy, CombatPlayer, CombatContext, Ability, Consumable } from "../types";
+import type {
+  DungeonNode,
+  Enemy,
+  CombatPlayer,
+  CombatContext,
+  Ability,
+  Consumable,
+} from "../types";
 import { useAppDispatch, useAppSelector } from "../store";
 import { updateCombatState } from "../store/combatSlice";
 import { combatVictory, combatDefeat, fleeToMap } from "../store/thunks";
@@ -115,7 +128,7 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
       return storedEnemies.map(hydrateEnemy);
     }
     // Fresh combat — initialize from room, apply any traps
-    let enems = room.enemies.map((id) => hydrateEnemy(makeEnemyData(id)));
+    let enems = room.enemies.map((e) => hydrateEnemy(makeEnemyData(e.typeId, e.uid)));
     if (room.trap === "snare")
       enems = enems.map((e) => ({ ...e, statuses: { ...e.statuses, stun: 1 } }));
     if (room.trap === "flash") enems = enems.map((e) => ({ ...e, hp: Math.max(1, e.hp - 8) }));
@@ -222,7 +235,7 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
     const alive = enems.filter((e) => e.hp > 0);
     if (!alive.length) {
       const loot = room.enemies.reduce(
-        (s, id) => s + (ENEMY_TYPES.find((t) => t.id === id)?.loot || 0),
+        (s, e) => s + (ENEMY_TYPES.find((t) => t.id === e.typeId)?.loot || 0),
         0,
       );
       addLog(`\u{1F3C6} Victory! +${loot} gold`);

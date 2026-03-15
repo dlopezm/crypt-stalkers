@@ -591,7 +591,7 @@ export function DungeonMap({
                 <div className="text-sm text-crypt-muted mb-2 leading-relaxed">
                   {debugMode ? (
                     <span className="text-crypt-purple">
-                      {node.enemies.length} enemies: {node.enemies.join(", ")}
+                      {node.enemies.length} enemies: {node.enemies.map((e) => e.typeId).join(", ")}
                     </span>
                   ) : scoutLevel === 0 ? (
                     <span className="text-crypt-dim italic">Unknown. Scout to learn more.</span>

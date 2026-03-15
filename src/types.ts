@@ -170,6 +170,12 @@ export interface Enemy extends Omit<EnemyType, "ambushTurns">, EnemyData {}
 
 /* ── Dungeon ── */
 
+/** An individual monster instance living in a dungeon room. */
+export interface DungeonEnemy {
+  typeId: string; // key into ENEMY_TYPES
+  uid: string; // unique instance id — carried into combat via makeEnemyData
+}
+
 export type RoomState = "locked" | "reachable" | "visited" | "cleared";
 
 export interface RoomTemplate {
@@ -200,7 +206,7 @@ export interface DungeonNode {
   slot: string;
   label: string;
   boss: boolean;
-  enemies: string[];
+  enemies: DungeonEnemy[];
   hint: string;
   state: RoomState;
   cx: number;

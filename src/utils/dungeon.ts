@@ -8,6 +8,7 @@ import {
 } from "../data/constants";
 import type {
   DungeonNode,
+  DungeonEnemy,
   DungeonDef,
   DungeonGrid,
   RoomTemplate,
@@ -247,7 +248,7 @@ export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
       slot: isStart ? "start" : uid("slot"),
       label: tmpl.label,
       boss: isBoss,
-      enemies: tmpl.enemies ? [...tmpl.enemies] : [],
+      enemies: tmpl.enemies ? tmpl.enemies.map((typeId) => ({ typeId, uid: uid(typeId) })) : [],
       hint: tmpl.hint || "",
       state: isStart ? ("visited" as const) : ("locked" as const),
       cx: room.cx * CELL_PX,
@@ -422,31 +423,35 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
 
   const byId = (id: string) => rooms.find((r) => r.id === id);
 
-  function moveEnemy(enemyId: string, fromRoom: DungeonNode, toRoom: DungeonNode, reason: string) {
-    if (!fromRoom || !toRoom) return;
+  function moveEnemy(
+    enemy: DungeonEnemy,
+    fromRoom: DungeonNode,
+    toRoom: DungeonNode,
+    reason: string,
+  ) {
     if (toRoom.blocked) {
-      const sounds = BLOCKED_SOUNDS[enemyId] || {
+      const sounds = BLOCKED_SOUNDS[enemy.typeId] || {
         volume: "normal" as SoundVolume,
         texts: ["Something scrapes against a sealed door"],
       };
       aiLog.push({
         text: pick(sounds.texts),
-        debugText: `\u{1F6A7} [AI] ${enemyId} tried to enter ${toRoom.label} \u2014 door blocked.`,
+        debugText: `\u{1F6A7} [AI] ${enemy.typeId} (${enemy.uid}) tried to enter ${toRoom.label} \u2014 door blocked.`,
         volume: sounds.volume,
         roomId: toRoom.id,
       });
       return;
     }
-    fromRoom.enemies = fromRoom.enemies.filter((e) => e !== enemyId);
-    toRoom.enemies = [...toRoom.enemies, enemyId];
-    if (toRoom.id === currentRoomId) arrivedInPlayerRoom.push(enemyId);
-    const sounds = MOVE_SOUNDS[enemyId] || {
+    fromRoom.enemies = fromRoom.enemies.filter((e) => e.uid !== enemy.uid);
+    toRoom.enemies = [...toRoom.enemies, enemy];
+    if (toRoom.id === currentRoomId) arrivedInPlayerRoom.push(enemy.uid);
+    const sounds = MOVE_SOUNDS[enemy.typeId] || {
       volume: "normal" as SoundVolume,
       texts: ["Something moves in the dark"],
     };
     aiLog.push({
       text: pick(sounds.texts),
-      debugText: `\u{1F463} [AI] ${enemyId} moved from ${fromRoom.label} \u2192 ${toRoom.label} (${reason})`,
+      debugText: `\u{1F463} [AI] ${enemy.typeId} (${enemy.uid}) moved from ${fromRoom.label} \u2192 ${toRoom.label} (${reason})`,
       volume: sounds.volume,
       roomId: fromRoom.id,
       toRoomId: toRoom.id,
@@ -458,62 +463,76 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
     if (!room.enemies.length) return;
 
     const neighbours = room.connections.map((id) => byId(id)).filter(Boolean) as DungeonNode[];
-    const typesHere = [...new Set(room.enemies)];
+    // Snapshot so that enemies spawned or moved this tick don't get an extra turn
+    const snapshot = [...room.enemies];
 
-    typesHere.forEach((eid) => {
-      const etype = ENEMY_TYPES.find((e) => e.id === eid);
-      if (!etype?.ai) return;
+    for (const enemy of snapshot) {
+      // Skip if this individual already moved out of the room this tick
+      if (!room.enemies.some((e) => e.uid === enemy.uid)) continue;
+
+      const etype = ENEMY_TYPES.find((e) => e.id === enemy.typeId);
+      if (!etype?.ai) continue;
       const ai = etype.ai;
 
-      if (ai.reproduce && room.enemies.filter((e) => e === eid).length > 0) {
-        if (Math.random() < AI_REPRODUCE_CHANCE) {
-          room.enemies = [...room.enemies, eid];
-          const sounds = REPRODUCE_SOUNDS[eid] || {
-            volume: "quiet" as SoundVolume,
-            texts: ["Strange sounds of multiplying"],
-          };
-          aiLog.push({
-            text: pick(sounds.texts),
-            debugText: `\u{1F400} [AI] Rats in ${room.label} reproduced. Now ${room.enemies.filter((e) => e === "rat").length} rats.`,
-            volume: sounds.volume,
-            roomId: room.id,
-          });
-        }
+      // Reproduce: spawn a new individual in the same room (no movement)
+      if (ai.reproduce && Math.random() < AI_REPRODUCE_CHANCE) {
+        const newEnemy: DungeonEnemy = { typeId: enemy.typeId, uid: uid(enemy.typeId) };
+        room.enemies = [...room.enemies, newEnemy];
+        const sounds = REPRODUCE_SOUNDS[enemy.typeId] || {
+          volume: "quiet" as SoundVolume,
+          texts: ["Strange sounds of multiplying"],
+        };
+        aiLog.push({
+          text: pick(sounds.texts),
+          debugText: `\u{1F400} [AI] ${enemy.typeId} in ${room.label} reproduced. Now ${room.enemies.filter((e) => e.typeId === enemy.typeId).length}.`,
+          volume: sounds.volume,
+          roomId: room.id,
+        });
       }
 
-      if (ai.noiseAttract && isMedium) {
+      // Movement — at most one move per individual per tick
+      let moved = false;
+
+      if (!moved && ai.noiseAttract && isMedium) {
         const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
         if (adjacentToCurrent && !room.blocked && Math.random() < AI_NOISE_ATTRACT_CHANCE) {
-          moveEnemy(eid, room, adjacentToCurrent, "attracted by noise");
+          moveEnemy(enemy, room, adjacentToCurrent, "attracted by noise");
+          moved = true;
         }
       }
 
-      if (ai.lightFlee && isLoud) {
+      if (!moved && ai.lightFlee && isLoud) {
         const awayRoom = neighbours.find((n) => n.id !== currentRoomId && n.state !== "cleared");
         if (awayRoom && Math.random() < AI_LIGHT_FLEE_CHANCE) {
-          moveEnemy(eid, room, awayRoom, "fleeing light/noise");
+          moveEnemy(enemy, room, awayRoom, "fleeing light/noise");
+          moved = true;
         }
       }
 
-      if (ai.roam && Math.random() < AI_ROAM_CHANCE) {
+      if (!moved && ai.roam && Math.random() < AI_ROAM_CHANCE) {
         const target = shuffle(neighbours.filter((n) => n.state !== "cleared"))[0];
-        if (target) moveEnemy(eid, room, target, "roaming");
-      }
-
-      if (ai.sendScout && isMedium && room.enemies.includes("zombie")) {
-        const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
-        if (adjacentToCurrent && Math.random() < AI_SCOUT_SEND_CHANCE) {
-          moveEnemy("zombie", room, adjacentToCurrent, "sent by Necromancer to investigate");
-          // Also log the necromancer's command separately
-          aiLog.push({
-            text: pick(SCOUT_SEND_SOUNDS.texts),
-            debugText: `\u{1F9D9} [AI] Necromancer in ${room.label} sent zombie to investigate`,
-            volume: SCOUT_SEND_SOUNDS.volume,
-            roomId: room.id,
-          });
+        if (target) {
+          moveEnemy(enemy, room, target, "roaming");
         }
       }
-    });
+
+      // sendScout: necromancer commands a zombie in the same room to investigate
+      if (ai.sendScout && isMedium) {
+        const zombieInRoom = room.enemies.find((e) => e.typeId === "zombie");
+        if (zombieInRoom) {
+          const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
+          if (adjacentToCurrent && Math.random() < AI_SCOUT_SEND_CHANCE) {
+            moveEnemy(zombieInRoom, room, adjacentToCurrent, "sent by Necromancer to investigate");
+            aiLog.push({
+              text: pick(SCOUT_SEND_SOUNDS.texts),
+              debugText: `\u{1F9D9} [AI] Necromancer (${enemy.uid}) in ${room.label} sent zombie to investigate`,
+              volume: SCOUT_SEND_SOUNDS.volume,
+              roomId: room.id,
+            });
+          }
+        }
+      }
+    }
   });
 
   return { newDungeon: rooms, aiLog, arrivedInPlayerRoom };
@@ -530,11 +549,11 @@ export function getScoutIntel(room: DungeonNode, scoutLevel: number): string {
   }
   if (scoutLevel === 2) {
     const rough = count === 1 ? "one creature" : count <= 3 ? "a few creatures" : "many creatures";
-    const firstType = ENEMY_TYPES.find((e) => e.id === room.enemies[0]);
+    const firstType = ENEMY_TYPES.find((e) => e.id === room.enemies[0].typeId);
     return `${rough} inside. ${firstType ? `Something ${firstType.ascii}...` : ""}`;
   }
   const names = room.enemies
-    .map((id) => ENEMY_TYPES.find((e) => e.id === id)?.name || id)
+    .map((e) => ENEMY_TYPES.find((t) => t.id === e.typeId)?.name || e.typeId)
     .join(", ");
   return `Full scout: ${names}.`;
 }

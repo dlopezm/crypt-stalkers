@@ -1,9 +1,5 @@
 import { TRAP_INFO } from "./data/rooms";
-import {
-  REST_HEAL_FRACTION,
-  BLOCK_DOOR_COST,
-  GAME_OVER_GOLD_KEEP,
-} from "./data/constants";
+import { REST_HEAL_FRACTION, BLOCK_DOOR_COST, GAME_OVER_GOLD_KEEP } from "./data/constants";
 import { makeStarterPlayer, makeEnemyData } from "./utils/helpers";
 import { generateDungeon } from "./utils/dungeon";
 import { loadGame, clearSave, hasSave } from "./utils/save";
@@ -143,7 +139,7 @@ export default function App() {
     if (opts?.player) dispatch(setPlayer(opts.player));
     dispatch(
       startCombat({
-        enemies: roomAfterAI.enemies.map(makeEnemyData),
+        enemies: roomAfterAI.enemies.map((e) => makeEnemyData(e.typeId, e.uid)),
         combatPlayer: null,
         surpriseRound: true,
       }),
@@ -182,7 +178,7 @@ export default function App() {
       dispatch(updateDungeon(afterAI));
       dispatch(
         startCombat({
-          enemies: room.enemies.map(makeEnemyData),
+          enemies: room.enemies.map((e) => makeEnemyData(e.typeId, e.uid)),
           combatPlayer: null,
           surpriseRound: false,
         }),
@@ -226,9 +222,7 @@ export default function App() {
     if (!player) return;
     dispatch(setPlayer({ ...player, gold: player.gold - BLOCK_DOOR_COST }));
     if (dungeon)
-      dispatch(
-        updateDungeon(dungeon.map((n) => (n.id === roomId ? { ...n, blocked: true } : n))),
-      );
+      dispatch(updateDungeon(dungeon.map((n) => (n.id === roomId ? { ...n, blocked: true } : n))));
     addLog(
       [`\u{1F6A7} Door blocked in ${dungeon?.find((n) => n.id === roomId)?.label || roomId}`],
       "player",
@@ -278,7 +272,8 @@ export default function App() {
       <GameOverScreen
         gold={penaltyGold}
         onReturn={() => {
-          if (player) dispatch(setPlayer({ ...player, gold: penaltyGold, hp: player.maxHp, statuses: {} }));
+          if (player)
+            dispatch(setPlayer({ ...player, gold: penaltyGold, hp: player.maxHp, statuses: {} }));
           returnToTown();
         }}
       />
@@ -316,7 +311,7 @@ export default function App() {
               <span className="text-red-400">
                 {" "}
                 {n.enemies.length}
-                {"\u2716"} ({n.enemies.join(",")})
+                {"\u2716"} ({n.enemies.map((e) => e.typeId).join(",")})
               </span>
             )}
             {n.trap && <span className="text-orange-400"> {TRAP_INFO[n.trap]?.icon}</span>}
