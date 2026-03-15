@@ -4,14 +4,13 @@ import type {
   DungeonDef,
   DungeonGrid,
   DungeonLogEntry,
-  Enemy,
+  EnemyData,
   CombatPlayer,
+  Screen,
 } from "../types";
 
-type Screen = "title" | "town" | "map" | "combat" | "victory" | "gameover";
-
 export interface CombatSave {
-  enemies: Enemy[];
+  enemies: EnemyData[];
   combatPlayer: CombatPlayer;
   lightLevel: number;
   combatLog: string[];

@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect, useRef, memo } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import { btnStyle } from "../styles";
 import { ENEMY_TYPES } from "../data/enemies";
 import { ABILITIES } from "../data/abilities";
 import { STATUS_ICONS } from "../data/status";
-import { makeEnemy, tickStatuses, cloneEnemies } from "../utils/helpers";
+import { hydrateEnemy, makeEnemyData, toEnemyData, tickStatuses, cloneEnemies } from "../utils/helpers";
 import { StatusBadges, HpBar } from "./shared";
 import {
   WEAKEN_DMG_MULT,
@@ -11,21 +11,14 @@ import {
   COUNTER_REFLECT_FRACTION,
   FLEE_CHANCE,
   LIGHT_MAX,
-  LIGHT_START,
   DARKNESS_DAMAGE,
   COMBAT_LOG_MAX,
 } from "../data/constants";
 import { executeActions } from "../combat/actions";
-import type {
-  DungeonNode,
-  Player,
-  Enemy,
-  CombatPlayer,
-  CombatContext,
-  Ability,
-  Consumable,
-} from "../types";
-import type { CombatSave } from "../utils/save";
+import type { DungeonNode, Enemy, CombatPlayer, CombatContext, Ability, Consumable } from "../types";
+import { useAppDispatch, useAppSelector } from "../store";
+import { updateCombatState } from "../store/combatSlice";
+import { combatVictory, combatDefeat, fleeToMap } from "../store/thunks";
 
 type SubAction =
   | "none"
@@ -105,73 +98,56 @@ const EnemyPanel = memo(function EnemyPanel({
   );
 });
 
-export function CombatScreen({
-  room,
-  player,
-  onVictory,
-  onDefeat,
-  onFleeToMap,
-  onTurnEnd,
-  initialCombat,
-  surpriseRound,
-}: {
-  room: DungeonNode;
-  player: Player;
-  onVictory: (p: CombatPlayer) => void;
-  onDefeat: (gold: number) => void;
-  onFleeToMap: (p: CombatPlayer) => void;
-  onTurnEnd: (combat: CombatSave) => void;
-  initialCombat: CombatSave | null;
-  surpriseRound?: boolean;
-}) {
-  const initEnemies = useCallback((): Enemy[] => {
-    if (initialCombat)
-      // Base each enemy on a fresh makeEnemy (picks up current stats + combatMechanics),
-      // then restore mutable runtime state from the save.
-      return initialCombat.enemies.map((e) => ({
-        ...makeEnemy(e.id),
-        hp: e.hp,
-        block: e.block,
-        statuses: e.statuses,
-        reassembled: e.reassembled,
-        ambushTurns: e.ambushTurns,
-        summonCooldown: e.summonCooldown,
-        uid: e.uid,
-        row: e.row,
-      }));
-    let enems = room.enemies.map((id) => makeEnemy(id));
+export function CombatScreen({ room }: { room: DungeonNode }) {
+  const dispatch = useAppDispatch();
+
+  // Read initial combat state from store (set by App.tsx before mount)
+  const storedEnemies = useAppSelector((s) => s.combat.enemies);
+  const storedCombatPlayer = useAppSelector((s) => s.combat.combatPlayer);
+  const storedLightLevel = useAppSelector((s) => s.combat.lightLevel);
+  const storedCombatLog = useAppSelector((s) => s.combat.combatLog);
+  const surpriseRound = useAppSelector((s) => s.combat.surpriseRound);
+  const player = useAppSelector((s) => s.player)!;
+
+  // ── Local game state (synced to store after each enemy turn) ──
+  const [enemies, setEnemies] = useState<Enemy[]>(() => {
+    if (storedEnemies && storedEnemies.length > 0) {
+      return storedEnemies.map(hydrateEnemy);
+    }
+    // Fresh combat — initialize from room, apply any traps
+    let enems = room.enemies.map((id) => hydrateEnemy(makeEnemyData(id)));
     if (room.trap === "snare")
       enems = enems.map((e) => ({ ...e, statuses: { ...e.statuses, stun: 1 } }));
     if (room.trap === "flash") enems = enems.map((e) => ({ ...e, hp: Math.max(1, e.hp - 8) }));
     return enems;
-  }, [room, initialCombat]);
+  });
 
-  const [enemies, setEnemies] = useState(initEnemies);
-  const [p, setP] = useState<CombatPlayer>(() =>
-    initialCombat
-      ? initialCombat.combatPlayer
-      : {
-          ...player,
-          block: 0,
-          stealthActive: false,
-          counterActive: false,
-        },
+  const [p, setP] = useState<CombatPlayer>(
+    () =>
+      storedCombatPlayer ?? {
+        ...player,
+        block: 0,
+        stealthActive: false,
+        counterActive: false,
+      },
   );
+
+  const [log, setLog] = useState<string[]>(() => {
+    if (storedCombatLog.length > 0) return storedCombatLog;
+    if (surpriseRound) return ["\u26A0\uFE0F Ambush! Enemies burst into the room!"];
+    return [`\u2694 Combat begins: ${room.label}`];
+  });
+
+  const [lightLevel, setLightLevel] = useState(storedLightLevel);
+
+  // ── Ephemeral UI state (stays local) ──
   const [subAction, setSubAction] = useState<SubAction>("none");
   const [pendingAbility, setPendingAbility] = useState<Ability | null>(null);
   const [pendingItem, setPendingItem] = useState<{ item: Consumable; idx: number } | null>(null);
   const [targetIdx, setTargetIdx] = useState(0);
-  const [log, setLog] = useState(() => {
-    if (initialCombat) return initialCombat.combatLog;
-    if (surpriseRound && !initialCombat)
-      return [`\u26A0\uFE0F Ambush! Enemies burst into the room!`];
-    return [`\u2694 Combat begins: ${room.label}`];
-  });
   const [animating, setAnimating] = useState(false);
-  const surpriseRoundDone = useRef(!!initialCombat);
-  const [lightLevel, setLightLevel] = useState(
-    initialCombat ? initialCombat.lightLevel : LIGHT_START,
-  );
+
+  const surpriseRoundDone = useRef(!!storedCombatPlayer);
 
   const addLog = (msg: string) => setLog((prev) => [msg, ...prev].slice(0, COMBAT_LOG_MAX));
   const liveEnems = enemies.filter((e) => e.hp > 0);
@@ -207,7 +183,6 @@ export function CombatScreen({
     const mechanics = t.combatMechanics;
     const lightBox = { value: lightLevel };
 
-    // onReceiveHit — evade, damage modifier, post-hit heal fraction
     if (mechanics?.onReceiveHit) {
       const ctx: CombatContext = { enemies: enems ?? [], player: p, lightLevel: lightBox };
       const response = mechanics.onReceiveHit(t, ctx, { damage: dmg, holy, finishing });
@@ -225,7 +200,6 @@ export function CombatScreen({
     t.hp -= dealt;
     lines.push(`\u2694 ${dealt} dmg\u2192${t.name}${bl > 0 ? ` (${bl} blocked)` : ""}`);
 
-    // onDeath
     if (t.hp <= 0 && mechanics?.onDeath && enems) {
       const ctx: CombatContext = {
         enemies: enems,
@@ -254,7 +228,7 @@ export function CombatScreen({
       addLog(`\u{1F3C6} Victory! +${loot} gold`);
       setP(np);
       setEnemies([]);
-      setTimeout(() => onVictory({ ...np, gold: np.gold + loot, block: 0 }), 400);
+      setTimeout(() => dispatch(combatVictory({ ...np, gold: np.gold + loot, block: 0 })), 400);
       return true;
     }
     return false;
@@ -489,7 +463,7 @@ export function CombatScreen({
     if (animating) return;
     if (Math.random() < FLEE_CHANCE) {
       addLog("\u{1F3C3} You flee into the darkness!");
-      setTimeout(() => onFleeToMap(p), 300);
+      setTimeout(() => dispatch(fleeToMap(p)), 300);
     } else {
       addLog("\u274C Flee failed! Enemies get a free turn.");
       const enems = cloneEnemies(enemies);
@@ -505,14 +479,12 @@ export function CombatScreen({
     const light = { value: lightLevel };
     const ctx = (): CombatContext => ({ enemies: enems, player: np, lightLevel: light });
 
-    // onTurnStart — snapshot alive enemies so newly spawned ones don't run this phase
     const aliveAtStart = enems.filter((e) => e.hp > 0);
     for (const enemy of aliveAtStart) {
       const actions = enemy.combatMechanics?.onTurnStart?.(enemy, ctx());
       if (actions?.length) executeActions(actions, enemy, np, enems, light, lines);
     }
 
-    // Attack phase — iterate live enems (includes newly spawned from onTurnStart)
     for (const enemy of enems) {
       if (enemy.hp <= 0) continue;
       if ((enemy.statuses?.stun || 0) > 0) {
@@ -559,13 +531,11 @@ export function CombatScreen({
       lines.push("\u{1F464} Enemies can't find you in the shadows!");
     }
 
-    // Darkness penalty
     if (light.value <= 0) {
       np.hp -= DARKNESS_DAMAGE;
       lines.push(`\u{1F311} Darkness saps your life! -${DARKNESS_DAMAGE} HP`);
     }
 
-    // Status ticks
     const ptick = tickStatuses({ ...np, name: "You" });
     np = { ...np, ...ptick.entity };
     ptick.log.forEach((l) => lines.push(l));
@@ -579,11 +549,10 @@ export function CombatScreen({
     if (np.hp <= 0) {
       lines.forEach(addLog);
       setAnimating(false);
-      onDefeat(np.gold);
+      dispatch(combatDefeat(np.gold));
       return;
     }
 
-    // Reset for new turn
     np.block = 0;
     np.stealthActive = false;
     np.counterActive = false;
@@ -599,13 +568,16 @@ export function CombatScreen({
     setSubAction("none");
     autoTarget(promoted);
 
-    // Save after turn completes
-    onTurnEnd({
-      enemies: promoted,
-      combatPlayer: np,
-      lightLevel: light.value,
-      combatLog: ["\u2014 Your Turn \u2014", ...lines, ...log].slice(0, COMBAT_LOG_MAX),
-    });
+    // Sync game state to Redux store after turn completes
+    const newLog = ["\u2014 Your Turn \u2014", ...lines, ...log].slice(0, COMBAT_LOG_MAX);
+    dispatch(
+      updateCombatState({
+        enemies: promoted.map(toEnemyData),
+        combatPlayer: np,
+        lightLevel: light.value,
+        combatLog: newLog,
+      }),
+    );
   }
 
   /* ── Target click handler ── */
@@ -671,7 +643,6 @@ export function CombatScreen({
 
       {/* Combatants */}
       <div className="flex flex-col gap-2 relative z-1 items-center w-full px-4">
-        {/* Enemies by row — back row on top (furthest from player) */}
         {backRow.length > 0 && (
           <div>
             <div className="text-[0.6rem] text-crypt-dim text-center tracking-wider mb-1 uppercase">
@@ -713,7 +684,7 @@ export function CombatScreen({
           </div>
         )}
 
-        {/* Player panel — below enemies */}
+        {/* Player panel */}
         <div className="panel" style={{ minWidth: "160px", maxWidth: "190px" }}>
           <div className="text-center text-2xl mb-0.5">{"\u{1F9DD}"}</div>
           <div className="text-sm font-bold text-crypt-text text-center mb-0.5">You</div>

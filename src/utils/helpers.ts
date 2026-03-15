@@ -3,7 +3,7 @@ import { CONSUMABLES, STARTER_CONSUMABLE_IDS } from "../data/consumables";
 import { ENEMY_TYPES } from "../data/enemies";
 import { BUILDINGS } from "../data/buildings";
 import { PLAYER_START_HP, PLAYER_START_GOLD, NECRO_SUMMON_COOLDOWN } from "../data/constants";
-import type { Enemy, Player, Statuses, BuildingState } from "../types";
+import type { Enemy, EnemyData, Player, Statuses, BuildingState } from "../types";
 
 export function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -18,19 +18,34 @@ export function uid(p: string): string {
   return `${p}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function makeEnemy(id: string): Enemy {
+export function makeEnemyData(id: string): EnemyData {
   const b = ENEMY_TYPES.find((e) => e.id === id)!;
   return {
-    ...b,
+    id,
+    uid: uid(id),
     hp: b.maxHp,
     block: 0,
     statuses: {},
     reassembled: false,
-    ambushTurns: b.ambushTurns || 0,
+    ambushTurns: b.ambushTurns ?? 0,
     summonCooldown: NECRO_SUMMON_COOLDOWN,
-    uid: uid(id),
     row: b.defaultRow,
   };
+}
+
+export function hydrateEnemy(data: EnemyData): Enemy {
+  const type = ENEMY_TYPES.find((e) => e.id === data.id)!;
+  return { ...type, ...data };
+}
+
+export function toEnemyData({
+  id, uid, hp, block, statuses, reassembled, summonCooldown, row, ambushTurns,
+}: Enemy): EnemyData {
+  return { id, uid, hp, block, statuses, reassembled, summonCooldown, row, ambushTurns };
+}
+
+export function makeEnemy(id: string): Enemy {
+  return hydrateEnemy(makeEnemyData(id));
 }
 
 export function cloneEnemy(e: Enemy): Enemy {

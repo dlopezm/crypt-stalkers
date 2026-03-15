@@ -16,9 +16,11 @@
     "fix": "pnpm format:fix && pnpm lint:fix && pnpm typecheck"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.11.2",
     "random-dungeon-generator": "^1.0.32",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-redux": "^9.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,3 +1,5 @@
+export type Screen = "title" | "town" | "map" | "combat" | "victory" | "gameover";
+
 export type StatusKey = "bleed" | "weaken" | "blind" | "silence" | "poison" | "stun";
 export type Statuses = Partial<Record<StatusKey, number>>;
 
@@ -151,15 +153,20 @@ export interface EnemyType {
   onClosedDoors?: string;
 }
 
-export interface Enemy extends EnemyType {
+/** Serializable runtime state for a live enemy — stored in Redux and saves. */
+export interface EnemyData {
+  id: string;
+  uid: string;
   hp: number;
   block: number;
   statuses: Statuses;
   reassembled: boolean;
   summonCooldown: number;
-  uid: string;
   row: "front" | "back";
+  ambushTurns: number;
 }
+
+export interface Enemy extends Omit<EnemyType, "ambushTurns">, EnemyData {}
 
 /* ── Dungeon ── */
 
