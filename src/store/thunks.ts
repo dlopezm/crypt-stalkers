@@ -60,13 +60,27 @@ export function tickAI(currentDungeon: DungeonNode[], roomId: string, action: st
 ────────────────────────────────────────────────────────────────────────────── */
 export function combatVictory(newPlayer: CombatPlayer) {
   return (dispatch: AppDispatch, getState: () => RootState) => {
-    const { dungeon: dungeonState } = getState();
+    const { dungeon: dungeonState, combat: combatState } = getState();
     const { dungeon, currentRoomId } = dungeonState;
     if (!dungeon || !currentRoomId) return;
 
-    const base = dungeon.map((n) =>
-      n.id === currentRoomId ? { ...n, state: "visited" as const, enemies: [] } : n,
-    );
+    // Tally dead enemies as corpses (exclude bosses and internal types like heap_of_bones)
+    const SKIP_CORPSE = new Set(["heap_of_bones", "boss_skeleton_lord", "boss_vampire_lord", "boss_lich"]);
+    const newCorpses: Record<string, number> = {};
+    for (const e of combatState.enemies ?? []) {
+      if (!SKIP_CORPSE.has(e.id)) {
+        newCorpses[e.id] = (newCorpses[e.id] ?? 0) + 1;
+      }
+    }
+
+    const base = dungeon.map((n) => {
+      if (n.id !== currentRoomId) return n;
+      const merged: Record<string, number> = { ...n.corpses };
+      for (const [id, count] of Object.entries(newCorpses)) {
+        merged[id] = (merged[id] ?? 0) + count;
+      }
+      return { ...n, state: "visited" as const, enemies: [], corpses: merged };
+    });
     const curRoom = dungeon.find((r) => r.id === currentRoomId);
     const newDungeon = base.map((n) => {
       if (n.state === "locked" && curRoom?.connections.includes(n.id))

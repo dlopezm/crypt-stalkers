@@ -1,11 +1,4 @@
 import { ENEMY_TYPES } from "../data/enemies";
-import {
-  AI_REPRODUCE_CHANCE,
-  AI_NOISE_ATTRACT_CHANCE,
-  AI_LIGHT_FLEE_CHANCE,
-  AI_ROAM_CHANCE,
-  AI_SCOUT_SEND_CHANCE,
-} from "../data/constants";
 import type {
   DungeonNode,
   DungeonEnemy,
@@ -15,6 +8,9 @@ import type {
   RoomBBox,
   AILogEntry,
   SoundVolume,
+  DungeonAction,
+  DungeonAIContext,
+  OutOfCombatMechanics,
 } from "../types";
 import { shuffle, uid } from "./helpers";
 import { generateStampGrid } from "./stamp-dungeon";
@@ -249,6 +245,8 @@ export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
       label: tmpl.label,
       boss: isBoss,
       enemies: tmpl.enemies ? tmpl.enemies.map((typeId) => ({ typeId, uid: uid(typeId) })) : [],
+      corpses: {},
+      necroRitual: null,
       hint: tmpl.hint || "",
       state: isStart ? ("visited" as const) : ("locked" as const),
       cx: room.cx * CELL_PX,
@@ -306,106 +304,11 @@ export function roomDistances(rooms: DungeonNode[], fromId: string): Map<string,
   return dist;
 }
 
-/* ── Vague sound descriptions per enemy type and action ── */
-
-const MOVE_SOUNDS: Record<string, { texts: string[]; volume: SoundVolume }> = {
-  rat: {
-    volume: "quiet",
-    texts: [
-      "Skittering of tiny claws on stone",
-      "Small legs scrambling in the dark",
-      "Faint scratching echoes nearby",
-    ],
-  },
-  zombie: {
-    volume: "normal",
-    texts: [
-      "Heavy, shambling footsteps",
-      "Wet dragging across stone",
-      "A low groan and shuffling feet",
-    ],
-  },
-  ghost: {
-    volume: "quiet",
-    texts: [
-      "A chill breeze drifts through the corridor",
-      "Faint moaning from somewhere unseen",
-      "The air grows cold for a moment",
-    ],
-  },
-  vampire: {
-    volume: "normal",
-    texts: [
-      "A rush of cold air, something withdrawing",
-      "The flutter of a dark cloak",
-      "A sharp hiss fading into silence",
-    ],
-  },
-  shadow: {
-    volume: "quiet",
-    texts: [
-      "The shadows shift and deepen",
-      "Darkness crawls along the walls",
-      "A patch of black slithers out of sight",
-    ],
-  },
-  necromancer: {
-    volume: "normal",
-    texts: [
-      "Arcane whispers drift through the stone",
-      "A low chanting reverberates through the walls",
-    ],
-  },
-  skeleton: {
-    volume: "normal",
-    texts: ["The clatter of bones on stone", "Rattling from beyond the door"],
-  },
-  ghoul: {
-    volume: "quiet",
-    texts: ["Something pads softly in the darkness", "A faint, wet sniffing sound"],
-  },
-  banshee: {
-    volume: "loud",
-    texts: ["A distant wail pierces the silence", "An unearthly shriek echoes through the halls"],
-  },
-};
-
-const REPRODUCE_SOUNDS: Record<string, { texts: string[]; volume: SoundVolume }> = {
-  rat: {
-    volume: "quiet",
-    texts: [
-      "Frantic squeaking echoes from the dark",
-      "A chorus of high-pitched chittering",
-      "The sound of many small things multiplying",
-    ],
-  },
-};
-
-const BLOCKED_SOUNDS: Record<string, { texts: string[]; volume: SoundVolume }> = {
-  rat: { volume: "quiet", texts: ["Scratching against a barricade"] },
-  zombie: { volume: "normal", texts: ["Something pounds against a sealed door"] },
-  ghost: { volume: "quiet", texts: ["A cold presence presses against a barrier"] },
-  vampire: { volume: "normal", texts: ["Hissing from behind a sealed door"] },
-  shadow: { volume: "quiet", texts: ["Darkness pools against a blockade"] },
-  necromancer: { volume: "normal", texts: ["Muttering and scraping at a barred entrance"] },
-  skeleton: { volume: "normal", texts: ["Bones clatter against a blocked passage"] },
-  ghoul: { volume: "quiet", texts: ["Clawing at a sealed door"] },
-  banshee: { volume: "loud", texts: ["A wail of frustration from beyond a blockade"] },
-};
-
-const SCOUT_SEND_SOUNDS: { texts: string[]; volume: SoundVolume } = {
-  volume: "normal",
-  texts: [
-    "Arcane whispers, then shambling footsteps with purpose",
-    "A commanding murmur, followed by heavy shuffling",
-  ],
-};
-
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-const ACTION_NOISE: Record<string, string> = {
+const ACTION_NOISE: Record<string, "quiet" | "medium" | "loud"> = {
   move: "medium",
   scout: "quiet",
   combat: "loud",
@@ -413,14 +316,11 @@ const ACTION_NOISE: Record<string, string> = {
 };
 
 export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, action = "move") {
-  const rooms = dungeon.map((r) => ({ ...r, enemies: [...r.enemies] }));
+  const rooms = dungeon.map((r) => ({ ...r, enemies: [...r.enemies], corpses: { ...r.corpses } }));
   const aiLog: AILogEntry[] = [];
   const arrivedInPlayerRoom: string[] = [];
 
   const noise = ACTION_NOISE[action] || "medium";
-  const isLoud = noise === "loud";
-  const isMedium = noise === "medium" || isLoud;
-
   const byId = (id: string) => rooms.find((r) => r.id === id);
 
   function moveEnemy(
@@ -428,7 +328,8 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
     fromRoom: DungeonNode,
     toRoom: DungeonNode,
     reason: string,
-  ) {
+    mechanics?: OutOfCombatMechanics,
+  ): boolean {
     if (!fromRoom.connections.includes(toRoom.id)) {
       console.warn(
         "Tried to move from ",
@@ -441,8 +342,8 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
         `Tried to move from ${fromRoom.label} to ${toRoom.label}, which are not adjacent.`,
       );
     }
-    if (toRoom.blocked) {
-      const sounds = BLOCKED_SOUNDS[enemy.typeId] || {
+    if (toRoom.blocked && !mechanics?.canPassDoor?.(enemy, toRoom)) {
+      const sounds = mechanics?.sounds?.blocked || {
         volume: "normal" as SoundVolume,
         texts: ["Something scrapes against a sealed door"],
       };
@@ -452,12 +353,12 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
         volume: sounds.volume,
         roomId: toRoom.id,
       });
-      return;
+      return false;
     }
     fromRoom.enemies = fromRoom.enemies.filter((e) => e.uid !== enemy.uid);
     toRoom.enemies = [...toRoom.enemies, enemy];
     if (toRoom.id === currentRoomId) arrivedInPlayerRoom.push(enemy.uid);
-    const sounds = MOVE_SOUNDS[enemy.typeId] || {
+    const sounds = mechanics?.sounds?.move || {
       volume: "normal" as SoundVolume,
       texts: ["Something moves in the dark"],
     };
@@ -468,6 +369,115 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
       roomId: fromRoom.id,
       toRoomId: toRoom.id,
     });
+    return true;
+  }
+
+  function executeDungeonActions(
+    actions: DungeonAction[],
+    enemy: DungeonEnemy,
+    room: DungeonNode,
+    neighbours: DungeonNode[],
+    mechanics: OutOfCombatMechanics,
+  ) {
+    let moved = false;
+
+    for (const action of actions) {
+      switch (action.type) {
+        case "move_toward_player": {
+          if (moved) break;
+          const target = neighbours.find((n) => n.id === currentRoomId);
+          if (target && !room.blocked) {
+            moved = moveEnemy(enemy, room, target, action.reason, mechanics);
+          }
+          break;
+        }
+        case "move_away_from_player": {
+          if (moved) break;
+          const away = neighbours.find(
+            (n) => n.id !== currentRoomId && n.state !== "visited",
+          );
+          if (away) {
+            moved = moveEnemy(enemy, room, away, action.reason, mechanics);
+          }
+          break;
+        }
+        case "move_random": {
+          if (moved) break;
+          const target = shuffle(neighbours)[0];
+          if (target) {
+            moved = moveEnemy(enemy, room, target, action.reason, mechanics);
+          }
+          break;
+        }
+        case "move": {
+          if (moved) break;
+          const target = byId(action.targetRoomId);
+          if (target) {
+            moved = moveEnemy(enemy, room, target, action.reason, mechanics);
+          }
+          break;
+        }
+        case "reproduce": {
+          const newEnemy: DungeonEnemy = { typeId: enemy.typeId, uid: uid(enemy.typeId) };
+          room.enemies = [...room.enemies, newEnemy];
+          break;
+        }
+        case "send_minion": {
+          const minion = room.enemies.find((e) => e.uid === action.minionUid);
+          const target = byId(action.targetRoomId);
+          if (minion && target) {
+            // Find the minion's mechanics for its own sounds
+            const minionType = ENEMY_TYPES.find((e) => e.id === minion.typeId);
+            moveEnemy(minion, room, target, action.reason, minionType?.outOfCombatMechanics);
+          }
+          break;
+        }
+        case "log": {
+          aiLog.push({
+            text: action.text,
+            debugText: `[AI] ${enemy.typeId} (${enemy.uid}) in ${room.label}: ${action.text}`,
+            volume: action.volume,
+            roomId: room.id,
+          });
+          break;
+        }
+        case "begin_ritual": {
+          if (!room.necroRitual) {
+            room.necroRitual = { typeId: action.typeId, turnsLeft: action.turns, hpFraction: action.hpFraction };
+          }
+          break;
+        }
+        case "tick_ritual": {
+          if (room.necroRitual) {
+            room.necroRitual = { ...room.necroRitual, turnsLeft: room.necroRitual.turnsLeft - 1 };
+            if (room.necroRitual.turnsLeft <= 0) {
+              const { typeId, hpFraction } = room.necroRitual;
+              room.necroRitual = null;
+              // Remove one corpse of this type
+              if ((room.corpses[typeId] ?? 0) > 0) {
+                room.corpses[typeId] -= 1;
+                if (room.corpses[typeId] === 0) delete room.corpses[typeId];
+              }
+              // Spawn resurrected enemy with reduced HP
+              const etype = ENEMY_TYPES.find((e) => e.id === typeId);
+              const hpOverride = etype ? Math.max(1, Math.floor(etype.maxHp * hpFraction)) : undefined;
+              const newEnemy: DungeonEnemy = { typeId, uid: uid(typeId), hpOverride };
+              room.enemies = [...room.enemies, newEnemy];
+              if (room.id === currentRoomId) arrivedInPlayerRoom.push(newEnemy.uid);
+              aiLog.push({
+                text: "Something stirs... then rises.",
+                debugText: `💀 [AI] Necromancer ritual complete in ${room.label} — ${typeId} resurrected at ${Math.round(hpFraction * 100)}% HP!`,
+                volume: "loud",
+                roomId: room.id,
+              });
+            }
+          }
+          break;
+        }
+        case "skip":
+          break;
+      }
+    }
   }
 
   rooms.forEach((room) => {
@@ -475,75 +485,18 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
     if (!room.enemies.length) return;
 
     const neighbours = room.connections.map((id) => byId(id)).filter(Boolean) as DungeonNode[];
-    // Snapshot so that enemies spawned or moved this tick don't get an extra turn
     const snapshot = [...room.enemies];
 
     for (const enemy of snapshot) {
-      // Skip if this individual already moved out of the room this tick
       if (!room.enemies.some((e) => e.uid === enemy.uid)) continue;
 
       const etype = ENEMY_TYPES.find((e) => e.id === enemy.typeId);
-      if (!etype?.ai) continue;
-      const ai = etype.ai;
+      const mechanics = etype?.outOfCombatMechanics;
+      if (!mechanics) continue;
 
-      // Reproduce: spawn a new individual in the same room (no movement)
-      if (ai.reproduce && Math.random() < AI_REPRODUCE_CHANCE) {
-        const newEnemy: DungeonEnemy = { typeId: enemy.typeId, uid: uid(enemy.typeId) };
-        room.enemies = [...room.enemies, newEnemy];
-        const sounds = REPRODUCE_SOUNDS[enemy.typeId] || {
-          volume: "quiet" as SoundVolume,
-          texts: ["Strange sounds of multiplying"],
-        };
-        aiLog.push({
-          text: pick(sounds.texts),
-          debugText: `\u{1F400} [AI] ${enemy.typeId} in ${room.label} reproduced. Now ${room.enemies.filter((e) => e.typeId === enemy.typeId).length}.`,
-          volume: sounds.volume,
-          roomId: room.id,
-        });
-      }
-
-      // Movement — at most one move per individual per tick
-      let moved = false;
-
-      if (!moved && ai.noiseAttract && isMedium) {
-        const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
-        if (adjacentToCurrent && !room.blocked && Math.random() < AI_NOISE_ATTRACT_CHANCE) {
-          moveEnemy(enemy, room, adjacentToCurrent, "attracted by noise");
-          moved = true;
-        }
-      }
-
-      if (!moved && ai.lightFlee && isLoud) {
-        const awayRoom = neighbours.find((n) => n.id !== currentRoomId && n.state !== "visited");
-        if (awayRoom && Math.random() < AI_LIGHT_FLEE_CHANCE) {
-          moveEnemy(enemy, room, awayRoom, "fleeing light/noise");
-          moved = true;
-        }
-      }
-
-      if (!moved && ai.roam && Math.random() < AI_ROAM_CHANCE) {
-        const target = shuffle(neighbours)[0];
-        if (target) {
-          moveEnemy(enemy, room, target, "roaming");
-        }
-      }
-
-      // sendScout: necromancer commands a zombie in the same room to investigate
-      if (ai.sendScout && isMedium) {
-        const zombieInRoom = room.enemies.find((e) => e.typeId === "zombie");
-        if (zombieInRoom) {
-          const adjacentToCurrent = neighbours.find((n) => n.id === currentRoomId);
-          if (adjacentToCurrent && Math.random() < AI_SCOUT_SEND_CHANCE) {
-            moveEnemy(zombieInRoom, room, adjacentToCurrent, "sent by Necromancer to investigate");
-            aiLog.push({
-              text: pick(SCOUT_SEND_SOUNDS.texts),
-              debugText: `\u{1F9D9} [AI] Necromancer (${enemy.uid}) in ${room.label} sent zombie to investigate`,
-              volume: SCOUT_SEND_SOUNDS.volume,
-              roomId: room.id,
-            });
-          }
-        }
-      }
+      const ctx: DungeonAIContext = { rooms, currentRoomId, room, neighbours, noise, byId };
+      const actions = mechanics.onTick(enemy, ctx);
+      executeDungeonActions(actions, enemy, room, neighbours, mechanics);
     }
   });
 

@@ -128,7 +128,7 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
       return storedEnemies.map(hydrateEnemy);
     }
     // Fresh combat — initialize from room, apply any traps
-    let enems = room.enemies.map((e) => hydrateEnemy(makeEnemyData(e.typeId, e.uid)));
+    let enems = room.enemies.map((e) => hydrateEnemy(makeEnemyData(e.typeId, e.uid, e.hpOverride)));
     if (room.trap === "snare")
       enems = enems.map((e) => ({ ...e, statuses: { ...e.statuses, stun: 1 } }));
     if (room.trap === "flash") enems = enems.map((e) => ({ ...e, hp: Math.max(1, e.hp - 8) }));

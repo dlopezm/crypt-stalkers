@@ -74,14 +74,6 @@ export interface BuildingState {
 
 /* ── Enemies ── */
 
-export interface EnemyAI {
-  noiseAttract?: boolean;
-  lightFlee?: boolean;
-  roam?: boolean;
-  reproduce?: boolean;
-  sendScout?: boolean;
-}
-
 /* ── Combat Mechanics ── */
 
 export type CombatAction =
@@ -129,6 +121,38 @@ export interface CombatMechanics {
   onDeath?: (self: Enemy, ctx: CombatContext, killingHit: { finishing: boolean }) => CombatAction[];
 }
 
+/* ── Out-of-Combat (Dungeon AI) Mechanics ── */
+
+export interface DungeonAIContext {
+  rooms: DungeonNode[];
+  currentRoomId: string;
+  room: DungeonNode;
+  neighbours: DungeonNode[];
+  noise: "quiet" | "medium" | "loud";
+  byId: (id: string) => DungeonNode | undefined;
+}
+
+export type DungeonAction =
+  | { type: "move_toward_player"; reason: string }
+  | { type: "move_away_from_player"; reason: string }
+  | { type: "move_random"; reason: string }
+  | { type: "move"; targetRoomId: string; reason: string }
+  | { type: "reproduce" }
+  | { type: "send_minion"; minionUid: string; targetRoomId: string; reason: string }
+  | { type: "log"; text: string; volume: SoundVolume }
+  | { type: "skip" }
+  | { type: "begin_ritual"; typeId: string; turns: number; hpFraction: number }
+  | { type: "tick_ritual" };
+
+export interface OutOfCombatMechanics {
+  onTick: (self: DungeonEnemy, ctx: DungeonAIContext) => DungeonAction[];
+  canPassDoor?: (self: DungeonEnemy, door: DungeonNode) => boolean;
+  sounds?: {
+    move?: { texts: string[]; volume: SoundVolume };
+    blocked?: { texts: string[]; volume: SoundVolume };
+  };
+}
+
 export interface EnemyType {
   id: string;
   name: string;
@@ -138,13 +162,13 @@ export interface EnemyType {
   ascii: string;
   mechanic: string;
   mechanicDesc: string;
-  ai: EnemyAI;
   evadeChance?: number;
   ambushTurns?: number;
   isBoss?: boolean;
   defaultRow: "front" | "back";
   combatMechanics?: CombatMechanics;
-  /* ── CSV fields ── */
+  outOfCombatMechanics?: OutOfCombatMechanics;
+  /* ── CSV fields (descriptive, not used by game logic) ── */
   outOfCombatMechanic?: string;
   movement?: string;
   seesInDark?: boolean;
@@ -174,6 +198,8 @@ export interface Enemy extends Omit<EnemyType, "ambushTurns">, EnemyData {}
 export interface DungeonEnemy {
   typeId: string; // key into ENEMY_TYPES
   uid: string; // unique instance id — carried into combat via makeEnemyData
+  /** If set, overrides maxHp when this enemy enters combat (e.g. resurrected at reduced HP). */
+  hpOverride?: number;
 }
 
 export type RoomState = "locked" | "reachable" | "visited";
@@ -207,6 +233,10 @@ export interface DungeonNode {
   label: string;
   boss: boolean;
   enemies: DungeonEnemy[];
+  /** Dead enemies left in this room, by typeId. Necromancer can resurrect these. */
+  corpses: Record<string, number>;
+  /** Active necromancer resurrection ritual. Counts down each dungeon turn. */
+  necroRitual: { typeId: string; turnsLeft: number; hpFraction: number } | null;
   hint: string;
   state: RoomState;
   cx: number;

@@ -18,12 +18,12 @@ export function uid(p: string): string {
   return `${p}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function makeEnemyData(id: string, existingUid?: string): EnemyData {
+export function makeEnemyData(id: string, existingUid?: string, hpOverride?: number): EnemyData {
   const b = ENEMY_TYPES.find((e) => e.id === id)!;
   return {
     id,
     uid: existingUid ?? uid(id),
-    hp: b.maxHp,
+    hp: hpOverride ?? b.maxHp,
     block: 0,
     statuses: {},
     reassembled: false,

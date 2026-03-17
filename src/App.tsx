@@ -69,7 +69,11 @@ export default function App() {
     dispatch(setPlayer(save.player));
     dispatch(
       setDungeonFull({
-        dungeon: save.dungeon,
+        dungeon: save.dungeon?.map((n) => ({
+          ...n,
+          corpses: n.corpses ?? {},
+          necroRitual: n.necroRitual ?? null,
+        })) ?? null,
         dungeonGrid: save.dungeonGrid ?? null,
         dungeonDef: save.dungeonDef,
         currentRoomId: save.currentRoomId,
@@ -139,7 +143,7 @@ export default function App() {
     if (opts?.player) dispatch(setPlayer(opts.player));
     dispatch(
       startCombat({
-        enemies: roomAfterAI.enemies.map((e) => makeEnemyData(e.typeId, e.uid)),
+        enemies: roomAfterAI.enemies.map((e) => makeEnemyData(e.typeId, e.uid, e.hpOverride)),
         combatPlayer: null,
         surpriseRound: true,
       }),
@@ -178,7 +182,7 @@ export default function App() {
       dispatch(updateDungeon(afterAI));
       dispatch(
         startCombat({
-          enemies: room.enemies.map((e) => makeEnemyData(e.typeId, e.uid)),
+          enemies: room.enemies.map((e) => makeEnemyData(e.typeId, e.uid, e.hpOverride)),
           combatPlayer: null,
           surpriseRound: false,
         }),
