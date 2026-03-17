@@ -254,7 +254,7 @@ export const skeletonDungeonMechanics: OutOfCombatMechanics = {
       return [{ type: "move_toward_player", reason: "investigating disturbance" }];
     }
     // Actively scouts — roams more than most enemies
-    if (Math.random() < AI_ROAM_CHANCE * 1.5) {
+    if (Math.random() < AI_ROAM_CHANCE * 3) {
       return [{ type: "move_random", reason: "scouting" }];
     }
     return [];

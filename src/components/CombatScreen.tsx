@@ -76,10 +76,7 @@ const EnemyPanel = memo(function EnemyPanel({
         {enemy.row === "back" ? "\u{1F6E1} Back Row" : "\u2694 Front Row"}
       </div>
       {enemy.mechanic && enemy.mechanic !== "boss" && (
-        <div
-          title={enemy.mechanicDesc}
-          className="text-[0.6rem] text-crypt-dim text-center mb-0.5 cursor-help border-b border-dotted border-crypt-border-dim pb-0.5"
-        >
+        <div className="text-[0.6rem] text-crypt-dim text-center mb-0.5 cursor-help border-b border-dotted border-crypt-border-dim pb-0.5">
           {"\u2699"} {enemy.mechanic.replace("_", " ")} {"\u2139"}
         </div>
       )}
@@ -623,11 +620,6 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
     setPendingItem(null);
   }
 
-  const uniqueMechanics = [
-    ...new Map(
-      liveEnems.filter((e) => e.mechanicDesc && e.mechanic !== "boss").map((e) => [e.mechanic, e]),
-    ).values(),
-  ];
   const isTargeting =
     subAction === "pick_attack_target" ||
     subAction === "pick_ability_target" ||
@@ -726,20 +718,6 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
           </div>
         </div>
       </div>
-
-      {/* Mechanics hint */}
-      {uniqueMechanics.length > 0 && (
-        <div className="panel max-w-3xl w-full px-3 py-1.5 relative z-1">
-          {uniqueMechanics.map((e) => (
-            <div key={e.mechanic} className="text-xs text-crypt-dim leading-relaxed">
-              <span className="text-crypt-red">
-                {"\u2699"} {e.name}:
-              </span>{" "}
-              {e.mechanicDesc}
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Combat log */}
       <div className="panel w-full max-w-xl px-3 py-1.5 relative z-1">

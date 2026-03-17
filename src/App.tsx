@@ -5,7 +5,7 @@ import { generateDungeon } from "./utils/dungeon";
 import { loadGame, clearSave, hasSave } from "./utils/save";
 import { TitleScreen } from "./components/TitleScreen";
 import { TownScreen } from "./components/TownScreen";
-import { DungeonMap } from "./components/DungeonMap";
+import { DungeonMap } from "./components/dungeon/DungeonMap";
 import { CombatScreen } from "./components/CombatScreen";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
 import type { DungeonNode, DungeonDef, DungeonLogEntry, Player } from "./types";

@@ -161,7 +161,6 @@ export interface EnemyType {
   loot: number;
   ascii: string;
   mechanic: string;
-  mechanicDesc: string;
   evadeChance?: number;
   ambushTurns?: number;
   isBoss?: boolean;
@@ -169,7 +168,6 @@ export interface EnemyType {
   combatMechanics?: CombatMechanics;
   outOfCombatMechanics?: OutOfCombatMechanics;
   /* ── CSV fields (descriptive, not used by game logic) ── */
-  outOfCombatMechanic?: string;
   movement?: string;
   seesInDark?: boolean;
   reactsToLight?: string;
