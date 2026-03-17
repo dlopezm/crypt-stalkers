@@ -82,6 +82,69 @@ const HARD_COMBAT: RoomTemplate[] = [
   },
 ];
 
+const KITCHEN_SINK_COMBAT: RoomTemplate[] = [
+  {
+    label: "Dusty Passage",
+    enemies: ["rat", "rat", "rat"],
+    hint: "tiny claws scraping on stone",
+  },
+  {
+    label: "Shallow Tomb",
+    enemies: ["skeleton", "skeleton"],
+    hint: "chains rattling faintly",
+  },
+  {
+    label: "Charnel Pit",
+    enemies: ["zombie", "ghoul"],
+    hint: "slow dragging sound, low groans",
+  },
+  {
+    label: "Whispering Vault",
+    enemies: ["ghost", "ghost"],
+    hint: "near-silence, cold air under the door",
+  },
+  {
+    label: "Blood Sanctum",
+    enemies: ["vampire", "skeleton"],
+    hint: "nothing \u2014 the dead kind of silence",
+  },
+  {
+    label: "Banshee's Chamber",
+    enemies: ["banshee", "rat", "rat"],
+    hint: "faint wailing, high-pitched and distant",
+  },
+  {
+    label: "Shadow Corridor",
+    enemies: ["shadow", "ghost"],
+    hint: "no light bleeds under the door",
+  },
+  {
+    label: "Necromancer's Study",
+    enemies: ["necromancer", "zombie", "skeleton"],
+    hint: "low chanting, shuffling of bound feet",
+  },
+  {
+    label: "Ghoul Nest",
+    enemies: ["ghoul", "ghoul", "rat"],
+    hint: "low breathing, lots of it",
+  },
+  {
+    label: "Collapsed Ossuary",
+    enemies: ["heap_of_bones", "skeleton"],
+    hint: "a grinding, shifting sound beneath the floor",
+  },
+  {
+    label: "Looter's Cache",
+    enemies: ["grave_robber", "grave_robber"],
+    hint: "hushed voices and the clink of stolen coins",
+  },
+  {
+    label: "Festering Pit",
+    enemies: ["gutborn_larva", "gutborn_larva", "rat"],
+    hint: "wet, rhythmic squelching from below",
+  },
+];
+
 /* ── Dungeon Definitions ── */
 
 export const DUNGEONS: DungeonDef[] = [
@@ -122,6 +185,19 @@ export const DUNGEONS: DungeonDef[] = [
       label: "The Lich's Throne",
       enemies: ["boss_lich"],
       hint: "the air itself recoils. don't go in unprepared.",
+    },
+  },
+  {
+    id: "kitchen_sink",
+    name: "The Kitchen Sink",
+    desc: "A mid-size dungeon with no theme. Every creature has found its way in.",
+    difficulty: 2,
+    generator: "stamp",
+    combatRooms: KITCHEN_SINK_COMBAT,
+    bossRoom: {
+      label: "The Convergence",
+      enemies: ["boss_vampire_lord", "necromancer"],
+      hint: "multiple presences. different kinds of wrong.",
     },
   },
 ];
