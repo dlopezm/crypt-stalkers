@@ -266,9 +266,8 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
 
   /* ── After any player action, run enemy turn ── */
   function endPlayerAction(np: CombatPlayer, enems: Enemy[]) {
-    const promoted = promoteBackRow(enems);
-    if (!checkVictory(promoted, np)) {
-      doEnemyTurn(np, promoted, false);
+    if (!checkVictory(enems, np)) {
+      doEnemyTurn(np, enems, false);
     }
   }
 
