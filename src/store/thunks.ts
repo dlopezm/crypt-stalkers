@@ -65,7 +65,12 @@ export function combatVictory(newPlayer: CombatPlayer) {
     if (!dungeon || !currentRoomId) return;
 
     // Tally dead enemies as corpses (exclude bosses and internal types like heap_of_bones)
-    const SKIP_CORPSE = new Set(["heap_of_bones", "boss_skeleton_lord", "boss_vampire_lord", "boss_lich"]);
+    const SKIP_CORPSE = new Set([
+      "heap_of_bones",
+      "boss_skeleton_lord",
+      "boss_vampire_lord",
+      "boss_lich",
+    ]);
     const newCorpses: Record<string, number> = {};
     for (const e of combatState.enemies ?? []) {
       if (!SKIP_CORPSE.has(e.id)) {

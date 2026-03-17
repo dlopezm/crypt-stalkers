@@ -393,9 +393,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
         }
         case "move_away_from_player": {
           if (moved) break;
-          const away = neighbours.find(
-            (n) => n.id !== currentRoomId && n.state !== "visited",
-          );
+          const away = neighbours.find((n) => n.id !== currentRoomId && n.state !== "visited");
           if (away) {
             moved = moveEnemy(enemy, room, away, action.reason, mechanics);
           }
@@ -443,7 +441,11 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
         }
         case "begin_ritual": {
           if (!room.necroRitual) {
-            room.necroRitual = { typeId: action.typeId, turnsLeft: action.turns, hpFraction: action.hpFraction };
+            room.necroRitual = {
+              typeId: action.typeId,
+              turnsLeft: action.turns,
+              hpFraction: action.hpFraction,
+            };
           }
           break;
         }
@@ -460,7 +462,9 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
               }
               // Spawn resurrected enemy with reduced HP
               const etype = ENEMY_TYPES.find((e) => e.id === typeId);
-              const hpOverride = etype ? Math.max(1, Math.floor(etype.maxHp * hpFraction)) : undefined;
+              const hpOverride = etype
+                ? Math.max(1, Math.floor(etype.maxHp * hpFraction))
+                : undefined;
               const newEnemy: DungeonEnemy = { typeId, uid: uid(typeId), hpOverride };
               room.enemies = [...room.enemies, newEnemy];
               if (room.id === currentRoomId) arrivedInPlayerRoom.push(newEnemy.uid);

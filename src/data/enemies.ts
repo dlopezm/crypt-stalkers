@@ -236,7 +236,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     loot: 2,
     ascii: "🪱",
     mechanic: "infect",
-    mechanicDesc: "If it attacks unseen it can take over a host. Kill it before it infects anything.",
+    mechanicDesc:
+      "If it attacks unseen it can take over a host. Kill it before it infects anything.",
     defaultRow: "front",
     combatMechanics: {},
     outOfCombatMechanics: gutbornLarvaDungeonMechanics,

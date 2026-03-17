@@ -20,7 +20,7 @@ const RAT_REPRODUCE_TEXTS = [
 ];
 
 export const ratDungeonMechanics: OutOfCombatMechanics = {
-  onTick(self, ctx) {
+  onTick(_self, ctx) {
     const actions: DungeonAction[] = [];
 
     if (Math.random() < AI_REPRODUCE_CHANCE) {
@@ -162,10 +162,7 @@ export const bansheeDungeonMechanics: OutOfCombatMechanics = {
   sounds: {
     move: {
       volume: "loud",
-      texts: [
-        "A distant wail pierces the silence",
-        "An unearthly shriek echoes through the halls",
-      ],
+      texts: ["A distant wail pierces the silence", "An unearthly shriek echoes through the halls"],
     },
     blocked: { volume: "loud", texts: ["A wail of frustration from beyond a blockade"] },
   },
@@ -181,20 +178,16 @@ const SCOUT_SEND_TEXTS = [
 const NECRO_RITUAL_TURNS = 3;
 const NECRO_RESURRECT_HP_FRAC = 0.2;
 
-
 const RITUAL_START_TEXTS = [
   "A low, resonant chanting drifts through the stone",
   "Arcane syllables echo — something stirs in the dark",
   "A necromantic drone rises, then falls, then rises again",
 ];
 
-const RITUAL_TICK_TEXTS = [
-  "The chanting intensifies",
-  "Dark energies coil and tighten",
-];
+const RITUAL_TICK_TEXTS = ["The chanting intensifies", "Dark energies coil and tighten"];
 
 export const necromancerDungeonMechanics: OutOfCombatMechanics = {
-  onTick(self, ctx) {
+  onTick(_self, ctx) {
     const actions: DungeonAction[] = [];
 
     // Continue an in-progress ritual
@@ -209,7 +202,12 @@ export const necromancerDungeonMechanics: OutOfCombatMechanics = {
       (id) => (ctx.room.corpses[id] ?? 0) > 0,
     );
     if (corpseTypeId) {
-      actions.push({ type: "begin_ritual", typeId: corpseTypeId, turns: NECRO_RITUAL_TURNS, hpFraction: NECRO_RESURRECT_HP_FRAC });
+      actions.push({
+        type: "begin_ritual",
+        typeId: corpseTypeId,
+        turns: NECRO_RITUAL_TURNS,
+        hpFraction: NECRO_RESURRECT_HP_FRAC,
+      });
       actions.push({ type: "log", text: pick(RITUAL_START_TEXTS), volume: "loud" });
       return actions;
     }

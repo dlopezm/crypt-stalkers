@@ -69,11 +69,12 @@ export default function App() {
     dispatch(setPlayer(save.player));
     dispatch(
       setDungeonFull({
-        dungeon: save.dungeon?.map((n) => ({
-          ...n,
-          corpses: n.corpses ?? {},
-          necroRitual: n.necroRitual ?? null,
-        })) ?? null,
+        dungeon:
+          save.dungeon?.map((n) => ({
+            ...n,
+            corpses: n.corpses ?? {},
+            necroRitual: n.necroRitual ?? null,
+          })) ?? null,
         dungeonGrid: save.dungeonGrid ?? null,
         dungeonDef: save.dungeonDef,
         currentRoomId: save.currentRoomId,
