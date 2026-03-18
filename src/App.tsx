@@ -207,9 +207,13 @@ export default function App() {
     }
   }
 
-  function onSwitchWeaponOnMap(idx: number) {
+  function onSwitchWeaponOnMap(weaponId: string) {
     if (!player) return;
-    dispatch(setPlayer({ ...player, activeWeaponIdx: idx }));
+    const weapon = player.ownedWeapons.find((w) => w.id === weaponId);
+    if (!weapon) return;
+    // 2H weapon clears offhand; 1H weapon keeps offhand as-is
+    const offhand = weapon.hand === "2" ? null : player.offhandWeapon;
+    dispatch(setPlayer({ ...player, mainWeapon: weapon, offhandWeapon: offhand }));
   }
 
   function onSetTrap(roomId: string, trapKey: string) {

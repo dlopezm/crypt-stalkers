@@ -94,7 +94,17 @@ export function combatVictory(newPlayer: CombatPlayer) {
     });
     dispatch(updateDungeon(newDungeon));
 
-    const { block: _b, stealthActive: _st, counterActive: _c, ...playerState } = newPlayer;
+    const {
+      block: _b,
+      stealthActive: _st,
+      counterActive: _c,
+      abilityCooldowns: _ac,
+      chargingAbility: _ca,
+      chargingTurnsLeft: _ct,
+      chargingTargetUid: _ctu,
+      blockReduction: _br,
+      ...playerState
+    } = newPlayer;
 
     if (curRoom?.boss) {
       dispatch(setPlayer({ ...playerState, hp: playerState.maxHp }));
@@ -130,7 +140,17 @@ export function fleeToMap(newPlayer: CombatPlayer) {
     const { dungeon, currentRoomId } = dungeonState;
     if (!dungeon || !currentRoomId) return;
 
-    const { block: _b, stealthActive: _st, counterActive: _c, ...playerState } = newPlayer;
+    const {
+      block: _b,
+      stealthActive: _st,
+      counterActive: _c,
+      abilityCooldowns: _ac,
+      chargingAbility: _ca,
+      chargingTurnsLeft: _ct,
+      chargingTargetUid: _ctu,
+      blockReduction: _br,
+      ...playerState
+    } = newPlayer;
     dispatch(setPlayer(playerState));
 
     const { newDungeon: afterAI } = dispatch(tickAI(dungeon, currentRoomId, "move"));

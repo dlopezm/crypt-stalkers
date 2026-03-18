@@ -13,7 +13,7 @@ export const ratMechanics: CombatMechanics = {};
 
 export const skeletonMechanics: CombatMechanics = {
   onDeath(self, _ctx, killingHit) {
-    if (self.reassembled || killingHit.finishing) return [];
+    if (self.reassembled || killingHit.damageType === "bludgeoning") return [];
     return [
       { type: "spawn", enemyId: "heap_of_bones", row: self.row, summonCooldown: 1 },
       { type: "log", message: `\u{1F9B4} ${self.name} collapses into a heap of bones...` },

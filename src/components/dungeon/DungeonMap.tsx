@@ -40,7 +40,7 @@ export function DungeonMap({
   onSetTrap: (id: string, trap: string) => void;
   onBlockDoor: (id: string) => void;
   onRest: () => void;
-  onSwitchWeapon: (idx: number) => void;
+  onSwitchWeapon: (weaponId: string) => void;
   onToggleDebug: () => void;
   onReturnToTown: () => void;
 }) {
@@ -158,7 +158,7 @@ export function DungeonMap({
             {"\u{1FA99}"} {player.gold}
           </span>
           <span className="text-crypt-muted">
-            {"\u{1F5E1}\uFE0F"} {player.weapons[player.activeWeaponIdx]?.name}
+            {"\u{1F5E1}\uFE0F"} {player.mainWeapon.name}
           </span>
         </div>
       </div>
@@ -223,7 +223,7 @@ export function DungeonMap({
             <div className="text-sm text-crypt-muted mt-2">
               {"\u{1F392}"} {player.consumables.length} items
             </div>
-            {player.weapons.length > 1 && (
+            {player.ownedWeapons.length > 1 && (
               <div className="mt-2">
                 <button
                   style={btnStyle("#5a4a20")}
@@ -234,23 +234,25 @@ export function DungeonMap({
                 </button>
                 {showWeaponPicker && (
                   <div className="flex gap-1 flex-wrap mt-1">
-                    {player.weapons.map((w, i) => (
-                      <button
-                        key={w.id}
-                        style={btnStyle(
-                          i === player.activeWeaponIdx ? "#3a3020" : "#6a3a1a",
-                          i === player.activeWeaponIdx,
-                        )}
-                        className="text-xs! px-2! py-1!"
-                        disabled={i === player.activeWeaponIdx}
-                        onClick={() => {
-                          onSwitchWeapon(i);
-                          setShowWeaponPicker(false);
-                        }}
-                      >
-                        {w.icon} {w.name}
-                      </button>
-                    ))}
+                    {player.ownedWeapons
+                      .filter((w) => w.hand !== "offhand")
+                      .map((w) => (
+                        <button
+                          key={w.id}
+                          style={btnStyle(
+                            w.id === player.mainWeapon.id ? "#3a3020" : "#6a3a1a",
+                            w.id === player.mainWeapon.id,
+                          )}
+                          className="text-xs! px-2! py-1!"
+                          disabled={w.id === player.mainWeapon.id}
+                          onClick={() => {
+                            onSwitchWeapon(w.id);
+                            setShowWeaponPicker(false);
+                          }}
+                        >
+                          {w.icon} {w.name}
+                        </button>
+                      ))}
                   </div>
                 )}
               </div>

@@ -14,6 +14,11 @@ export const LIFESTEAL_FRACTION = 0.5;
 export const COUNTER_REFLECT_FRACTION = 0.5;
 export const HOLY_VS_VAMPIRE_MULT = 1.5;
 
+// Weapon ability constants
+export const CHARGING_BLOW_MULTIPLIER = 3;
+export const SHIELD_BLOCK_REDUCTION = 0.75;
+export const QUICK_STRIKE_DAMAGE_MULT = 0.5;
+
 // Flee
 export const FLEE_CHANCE = 0.6;
 

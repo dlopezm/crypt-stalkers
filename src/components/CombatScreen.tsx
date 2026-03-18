@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { btnStyle } from "../styles";
 import { ENEMY_TYPES } from "../data/enemies";
-import { ABILITIES } from "../data/abilities";
-import { STATUS_ICONS } from "../data/status";
+import { getPlayerCombatAbilities, resolveChargingBlow } from "../data/abilities";
 import {
   hydrateEnemy,
   makeEnemyData,
@@ -13,33 +12,26 @@ import {
 import { StatusBadges, HpBar } from "./shared";
 import {
   WEAKEN_DMG_MULT,
-  BLIND_MISS_CHANCE,
   COUNTER_REFLECT_FRACTION,
   FLEE_CHANCE,
   LIGHT_MAX,
   DARKNESS_DAMAGE,
   COMBAT_LOG_MAX,
 } from "../data/constants";
-import { executeActions } from "../combat/actions";
+import { resolveActions } from "../combat/actions";
 import type {
   DungeonNode,
   Enemy,
   CombatPlayer,
   CombatContext,
   Ability,
-  Consumable,
+  ActionContext,
 } from "../types";
 import { useAppDispatch, useAppSelector } from "../store";
 import { updateCombatState } from "../store/combatSlice";
 import { combatVictory, combatDefeat, fleeToMap } from "../store/thunks";
 
-type SubAction =
-  | "none"
-  | "pick_weapon"
-  | "pick_item"
-  | "pick_ability_target"
-  | "pick_attack_target"
-  | "pick_item_target";
+type SubAction = "none" | "pick_weapon" | "pick_target";
 
 const EnemyPanel = memo(function EnemyPanel({
   enemy,
@@ -139,6 +131,7 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
         block: 0,
         stealthActive: false,
         counterActive: false,
+        abilityCooldowns: {},
       },
   );
 
@@ -153,7 +146,6 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
   // ── Ephemeral UI state (stays local) ──
   const [subAction, setSubAction] = useState<SubAction>("none");
   const [pendingAbility, setPendingAbility] = useState<Ability | null>(null);
-  const [pendingItem, setPendingItem] = useState<{ item: Consumable; idx: number } | null>(null);
   const [targetIdx, setTargetIdx] = useState(0);
   const [animating, setAnimating] = useState(false);
 
@@ -163,8 +155,9 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
   const liveEnems = enemies.filter((e) => e.hp > 0);
   const frontRow = liveEnems.filter((e) => e.row === "front");
   const backRow = liveEnems.filter((e) => e.row === "back");
-  const weapon = p.weapons[p.activeWeaponIdx];
-  const playerAbilities = ABILITIES.filter((a) => p.abilities.includes(a.id));
+  const weapon = p.mainWeapon;
+  const allAbilities = getPlayerCombatAbilities(p);
+  const isCharging = !!p.chargingAbility;
 
   function promoteBackRow(enems: Enemy[]): Enemy[] {
     const alive = enems.filter((e) => e.hp > 0);
@@ -174,58 +167,20 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
     return enems;
   }
 
-  function canReach(range: "melee" | "ranged", target: Enemy, enems: Enemy[]): boolean {
-    if (range === "ranged") return true;
+  function canReach(reach: "melee" | "ranged", target: Enemy, enems: Enemy[]): boolean {
+    if (reach === "ranged") return true;
     const aliveFront = enems.filter((e) => e.hp > 0 && e.row === "front");
     return target.row === "front" || aliveFront.length === 0;
   }
 
-  function resolveHit(
-    dmg: number,
-    target: Enemy,
-    holy: boolean,
-    finishing: boolean,
-    isWeapon: boolean,
-    lines: string[],
-    enems?: Enemy[],
-  ): Enemy {
-    const t = { ...target, statuses: { ...(target.statuses || {}) } };
-    const mechanics = t.combatMechanics;
-    const lightBox = { value: lightLevel };
-
-    if (mechanics?.onReceiveHit) {
-      const ctx: CombatContext = { enemies: enems ?? [], player: p, lightLevel: lightBox };
-      const response = mechanics.onReceiveHit(t, ctx, { damage: dmg, holy, finishing });
-      if (response.evade) {
-        lines.push(`\u{1F47B} ${t.name} phases through the attack!`);
-        return t;
-      }
-      if (response.damageMultiplier !== undefined)
-        dmg = Math.floor(dmg * response.damageMultiplier);
-    }
-
-    const bl = Math.min(t.block, dmg);
-    t.block = Math.max(0, t.block - bl);
-    const dealt = dmg - bl;
-    t.hp -= dealt;
-    lines.push(`\u2694 ${dealt} dmg\u2192${t.name}${bl > 0 ? ` (${bl} blocked)` : ""}`);
-
-    if (t.hp <= 0 && mechanics?.onDeath && enems) {
-      const ctx: CombatContext = {
-        enemies: enems,
-        player: { ...p } as CombatPlayer,
-        lightLevel: lightBox,
-      };
-      const actions = mechanics.onDeath(t, ctx, { finishing });
-      executeActions(actions, t, ctx.player, enems, lightBox, lines);
-    }
-
-    if (isWeapon && weapon.applyStatus && Math.random() < weapon.applyStatus.chance) {
-      const { status, stacks } = weapon.applyStatus;
-      t.statuses[status] = (t.statuses[status] || 0) + stacks;
-      lines.push(`${STATUS_ICONS[status]} ${t.name} ${status}\u00D7${stacks}`);
-    }
-    return t;
+  function makeActionContext(): ActionContext {
+    return {
+      player: p,
+      enemies,
+      lightLevel,
+      weapon: p.mainWeapon,
+      offhandWeapon: p.offhandWeapon,
+    };
   }
 
   function checkVictory(enems: Enemy[], np: CombatPlayer) {
@@ -268,216 +223,120 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
     }
   }
 
-  /* ── ATTACK ── */
-  function startAttack() {
+  /* ── USE ABILITY (unified: attack, weapon abilities, building abilities, wait, flee) ── */
+  function activateAbility(ability: Ability) {
     if (animating) return;
-    if (weapon.aoe) {
-      doAttack(-1);
-    } else {
-      setSubAction("pick_attack_target");
-    }
-  }
 
-  function doAttack(tIdx: number) {
-    if (animating) return;
-    const np = { ...p };
-    const enems = cloneEnemies(enemies);
-    const lines: string[] = [];
+    // Check cooldown
+    const cd = p.abilityCooldowns[ability.id] || 0;
+    if (cd > 0) return;
 
-    if ((np.statuses?.blind || 0) > 0 && Math.random() < BLIND_MISS_CHANCE) {
-      lines.push(`\u{1F441}\uFE0F Blinded \u2014 miss!`);
-      lines.forEach(addLog);
-      setSubAction("none");
-      endPlayerAction(np, enems);
-      return;
-    }
-
-    lines.push(`\u{1F5E1}\uFE0F ${weapon.name}:`);
-    const targets = weapon.aoe ? enems.filter((e) => e.hp > 0) : [enems[tIdx]].filter(Boolean);
-
-    targets.forEach((t) => {
-      if (t.hp <= 0) return;
-      if (!canReach(weapon.range, t, enems)) {
-        lines.push(`Can't reach ${t.name} in back row with melee!`);
-        return;
-      }
-      let dmg = weapon.damage;
-      if ((np.statuses?.weaken || 0) > 0) dmg = Math.floor(dmg * WEAKEN_DMG_MULT);
-      const result = resolveHit(dmg, t, !!weapon.holy, !!weapon.finishing, true, lines, enems);
-      const idx = enems.findIndex((e) => e.uid === t.uid);
-      if (idx >= 0) enems[idx] = result;
-    });
-
-    lines.forEach(addLog);
-    setSubAction("none");
-    endPlayerAction(np, enems);
-  }
-
-  /* ── SWITCH WEAPON ── */
-  function switchWeapon(idx: number) {
-    const np = { ...p, activeWeaponIdx: idx };
-    addLog(`\u{1F504} Switched to ${p.weapons[idx].name}`);
-    setSubAction("none");
-    const enems = cloneEnemies(enemies);
-    endPlayerAction(np, enems);
-  }
-
-  /* ── USE ITEM ── */
-  function startUseItem(item: Consumable, idx: number) {
-    if (animating) return;
-    if (item.heal || item.cleanse || item.restoreLight || item.block) {
-      doUseItem(item, idx, -1);
-    } else if (item.aoe) {
-      doUseItem(item, idx, -1);
-    } else if (item.damage || item.applyStatus) {
-      setPendingItem({ item, idx });
-      setSubAction("pick_item_target");
-    } else {
-      doUseItem(item, idx, -1);
-    }
-  }
-
-  function doUseItem(item: Consumable, itemIdx: number, tIdx: number) {
-    const np = { ...p, consumables: p.consumables.filter((_, i) => i !== itemIdx) };
-    const enems = cloneEnemies(enemies);
-    const lines: string[] = [`\u{1F392} ${item.name}:`];
-
-    if (item.heal) {
-      np.hp = Math.min(np.maxHp, np.hp + item.heal);
-      lines.push(`+${item.heal} HP`);
-    }
-    if (item.cleanse) {
-      np.statuses = {};
-      lines.push("Debuffs cleared!");
-    }
-    if (item.restoreLight) {
-      setLightLevel((prev) => Math.min(LIGHT_MAX, prev + item.restoreLight!));
-      lines.push(`+${item.restoreLight} light`);
-    }
-    if (item.block) {
-      np.block += item.block;
-      lines.push(`+${item.block} block`);
-    }
-    if (item.damage) {
-      const targets = item.aoe ? enems.filter((e) => e.hp > 0) : [enems[tIdx]].filter(Boolean);
-      targets.forEach((t) => {
-        if (t.hp <= 0) return;
-        const result = resolveHit(item.damage!, t, !!item.holy, false, false, lines, enems);
-        const idx = enems.findIndex((e) => e.uid === t.uid);
-        if (idx >= 0) enems[idx] = result;
-      });
-    }
-    if (item.applyStatus && !item.damage) {
-      const targets = item.aoe ? enems.filter((e) => e.hp > 0) : [enems[tIdx]].filter(Boolean);
-      targets.forEach((t) => {
-        if (t.hp <= 0) return;
-        const { status, stacks } = item.applyStatus!;
-        t.statuses[status] = (t.statuses[status] || 0) + stacks;
-        lines.push(`${STATUS_ICONS[status]} ${t.name} ${status}\u00D7${stacks}`);
-        const idx = enems.findIndex((e) => e.uid === t.uid);
-        if (idx >= 0) enems[idx] = t;
-      });
-    }
-
-    lines.forEach(addLog);
-    setSubAction("none");
-    setPendingItem(null);
-    endPlayerAction(np, enems);
-  }
-
-  /* ── USE ABILITY ── */
-  function startAbility(ability: Ability) {
-    if (animating) return;
-    if ((p.statuses?.silence || 0) > 0) {
+    // Silence blocks building abilities
+    if (ability.source.type === "building" && (p.statuses?.silence || 0) > 0) {
       addLog("\u{1F507} Silenced \u2014 can't use abilities!");
       return;
     }
-    if (!ability.needsTarget) {
-      doAbility(ability, -1);
-    } else {
+
+    if (ability.needsTarget) {
       setPendingAbility(ability);
-      setSubAction("pick_ability_target");
+      setSubAction("pick_target");
+    } else {
+      executePlayerAbility(ability, []);
     }
   }
 
-  function doAbility(ability: Ability, tIdx: number) {
-    const np = { ...p };
-    const enems = cloneEnemies(enemies);
-    const lines: string[] = [`\u2728 ${ability.name}:`];
+  function executePlayerAbility(ability: Ability, targets: number[]) {
+    const ctx = makeActionContext();
 
-    if (ability.heal) {
-      np.hp = Math.min(np.maxHp, np.hp + ability.heal);
-      lines.push(`+${ability.heal} HP`);
-    }
-    if (ability.block) {
-      np.block += ability.block;
-      lines.push(`+${ability.block} block`);
-    }
-    if (ability.selfBuff === "stealth") {
-      np.stealthActive = true;
-      lines.push("You vanish into the shadows.");
-    }
-    if (ability.selfBuff === "counter") {
-      np.counterActive = true;
-      lines.push("You brace for a counter-attack.");
-    }
-    if (ability.damage) {
-      const range = ability.damageRange || "melee";
-      if ((np.statuses?.blind || 0) > 0 && Math.random() < BLIND_MISS_CHANCE) {
-        lines.push(`\u{1F441}\uFE0F Blinded \u2014 miss!`);
+    // Special case: flee
+    if (ability.id === "flee") {
+      if (Math.random() < FLEE_CHANCE) {
+        addLog("\u{1F3C3} You flee into the darkness!");
+        setTimeout(() => dispatch(fleeToMap(p)), 300);
       } else {
-        let dmg = ability.damage;
-        if ((np.statuses?.weaken || 0) > 0) dmg = Math.floor(dmg * WEAKEN_DMG_MULT);
-        const targets = ability.aoe ? enems.filter((e) => e.hp > 0) : [enems[tIdx]].filter(Boolean);
-        targets.forEach((t) => {
-          if (t.hp <= 0) return;
-          if (!canReach(range, t, enems)) {
-            lines.push(`Can't reach ${t.name} with melee!`);
-            return;
-          }
-          const result = resolveHit(
-            dmg,
-            t,
-            !!ability.holy,
-            !!ability.finishing,
-            false,
-            lines,
-            enems,
-          );
-          const idx = enems.findIndex((e) => e.uid === t.uid);
-          if (idx >= 0) enems[idx] = result;
-        });
+        addLog("\u274C Flee failed! Enemies get a free turn.");
+        const enems = cloneEnemies(enemies);
+        doEnemyTurn({ ...p }, enems, true);
       }
-    }
-    if (ability.applyStatus && !ability.damage) {
-      const targets = ability.aoe ? enems.filter((e) => e.hp > 0) : [enems[tIdx]].filter(Boolean);
-      targets.forEach((t) => {
-        if (t.hp <= 0) return;
-        const { status, stacks } = ability.applyStatus!;
-        t.statuses[status] = (t.statuses[status] || 0) + stacks;
-        lines.push(`${STATUS_ICONS[status]} ${t.name} ${status}\u00D7${stacks}`);
-        const idx = enems.findIndex((e) => e.uid === t.uid);
-        if (idx >= 0) enems[idx] = t;
-      });
+      setSubAction("none");
+      setPendingAbility(null);
+      return;
     }
 
-    lines.forEach(addLog);
+    // Execute ability → get actions
+    const actions = ability.execute(ctx, targets);
+
+    // Resolve actions against current state
+    const result = resolveActions(actions, p, enemies, lightLevel, []);
+
+    // Apply results
+    result.log.forEach(addLog);
     setSubAction("none");
     setPendingAbility(null);
-    endPlayerAction(np, enems);
+
+    if (result.endTurn) {
+      // Tick cooldowns at end of player turn
+      const tickedCooldowns = { ...result.player.abilityCooldowns };
+      for (const key of Object.keys(tickedCooldowns)) {
+        tickedCooldowns[key] = Math.max(0, tickedCooldowns[key] - 1);
+      }
+      // Tick charging
+      let np = { ...result.player, abilityCooldowns: tickedCooldowns };
+      let enems = result.enemies;
+      if (np.chargingTurnsLeft !== undefined && np.chargingTurnsLeft > 0) {
+        np = { ...np, chargingTurnsLeft: np.chargingTurnsLeft - 1 };
+        // Auto-resolve when charge completes
+        if (np.chargingTurnsLeft === 0) {
+          const chargeCtx: ActionContext = {
+            player: np,
+            enemies: enems,
+            lightLevel: result.lightLevel,
+            weapon: np.mainWeapon,
+            offhandWeapon: np.offhandWeapon,
+          };
+          const chargeActions = resolveChargingBlow(chargeCtx);
+          const chargeResult = resolveActions(chargeActions, np, enems, result.lightLevel, []);
+          chargeResult.log.forEach(addLog);
+          np = chargeResult.player;
+          enems = chargeResult.enemies;
+        }
+      }
+      endPlayerAction(np, enems);
+    } else {
+      // skip_end_turn (e.g., Quick Strike) — update state but don't end turn
+      setP(result.player);
+      setEnemies(result.enemies);
+      setLightLevel(result.lightLevel);
+      autoTarget(result.enemies);
+    }
   }
 
-  /* ── FLEE ── */
-  function attemptFlee() {
-    if (animating) return;
-    if (Math.random() < FLEE_CHANCE) {
-      addLog("\u{1F3C3} You flee into the darkness!");
-      setTimeout(() => dispatch(fleeToMap(p)), 300);
+  /* ── SWITCH WEAPON ── */
+  function switchWeapon(w: import("../types").Weapon) {
+    const isOffhand = w.hand === "offhand";
+    let np: CombatPlayer;
+    if (isOffhand) {
+      // Toggle offhand
+      if (p.offhandWeapon?.id === w.id) {
+        np = { ...p, offhandWeapon: null };
+        addLog(`\u{1F504} Unequipped ${w.name}`);
+      } else {
+        np = { ...p, offhandWeapon: { ...w } };
+        addLog(`\u{1F504} Equipped ${w.name} (offhand)`);
+      }
     } else {
-      addLog("\u274C Flee failed! Enemies get a free turn.");
-      const enems = cloneEnemies(enemies);
-      doEnemyTurn({ ...p }, enems, true);
+      np = { ...p, mainWeapon: { ...w } };
+      // 2H weapon clears offhand
+      if (w.hand === "2") {
+        np = { ...np, offhandWeapon: null };
+      }
+      addLog(`\u{1F504} Switched to ${w.name}`);
     }
+    // Reset weapon ability cooldowns
+    np = { ...np, abilityCooldowns: {} };
+    setSubAction("none");
+    const enems = cloneEnemies(enemies);
+    endPlayerAction(np, enems);
   }
 
   /* ── ENEMY PHASE ── */
@@ -491,7 +350,22 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
     const aliveAtStart = enems.filter((e) => e.hp > 0);
     for (const enemy of aliveAtStart) {
       const actions = enemy.combatMechanics?.onTurnStart?.(enemy, ctx());
-      if (actions?.length) executeActions(actions, enemy, np, enems, light, lines);
+      if (actions?.length) {
+        // Use resolveActions for enemy turn-start effects
+        const result = resolveActions(actions, np, enems, light.value, []);
+        np = result.player;
+        // Update enemy array in-place from result
+        for (let i = 0; i < enems.length; i++) {
+          const updated = result.enemies.find((e) => e.uid === enems[i].uid);
+          if (updated) enems[i] = updated;
+        }
+        // Add any new spawned enemies
+        for (const e of result.enemies) {
+          if (!enems.find((ex) => ex.uid === e.uid)) enems.push(e);
+        }
+        light.value = result.lightLevel;
+        result.log.forEach((l) => lines.push(l));
+      }
     }
 
     for (const enemy of enems) {
@@ -505,8 +379,12 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
       const result = enemy.combatMechanics?.onAttack?.(enemy, ctx()) ?? null;
 
       if (result?.skip) {
-        if (result.extraActions?.length)
-          executeActions(result.extraActions, enemy, np, enems, light, lines);
+        if (result.extraActions?.length) {
+          const r = resolveActions(result.extraActions, np, enems, light.value, []);
+          np = r.player;
+          light.value = r.lightLevel;
+          r.log.forEach((l) => lines.push(l));
+        }
         continue;
       }
 
@@ -514,9 +392,17 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
       if (result?.damageMultiplier) atk = Math.floor(atk * result.damageMultiplier);
       if ((enemy.statuses?.weaken || 0) > 0) atk = Math.floor(atk * WEAKEN_DMG_MULT);
 
-      const bl = Math.min(np.block, atk);
+      // Apply blockReduction (Shield Block)
+      let effectiveAtk = atk;
+      if (np.blockReduction && np.blockReduction > 0) {
+        effectiveAtk = Math.floor(atk * (1 - np.blockReduction));
+        np.blockReduction = undefined;
+        lines.push(`\u{1F6E1}\uFE0F Block reduces damage!`);
+      }
+
+      const bl = Math.min(np.block, effectiveAtk);
       np.block = Math.max(0, np.block - bl);
-      const dt = atk - bl;
+      const dt = effectiveAtk - bl;
       np.hp -= dt;
       lines.push(`${enemy.ascii} ${enemy.name}: ${atk}\u2192${dt} dmg`);
 
@@ -532,8 +418,12 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
         lines.push(`\u2694\uFE0F Counter! ${reflect} reflected to ${enemy.name}`);
       }
 
-      if (result?.extraActions?.length)
-        executeActions(result.extraActions, enemy, np, enems, light, lines);
+      if (result?.extraActions?.length) {
+        const r = resolveActions(result.extraActions, np, enems, light.value, []);
+        np = r.player;
+        light.value = r.lightLevel;
+        r.log.forEach((l) => lines.push(l));
+      }
     }
 
     if (np.stealthActive) {
@@ -594,21 +484,13 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
     const enemy = enemies[idx];
     if (!enemy || enemy.hp <= 0) return;
 
-    if (subAction === "pick_attack_target") {
-      if (!canReach(weapon.range, enemy, enemies)) {
+    if (subAction === "pick_target" && pendingAbility) {
+      const reach = pendingAbility.reach || weapon.reach;
+      if (!canReach(reach, enemy, enemies)) {
         addLog(`Can't reach ${enemy.name} \u2014 melee can't hit back row!`);
         return;
       }
-      doAttack(idx);
-    } else if (subAction === "pick_ability_target" && pendingAbility) {
-      const range = pendingAbility.damageRange || "melee";
-      if (!canReach(range, enemy, enemies)) {
-        addLog(`Can't reach ${enemy.name} with this ability!`);
-        return;
-      }
-      doAbility(pendingAbility, idx);
-    } else if (subAction === "pick_item_target" && pendingItem) {
-      doUseItem(pendingItem.item, pendingItem.idx, idx);
+      executePlayerAbility(pendingAbility, [idx]);
     } else {
       setTargetIdx(idx);
     }
@@ -617,13 +499,28 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
   function cancelAction() {
     setSubAction("none");
     setPendingAbility(null);
-    setPendingItem(null);
   }
 
-  const isTargeting =
-    subAction === "pick_attack_target" ||
-    subAction === "pick_ability_target" ||
-    subAction === "pick_item_target";
+  const isTargeting = subAction === "pick_target";
+
+  /* ── Ability button color ── */
+  function abilityColor(a: Ability): string {
+    if (a.id === "basic_attack") return "#c41c1c";
+    if (a.id === "wait" || a.id === "flee") return "#3a2a10";
+    if (a.source.type === "weapon") return "#6a3a1a";
+    if (a.source.type === "building") return "#8e44ad";
+    if (a.source.type === "item") return "#2980b9";
+    return "#5a4a20";
+  }
+
+  function isAbilityDisabled(a: Ability): boolean {
+    if (animating) return true;
+    if ((p.abilityCooldowns[a.id] || 0) > 0) return true;
+    if (a.source.type === "building" && (p.statuses?.silence || 0) > 0) return true;
+    // While charging, disable all abilities (charge auto-resolves at end of turn)
+    if (isCharging) return true;
+    return false;
+  }
 
   return (
     <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-2 relative overflow-hidden p-3">
@@ -698,6 +595,11 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
               {"\u{1F6E1}"} {p.block}
             </div>
           )}
+          {p.blockReduction && p.blockReduction > 0 && (
+            <div className="text-xs text-crypt-blue text-center mt-0.5">
+              {"\u{1F6E1}\uFE0F"} Block {Math.round(p.blockReduction * 100)}%
+            </div>
+          )}
           <StatusBadges statuses={p.statuses} />
           {p.stealthActive && (
             <div className="text-xs text-crypt-purple text-center mt-0.5">
@@ -709,12 +611,25 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
               {"\u2694\uFE0F"} Counter
             </div>
           )}
+          {isCharging && (
+            <div className="text-xs text-crypt-gold text-center mt-0.5">
+              {"\u{1F4A5}"} Charging...
+            </div>
+          )}
           <div className="text-xs text-crypt-dim text-center mt-1 border-t border-crypt-border-dim pt-1">
             {weapon.icon} {weapon.name}
             <br />
             <span className="text-crypt-muted">
-              {weapon.damage} {weapon.range}
+              {weapon.damage} {weapon.damageType} {weapon.reach}
             </span>
+            {p.offhandWeapon && (
+              <>
+                <br />
+                <span className="text-crypt-muted">
+                  {p.offhandWeapon.icon} {p.offhandWeapon.name} (offhand)
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -735,12 +650,7 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
       {/* Targeting prompt */}
       {isTargeting && (
         <div className="relative z-1 flex gap-3 items-center">
-          <div className="text-sm text-crypt-gold">
-            {subAction === "pick_attack_target" &&
-              `Select target for ${weapon.name} (${weapon.range})`}
-            {subAction === "pick_ability_target" && `Select target for ${pendingAbility?.name}`}
-            {subAction === "pick_item_target" && `Select target for ${pendingItem?.item.name}`}
-          </div>
+          <div className="text-sm text-crypt-gold">Select target for {pendingAbility?.name}</div>
           <button
             style={btnStyle("#3a2f25")}
             className="text-sm! px-3! py-1!"
@@ -756,47 +666,33 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
         <div className="relative z-1 panel max-w-lg w-full">
           <div className="text-sm text-crypt-muted mb-2">Switch weapon (ends your turn):</div>
           <div className="flex gap-2 flex-wrap">
-            {p.weapons.map((w, i) => (
-              <button
-                key={w.id}
-                style={btnStyle(i === p.activeWeaponIdx ? "#3a3020" : "#6a3a1a")}
-                className="text-sm!"
-                disabled={i === p.activeWeaponIdx}
-                onClick={() => switchWeapon(i)}
-              >
-                {w.icon} {w.name} ({w.damage} {w.range})
-              </button>
-            ))}
+            {p.ownedWeapons
+              .filter((w) => w.hand !== "offhand")
+              .map((w) => (
+                <button
+                  key={w.id}
+                  style={btnStyle(w.id === p.mainWeapon.id ? "#3a3020" : "#6a3a1a")}
+                  className="text-sm!"
+                  disabled={w.id === p.mainWeapon.id}
+                  onClick={() => switchWeapon(w)}
+                >
+                  {w.icon} {w.name} ({w.damage} {w.damageType})
+                </button>
+              ))}
+            {p.ownedWeapons
+              .filter((w) => w.hand === "offhand")
+              .map((w) => (
+                <button
+                  key={w.id}
+                  style={btnStyle(p.offhandWeapon?.id === w.id ? "#3a3020" : "#5a4a20")}
+                  className="text-sm!"
+                  disabled={p.mainWeapon.hand === "2"}
+                  onClick={() => switchWeapon(w)}
+                >
+                  {w.icon} {w.name} {p.offhandWeapon?.id === w.id ? "(equipped)" : "(offhand)"}
+                </button>
+              ))}
           </div>
-          <button
-            style={btnStyle("#3a2f25")}
-            className="mt-2 text-sm! px-3! py-1!"
-            onClick={cancelAction}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {/* Item picker */}
-      {subAction === "pick_item" && (
-        <div className="relative z-1 panel max-w-lg w-full">
-          <div className="text-sm text-crypt-muted mb-2">Use item:</div>
-          <div className="flex gap-2 flex-wrap">
-            {p.consumables.map((c, i) => (
-              <button
-                key={i}
-                style={btnStyle("#6a3a1a")}
-                className="text-sm!"
-                onClick={() => startUseItem(c, i)}
-              >
-                {c.icon} {c.name}
-              </button>
-            ))}
-          </div>
-          {p.consumables.length === 0 && (
-            <div className="text-xs text-crypt-dim italic">No items.</div>
-          )}
           <button
             style={btnStyle("#3a2f25")}
             className="mt-2 text-sm! px-3! py-1!"
@@ -808,48 +704,69 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
       )}
 
       {/* Action buttons */}
-      {!isTargeting && subAction === "none" && (
-        <div className="flex gap-2 flex-wrap justify-center relative z-1 px-4">
-          <button style={btnStyle("#c41c1c", animating)} disabled={animating} onClick={startAttack}>
-            {weapon.icon} Attack ({weapon.damage})
-          </button>
+      {!isTargeting &&
+        subAction === "none" &&
+        (() => {
+          const combatAbilities = allAbilities.filter((a) => a.source.type !== "item");
+          const itemAbilities = allAbilities.filter((a) => a.source.type === "item");
+          return (
+            <div className="flex flex-col gap-2 items-center relative z-1 px-4">
+              <div className="flex gap-2 flex-wrap justify-center">
+                {combatAbilities.map((a) => {
+                  const cd = p.abilityCooldowns[a.id] || 0;
+                  const disabled = isAbilityDisabled(a);
+                  return (
+                    <button
+                      key={a.id}
+                      style={btnStyle(abilityColor(a), disabled)}
+                      disabled={disabled}
+                      onClick={() => activateAbility(a)}
+                      title={a.desc}
+                    >
+                      {a.icon} {a.name}
+                      {a.id === "basic_attack" && ` (${weapon.damage})`}
+                      {cd > 0 && ` (${cd})`}
+                    </button>
+                  );
+                })}
 
-          {p.weapons.length > 1 && (
-            <button
-              style={btnStyle("#5a4a20", animating)}
-              disabled={animating}
-              onClick={() => setSubAction("pick_weapon")}
-            >
-              {"\u{1F504}"} Switch
-            </button>
-          )}
+                {p.ownedWeapons.length > 1 && (
+                  <button
+                    style={btnStyle("#5a4a20", animating)}
+                    disabled={animating}
+                    onClick={() => setSubAction("pick_weapon")}
+                  >
+                    {"\u{1F504}"} Switch
+                  </button>
+                )}
+              </div>
 
-          {p.consumables.length > 0 && (
-            <button
-              style={btnStyle("#2980b9", animating)}
-              disabled={animating}
-              onClick={() => setSubAction("pick_item")}
-            >
-              {"\u{1F392}"} Item
-            </button>
-          )}
-
-          {playerAbilities.map((a) => (
-            <button
-              key={a.id}
-              style={btnStyle("#8e44ad", animating || (p.statuses?.silence || 0) > 0)}
-              disabled={animating || (p.statuses?.silence || 0) > 0}
-              onClick={() => startAbility(a)}
-            >
-              {a.icon} {a.name}
-            </button>
-          ))}
-
-          <button style={btnStyle("#3a2a10", animating)} disabled={animating} onClick={attemptFlee}>
-            {"\u{1F3C3}"} Flee
-          </button>
-        </div>
-      )}
+              {itemAbilities.length > 0 && (
+                <>
+                  <div className="text-xs text-crypt-dim tracking-wider uppercase">
+                    {"\u{1F392}"} Consumables
+                  </div>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {itemAbilities.map((a) => {
+                      const disabled = isAbilityDisabled(a);
+                      return (
+                        <button
+                          key={a.id}
+                          style={btnStyle(abilityColor(a), disabled)}
+                          disabled={disabled}
+                          onClick={() => activateAbility(a)}
+                          title={a.desc}
+                        >
+                          {a.icon} {a.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
     </div>
   );
 }

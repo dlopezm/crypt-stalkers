@@ -3,20 +3,21 @@ export type Screen = "title" | "town" | "map" | "combat" | "victory" | "gameover
 export type StatusKey = "bleed" | "weaken" | "blind" | "silence" | "poison" | "stun";
 export type Statuses = Partial<Record<StatusKey, number>>;
 
-/* ── Equipment & Abilities ── */
+/* ── Damage & Equipment ── */
+
+export type DamageType = "slash" | "pierce" | "bludgeoning";
+export type HandType = "1" | "2" | "offhand";
 
 export interface Weapon {
   id: string;
   name: string;
-  damage: number;
-  range: "melee" | "ranged";
+  damage: number; // 0 for Shield
+  damageType: DamageType;
+  hand: HandType;
+  reach: "melee" | "ranged"; // CSV "1" → melee, "1-2" → ranged
   icon: string;
   desc: string;
   cost: number;
-  holy?: boolean;
-  aoe?: boolean;
-  finishing?: boolean;
-  applyStatus?: { status: StatusKey; stacks: number; chance: number };
 }
 
 export interface Consumable {
@@ -36,23 +37,87 @@ export interface Consumable {
   applyStatus?: { status: StatusKey; stacks: number };
 }
 
+/* ── Unified Action System ── */
+
+export type Action =
+  // Damage
+  | {
+      type: "damage_enemy";
+      targetUid: string;
+      amount: number;
+      damageType: DamageType;
+      pierceArmor?: boolean;
+      holy?: boolean;
+    }
+  | { type: "damage_player"; amount: number }
+  // Status
+  | { type: "apply_status_enemy"; targetUid: string; status: StatusKey; stacks: number }
+  | { type: "apply_status_player"; status: StatusKey; stacks: number }
+  // Healing
+  | { type: "heal_player"; amount: number }
+  | { type: "heal_enemy"; targetUid: string; amount: number }
+  // Row manipulation
+  | { type: "push_row"; targetUid: string; to: "front" | "back" }
+  // Spawning
+  | {
+      type: "spawn";
+      enemyId: string;
+      row?: "front" | "back";
+      reassembled?: boolean;
+      summonCooldown?: number;
+    }
+  // Light
+  | { type: "drain_light"; amount: number }
+  // Player buffs
+  | { type: "set_block_reduction"; fraction: number }
+  | { type: "set_stealth"; active: boolean }
+  | { type: "set_counter"; active: boolean }
+  | { type: "add_block_player"; amount: number }
+  // Cooldowns
+  | { type: "set_cooldown"; abilityId: string; turns: number }
+  | { type: "tick_cooldowns" }
+  // Charging
+  | { type: "begin_charge"; abilityId: string; turnsLeft: number; targetUid?: string }
+  | { type: "resolve_charge" }
+  // Turn flow
+  | { type: "end_turn" }
+  | { type: "skip_end_turn" }
+  | { type: "flee" }
+  // Items
+  | { type: "consume_item"; itemIndex: number }
+  | { type: "restore_light"; amount: number }
+  | { type: "cleanse_player" }
+  // Logging
+  | { type: "log"; message: string }
+  // Enemy-specific
+  | { type: "skip_attack" };
+
+/* ── Abilities ── */
+
+export type AbilitySource =
+  | { type: "weapon"; weaponId: string }
+  | { type: "building"; buildingId: string; buildingLevel: number }
+  | { type: "universal" }
+  | { type: "item"; itemId: string };
+
+export interface ActionContext {
+  player: CombatPlayer;
+  enemies: Enemy[];
+  lightLevel: number;
+  weapon: Weapon;
+  offhandWeapon: Weapon | null;
+}
+
 export interface Ability {
   id: string;
   name: string;
   icon: string;
   desc: string;
-  building: string;
-  buildingLevel: number;
-  damage?: number;
-  damageRange?: "melee" | "ranged";
-  holy?: boolean;
-  aoe?: boolean;
-  finishing?: boolean;
-  block?: number;
-  heal?: number;
-  applyStatus?: { status: StatusKey; stacks: number };
-  selfBuff?: "stealth" | "counter";
-  needsTarget?: boolean;
+  source: AbilitySource;
+  cooldown: number;
+  needsTarget: boolean;
+  reach?: "melee" | "ranged";
+  execute: (ctx: ActionContext, targets: number[]) => Action[];
 }
 
 /* ── Town Buildings ── */
@@ -76,27 +141,12 @@ export interface BuildingState {
 
 /* ── Combat Mechanics ── */
 
-export type CombatAction =
-  | { type: "damage_player"; amount: number }
-  | { type: "apply_status_player"; status: StatusKey; stacks: number }
-  | { type: "heal_self"; amount: number }
-  | {
-      type: "spawn";
-      enemyId: string;
-      row?: "front" | "back";
-      reassembled?: boolean;
-      summonCooldown?: number;
-    }
-  | { type: "drain_light"; amount: number }
-  | { type: "log"; message: string }
-  | { type: "skip_attack" };
-
 export interface AttackResult {
   skip?: boolean;
   damageMultiplier?: number;
   lifestealFraction?: number;
   atkOverride?: number;
-  extraActions?: CombatAction[];
+  extraActions?: Action[];
 }
 
 export interface HitResponse {
@@ -111,14 +161,14 @@ export interface CombatContext {
 }
 
 export interface CombatMechanics {
-  onTurnStart?: (self: Enemy, ctx: CombatContext) => CombatAction[];
+  onTurnStart?: (self: Enemy, ctx: CombatContext) => Action[];
   onAttack?: (self: Enemy, ctx: CombatContext) => AttackResult | null;
   onReceiveHit?: (
     self: Enemy,
     ctx: CombatContext,
-    hit: { damage: number; holy: boolean; finishing: boolean },
+    hit: { damage: number; damageType: DamageType; holy: boolean },
   ) => HitResponse;
-  onDeath?: (self: Enemy, ctx: CombatContext, killingHit: { finishing: boolean }) => CombatAction[];
+  onDeath?: (self: Enemy, ctx: CombatContext, killingHit: { damageType: DamageType }) => Action[];
 }
 
 /* ── Out-of-Combat (Dungeon AI) Mechanics ── */
@@ -167,6 +217,8 @@ export interface EnemyType {
   defaultRow: "front" | "back";
   combatMechanics?: CombatMechanics;
   outOfCombatMechanics?: OutOfCombatMechanics;
+  resistances?: Partial<Record<DamageType, number>>;
+  vulnerabilities?: Partial<Record<DamageType, number>>;
   /* ── CSV fields (descriptive, not used by game logic) ── */
   movement?: string;
   seesInDark?: boolean;
@@ -261,10 +313,11 @@ export interface Player {
   maxHp: number;
   gold: number;
   statuses: Statuses;
-  weapons: Weapon[];
-  activeWeaponIdx: number;
+  mainWeapon: Weapon;
+  offhandWeapon: Weapon | null;
+  ownedWeapons: Weapon[];
   consumables: Consumable[];
-  abilities: string[];
+  abilities: string[]; // building ability IDs the player has unlocked
   buildings: Record<string, BuildingState>;
 }
 
@@ -272,6 +325,11 @@ export interface CombatPlayer extends Player {
   block: number;
   stealthActive: boolean;
   counterActive: boolean;
+  abilityCooldowns: Record<string, number>;
+  chargingAbility?: string;
+  chargingTurnsLeft?: number;
+  chargingTargetUid?: string;
+  blockReduction?: number;
 }
 
 /* ── Misc ── */

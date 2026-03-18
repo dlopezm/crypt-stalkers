@@ -25,11 +25,11 @@ export function TownScreen({
 
   function buyWeapon(w: Weapon) {
     if (player.gold < w.cost) return;
-    if (player.weapons.some((pw) => pw.id === w.id)) return;
+    if (player.ownedWeapons.some((pw) => pw.id === w.id)) return;
     onUpdatePlayer({
       ...player,
       gold: player.gold - w.cost,
-      weapons: [...player.weapons, { ...w }],
+      ownedWeapons: [...player.ownedWeapons, { ...w }],
     });
   }
 
@@ -47,7 +47,10 @@ export function TownScreen({
     if (bld(b.id)?.unlocked) return;
     const buildings = { ...player.buildings, [b.id]: { unlocked: true, level: 1 } };
     const newAbilities = [...player.abilities];
-    ABILITIES.filter((a) => a.building === b.id && a.buildingLevel <= 1).forEach((a) => {
+    ABILITIES.filter(
+      (a) =>
+        a.source.type === "building" && a.source.buildingId === b.id && a.source.buildingLevel <= 1,
+    ).forEach((a) => {
       if (!newAbilities.includes(a.id)) newAbilities.push(a.id);
     });
     onUpdatePlayer({
@@ -63,7 +66,10 @@ export function TownScreen({
     if (!state?.unlocked || state.level >= 2 || player.gold < b.upgradeCost) return;
     const buildings = { ...player.buildings, [b.id]: { unlocked: true, level: 2 } };
     const newAbilities = [...player.abilities];
-    ABILITIES.filter((a) => a.building === b.id && a.buildingLevel <= 2).forEach((a) => {
+    ABILITIES.filter(
+      (a) =>
+        a.source.type === "building" && a.source.buildingId === b.id && a.source.buildingLevel <= 2,
+    ).forEach((a) => {
       if (!newAbilities.includes(a.id)) newAbilities.push(a.id);
     });
     onUpdatePlayer({
@@ -109,7 +115,7 @@ export function TownScreen({
   }
 
   function renderSmithy() {
-    const owned = new Set(player.weapons.map((w) => w.id));
+    const owned = new Set(player.ownedWeapons.map((w) => w.id));
     return (
       <div className="panel max-w-xl w-full">
         <div className="text-lg font-bold text-crypt-text mb-1">{"\u2692\uFE0F"} Smithy</div>
@@ -126,7 +132,13 @@ export function TownScreen({
                 <div className="text-sm text-crypt-text">
                   {w.icon} {w.name}{" "}
                   <span className="text-crypt-dim">
-                    ({w.damage} {w.range})
+                    (
+                    {w.damage > 0
+                      ? `${w.damage} ${w.damageType}`
+                      : w.hand === "offhand"
+                        ? "offhand"
+                        : ""}
+                    {w.reach === "ranged" ? ", ranged" : ""})
                   </span>
                 </div>
                 <div className="text-xs text-crypt-muted">{w.desc}</div>
@@ -219,7 +231,9 @@ export function TownScreen({
 
   function renderAbilityBuilding(b: BuildingDef) {
     const state = bld(b.id);
-    const buildingAbilities = ABILITIES.filter((a) => a.building === b.id);
+    const buildingAbilities = ABILITIES.filter(
+      (a) => a.source.type === "building" && a.source.buildingId === b.id,
+    );
     return (
       <div className="panel max-w-xl w-full">
         <div className="text-lg font-bold text-crypt-text mb-1">
@@ -230,7 +244,8 @@ export function TownScreen({
         <div className="flex flex-col gap-2">
           {buildingAbilities.map((a) => {
             const unlocked = player.abilities.includes(a.id);
-            const available = (state?.level || 0) >= a.buildingLevel;
+            const reqLevel = a.source.type === "building" ? a.source.buildingLevel : 1;
+            const available = (state?.level || 0) >= reqLevel;
             return (
               <div
                 key={a.id}
@@ -242,9 +257,7 @@ export function TownScreen({
                   </div>
                   <div className="text-xs text-crypt-muted">{a.desc}</div>
                   {!available && (
-                    <div className="text-xs text-crypt-red">
-                      Requires building level {a.buildingLevel}
-                    </div>
+                    <div className="text-xs text-crypt-red">Requires building level {reqLevel}</div>
                   )}
                 </div>
                 {unlocked && <span className="text-xs text-crypt-green ml-3">Learned</span>}
@@ -324,7 +337,7 @@ export function TownScreen({
             {"\u{1FA99}"} {player.gold}
           </div>
           <div className="text-crypt-muted text-sm">
-            {"\u{1F5E1}\uFE0F"} {player.weapons.length} weapons
+            {"\u{1F5E1}\uFE0F"} {player.ownedWeapons.length} weapons
           </div>
           <div className="text-crypt-muted text-sm">
             {"\u{1F392}"} {player.consumables.length} items
@@ -430,12 +443,12 @@ export function TownScreen({
             <div>
               <div className="text-xs text-crypt-muted mb-1">Weapons:</div>
               <div className="flex gap-1 flex-wrap">
-                {player.weapons.map((w, i) => (
+                {player.ownedWeapons.map((w) => (
                   <span
-                    key={i}
-                    className={`text-xs rounded px-2 py-0.5 ${i === player.activeWeaponIdx ? "bg-[#3a2a14] border border-crypt-gold text-crypt-gold" : "bg-[#1a1610] border border-crypt-border-dim text-crypt-muted"}`}
+                    key={w.id}
+                    className={`text-xs rounded px-2 py-0.5 ${w.id === player.mainWeapon.id || w.id === player.offhandWeapon?.id ? "bg-[#3a2a14] border border-crypt-gold text-crypt-gold" : "bg-[#1a1610] border border-crypt-border-dim text-crypt-muted"}`}
                   >
-                    {w.icon} {w.name} ({w.damage} {w.range})
+                    {w.icon} {w.name} ({w.damage > 0 ? `${w.damage} ${w.damageType}` : "offhand"})
                   </span>
                 ))}
               </div>
