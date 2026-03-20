@@ -35,6 +35,123 @@ body {
   z-index: 0;
 }
 
+/* ── Combat animations ── */
+
+@keyframes combat-recoil {
+  0% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(8px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+@keyframes combat-lunge {
+  0% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(20px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes combat-phase {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  20% {
+    opacity: 0.3;
+    transform: translateX(-5px);
+  }
+  40% {
+    opacity: 0.8;
+    transform: translateX(5px);
+  }
+  60% {
+    opacity: 0.3;
+    transform: translateX(-3px);
+  }
+  80% {
+    opacity: 0.8;
+    transform: translateX(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes combat-flash-red {
+  0% {
+    box-shadow: inset 0 0 0 rgba(196, 28, 28, 0);
+  }
+  30% {
+    box-shadow: inset 0 0 30px rgba(196, 28, 28, 0.5);
+  }
+  100% {
+    box-shadow: inset 0 0 0 rgba(196, 28, 28, 0);
+  }
+}
+@keyframes combat-aura-purple {
+  0% {
+    box-shadow: 0 0 0 rgba(142, 68, 173, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(142, 68, 173, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(142, 68, 173, 0);
+  }
+}
+@keyframes combat-aura-dark {
+  0% {
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(20, 0, 40, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+@keyframes combat-lifesteal {
+  0% {
+    box-shadow: 0 0 0 rgba(196, 28, 28, 0);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(196, 28, 28, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(196, 28, 28, 0);
+  }
+}
+
+.combat-anim-recoil {
+  animation: combat-recoil 0.2s ease-out;
+}
+.combat-anim-lunge {
+  animation: combat-lunge 0.25s ease-out;
+}
+.combat-anim-phase {
+  animation: combat-phase 0.35s ease-in-out;
+}
+.combat-anim-flash-red {
+  animation: combat-flash-red 0.3s ease-out;
+}
+.combat-anim-aura-purple {
+  animation: combat-aura-purple 0.5s ease-in-out;
+}
+.combat-anim-aura-dark {
+  animation: combat-aura-dark 0.5s ease-in-out;
+}
+.combat-anim-lifesteal {
+  animation: combat-lifesteal 0.4s ease-in-out;
+}
+
 /* Panel component */
 .panel {
   background: linear-gradient(180deg, #1c1812, #141008);

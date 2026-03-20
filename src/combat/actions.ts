@@ -2,7 +2,7 @@ import { makeEnemy } from "../utils/helpers";
 import { ENEMY_TYPES } from "../data/enemies";
 import { STATUS_ICONS } from "../data/status";
 import { LIGHT_MAX } from "../data/constants";
-import type { Action, Enemy, CombatPlayer, DamageType } from "../types";
+import type { Action, Enemy, CombatPlayer, DamageType, AnimationEvent } from "../types";
 
 export interface ResolveResult {
   player: CombatPlayer;
@@ -11,6 +11,7 @@ export interface ResolveResult {
   log: string[];
   endTurn: boolean;
   flee: boolean;
+  anim: AnimationEvent[];
 }
 
 /**
@@ -28,6 +29,7 @@ export function resolveActions(
   const p = { ...player, statuses: { ...(player.statuses || {}) } };
   const enems = enemies.map((e) => ({ ...e, statuses: { ...(e.statuses || {}) } }));
   const lines = [...log];
+  const anim: AnimationEvent[] = [];
   let light = lightLevel;
   let endTurn = false;
   let flee = false;
@@ -48,6 +50,7 @@ export function resolveActions(
 
   function processDeath(target: Enemy) {
     if (target.hp > 0) return;
+    anim.push({ type: "death", uid: target.uid });
     const mechanics = target.combatMechanics;
     if (!mechanics?.onDeath) return;
     const ctx = { enemies: enems, player: p, lightLevel: { value: light } };
@@ -79,6 +82,7 @@ export function resolveActions(
             });
             if (response.evade) {
               lines.push(`\u{1F47B} ${t.name} phases through the attack!`);
+              anim.push({ type: "phase", targetUid: t.uid });
               break;
             }
             if (response.damageMultiplier !== undefined) {
@@ -93,9 +97,12 @@ export function resolveActions(
             const dealt = dmg - bl;
             t.hp -= dealt;
             lines.push(`\u2694 ${dealt} dmg\u2192${t.name}${bl > 0 ? ` (${bl} blocked)` : ""}`);
+            anim.push({ type: "damage_enemy", targetUid: t.uid, amount: dealt });
+            if (bl > 0) anim.push({ type: "block", targetUid: t.uid, amount: bl });
           } else {
             t.hp -= dmg;
             lines.push(`\u2694 ${dmg} dmg\u2192${t.name} (armor pierced)`);
+            anim.push({ type: "damage_enemy", targetUid: t.uid, amount: dmg });
           }
 
           processDeath(t);
@@ -111,7 +118,11 @@ export function resolveActions(
           }
           const bl = Math.min(p.block, dmg);
           p.block = Math.max(0, p.block - bl);
-          p.hp -= dmg - bl;
+          const dealt = dmg - bl;
+          p.hp -= dealt;
+          anim.push({ type: "damage_player", amount: dealt });
+          if (bl > 0) anim.push({ type: "block", targetUid: "player", amount: bl });
+          if (dealt >= 8) anim.push({ type: "screen_shake" });
           break;
         }
 
@@ -122,16 +133,19 @@ export function resolveActions(
           lines.push(
             `${STATUS_ICONS[action.status]} ${t.name} ${action.status}\u00D7${action.stacks}`,
           );
+          anim.push({ type: "status_apply", targetUid: t.uid, status: action.status });
           break;
         }
 
         case "apply_status_player": {
           p.statuses[action.status] = (p.statuses[action.status] || 0) + action.stacks;
+          anim.push({ type: "status_apply", targetUid: "player", status: action.status });
           break;
         }
 
         case "heal_player": {
           p.hp = Math.min(p.maxHp, p.hp + action.amount);
+          anim.push({ type: "heal_player", amount: action.amount });
           break;
         }
 
@@ -139,6 +153,7 @@ export function resolveActions(
           const t = findEnemy(action.targetUid);
           if (!t || t.hp <= 0) break;
           t.hp = Math.min(t.maxHp, t.hp + action.amount);
+          anim.push({ type: "heal_enemy", targetUid: t.uid, amount: action.amount });
           break;
         }
 
@@ -146,6 +161,7 @@ export function resolveActions(
           const t = findEnemy(action.targetUid);
           if (!t || t.hp <= 0) break;
           t.row = action.to;
+          anim.push({ type: "row_change", uid: t.uid, to: action.to });
           break;
         }
 
@@ -155,12 +171,19 @@ export function resolveActions(
           if (action.reassembled) e.reassembled = true;
           if (action.summonCooldown !== undefined) e.summonCooldown = action.summonCooldown;
           enems.push(e);
+          anim.push({
+            type: "spawn",
+            uid: e.uid,
+            enemyId: action.enemyId,
+            flipReveal: !action.reassembled,
+          });
           break;
         }
 
         case "drain_light": {
           light = Math.max(0, light - action.amount);
           lines.push(light === 0 ? "\u{1F311} Total darkness!" : "\u{1F311} Light fades.");
+          anim.push({ type: "drain_light", amount: action.amount });
           break;
         }
 
@@ -256,5 +279,5 @@ export function resolveActions(
 
   processActions(actions);
 
-  return { player: p, enemies: enems, lightLevel: light, log: lines, endTurn, flee };
+  return { player: p, enemies: enems, lightLevel: light, log: lines, endTurn, flee, anim };
 }

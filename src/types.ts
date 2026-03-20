@@ -359,3 +359,25 @@ export interface AILogEntry {
   roomId: string;
   toRoomId?: string;
 }
+
+/* ── Animation Events ── */
+
+export type AnimationEvent =
+  | { type: "enemy_attack"; attackerUid: string; damage: number }
+  | { type: "damage_enemy"; targetUid: string; amount: number }
+  | { type: "damage_player"; amount: number }
+  | { type: "heal_enemy"; targetUid: string; amount: number }
+  | { type: "heal_player"; amount: number }
+  | { type: "evade"; targetUid: string }
+  | { type: "block"; targetUid: string; amount: number }
+  | { type: "death"; uid: string }
+  | { type: "spawn"; uid: string; enemyId: string; flipReveal: boolean }
+  | { type: "status_apply"; targetUid: string | "player"; status: StatusKey }
+  | { type: "row_change"; uid: string; to: "front" | "back" }
+  | { type: "lifesteal"; attackerUid: string; amount: number }
+  | { type: "drain_light"; amount: number }
+  | { type: "weaken_aura"; attackerUid: string }
+  | { type: "ambush_leap"; attackerUid: string; damage: number }
+  | { type: "phase"; targetUid: string }
+  | { type: "screen_shake" }
+  | { type: "turn_label"; label: string };

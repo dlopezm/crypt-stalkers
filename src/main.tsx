@@ -5,6 +5,9 @@ import "./index.css";
 import App from "./App";
 import { store } from "./store";
 import { saveGame } from "./utils/save";
+import { preloadTarotImages } from "./data/tarot";
+
+preloadTarotImages();
 
 // Persist to localStorage after every dispatch.
 // Guards prevent saving incomplete state during multi-dispatch operations.

@@ -1,64 +1,68 @@
-import { useState, useEffect, useRef, memo } from "react";
+import { useState, useEffect, useRef, useCallback, memo, useSyncExternalStore } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { btnStyle } from "../styles";
-import { ENEMY_TYPES } from "../data/enemies";
-import { getPlayerCombatAbilities, resolveChargingBlow } from "../data/abilities";
-import {
-  hydrateEnemy,
-  makeEnemyData,
-  toEnemyData,
-  tickStatuses,
-  cloneEnemies,
-} from "../utils/helpers";
-import { StatusBadges, HpBar } from "./shared";
-import {
-  WEAKEN_DMG_MULT,
-  COUNTER_REFLECT_FRACTION,
-  FLEE_CHANCE,
-  LIGHT_MAX,
-  DARKNESS_DAMAGE,
-  COMBAT_LOG_MAX,
-} from "../data/constants";
-import { resolveActions } from "../combat/actions";
-import type {
-  DungeonNode,
-  Enemy,
-  CombatPlayer,
-  CombatContext,
-  Ability,
-  ActionContext,
-} from "../types";
+import { WEAKEN_DMG_MULT, LIGHT_MAX } from "../data/constants";
+import { CombatEngine, type CombatSnapshot, type CombatCallbacks } from "../combat/CombatEngine";
+import type { DungeonNode, Enemy, Ability, Weapon } from "../types";
 import { useAppDispatch, useAppSelector } from "../store";
 import { updateCombatState } from "../store/combatSlice";
 import { combatVictory, combatDefeat, fleeToMap } from "../store/thunks";
+import { TarotCard } from "./combat/TarotCard";
+import { ScreenShake } from "./combat/ScreenShake";
+import { AnimationLayer } from "./combat/AnimationLayer";
+import { StatusBadges, HpBar } from "./shared";
 
 type SubAction = "none" | "pick_weapon" | "pick_target";
+
+/* ── Enemy Panel ── */
 
 const EnemyPanel = memo(function EnemyPanel({
   enemy,
   targeted,
   onClick,
+  panelRef,
+  animState,
 }: {
   enemy: Enemy;
   targeted: boolean;
   onClick: () => void;
+  panelRef?: (el: HTMLDivElement | null) => void;
+  animState?: string;
 }) {
   const stunned = (enemy.statuses?.stun || 0) > 0;
   const crouching = enemy.mechanic === "ambush" && (enemy.ambushTurns ?? 0) > 0;
+
+  let animClass = "";
+  if (animState === "attacked") animClass = "combat-anim-recoil";
+  if (animState === "attacking") animClass = "combat-anim-lunge";
+  if (animState === "phase") animClass = "combat-anim-phase";
+  if (animState === "weaken_aura") animClass = "combat-anim-aura-purple";
+  if (animState === "drain_light") animClass = "combat-anim-aura-dark";
+  if (animState === "lifesteal") animClass = "combat-anim-lifesteal";
+
   return (
-    <div
+    <motion.div
+      ref={(el: HTMLDivElement | null) => {
+        panelRef?.(el);
+      }}
+      layout
       onClick={onClick}
       className={`
-        panel cursor-pointer transition-all duration-200 select-none
+        panel cursor-pointer transition-all duration-200 select-none relative
         ${targeted ? "scale-[1.03] shadow-[0_0_20px_rgba(196,28,28,0.4)]" : ""}
-        ${enemy.hp <= 0 ? "opacity-20" : ""}
+        ${animClass}
       `}
       style={{
         minWidth: "150px",
         maxWidth: "190px",
         border: `1px solid ${targeted ? "#c41c1c" : "#3a3020"}`,
       }}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.7, rotate: -15, filter: "grayscale(1)" }}
+      transition={{ duration: 0.35, layout: { duration: 0.3, ease: "easeInOut" } }}
     >
-      <div className="text-center text-2xl mb-0.5">{enemy.ascii}</div>
+      <TarotCard enemyId={enemy.id} ascii={enemy.ascii} isBoss={enemy.isBoss} />
       <div
         className={`text-xs font-bold text-center mb-0.5 leading-tight ${enemy.isBoss ? "text-crypt-red" : "text-crypt-text"}`}
       >
@@ -96,11 +100,13 @@ const EnemyPanel = memo(function EnemyPanel({
               ? "No attack"
               : `ATK ${(enemy.statuses?.weaken || 0) > 0 ? Math.floor(enemy.atk * WEAKEN_DMG_MULT) : enemy.atk}`}
       </div>
-    </div>
+    </motion.div>
   );
 });
 
-export function CombatScreen({ room }: { room: DungeonNode }) {
+/* ── Combat Screen (inner, receives ScreenShake context) ── */
+
+function CombatScreenInner({ room }: { room: DungeonNode }) {
   const dispatch = useAppDispatch();
 
   // Read initial combat state from store (set by App.tsx before mount)
@@ -111,372 +117,136 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
   const surpriseRound = useAppSelector((s) => s.combat.surpriseRound);
   const player = useAppSelector((s) => s.player)!;
 
-  // ── Local game state (synced to store after each enemy turn) ──
-  const [enemies, setEnemies] = useState<Enemy[]>(() => {
-    if (storedEnemies && storedEnemies.length > 0) {
-      return storedEnemies.map(hydrateEnemy);
-    }
-    // Fresh combat — initialize from room, apply any traps
-    let enems = room.enemies.map((e) => hydrateEnemy(makeEnemyData(e.typeId, e.uid, e.hpOverride)));
-    if (room.trap === "snare")
-      enems = enems.map((e) => ({ ...e, statuses: { ...e.statuses, stun: 1 } }));
-    if (room.trap === "flash") enems = enems.map((e) => ({ ...e, hp: Math.max(1, e.hp - 8) }));
-    return enems;
-  });
+  // ── Engine setup (once per mount) ──
+  // useState initializer runs once — no ref access during render.
+  const [{ engine, snapshotRef, listenersRef }] = useState(() => {
+    const listeners = new Set<() => void>();
+    const snapRef = { current: null as CombatSnapshot | null };
 
-  const [p, setP] = useState<CombatPlayer>(
-    () =>
-      storedCombatPlayer ?? {
-        ...player,
-        block: 0,
-        stealthActive: false,
-        counterActive: false,
-        abilityCooldowns: {},
+    // We need a stable reference to the engine for callbacks.
+    // engineBox lets the callbacks close over a mutable container
+    // that gets assigned immediately after construction.
+    const engineBox = { current: null as CombatEngine | null };
+
+    const callbacks: CombatCallbacks = {
+      onStateChange: () => {
+        snapRef.current = engineBox.current!.snapshot;
+        const ser = engineBox.current!.serializable;
+        dispatch(updateCombatState(ser));
+        for (const fn of listeners) fn();
       },
-  );
+      onVictory: (combatPlayer) => {
+        dispatch(combatVictory(combatPlayer));
+      },
+      onDefeat: (gold) => {
+        dispatch(combatDefeat(gold));
+      },
+      onFlee: (combatPlayer) => {
+        dispatch(fleeToMap(combatPlayer));
+      },
+    };
 
-  const [log, setLog] = useState<string[]>(() => {
-    if (storedCombatLog.length > 0) return storedCombatLog;
-    if (surpriseRound) return ["\u26A0\uFE0F Ambush! Enemies burst into the room!"];
-    return [`\u2694 Combat begins: ${room.label}`];
+    const isRestored = storedCombatPlayer != null;
+    const eng = new CombatEngine(room, player, callbacks, {
+      restored: isRestored
+        ? {
+            enemies: storedEnemies!,
+            combatPlayer: storedCombatPlayer!,
+            lightLevel: storedLightLevel,
+            combatLog: storedCombatLog,
+          }
+        : undefined,
+      surpriseRound,
+    });
+    engineBox.current = eng;
+    snapRef.current = eng.snapshot;
+
+    return { engine: eng, snapshotRef: snapRef, listenersRef: listeners };
   });
 
-  const [lightLevel, setLightLevel] = useState(storedLightLevel);
+  // Subscribe to engine state changes via useSyncExternalStore
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      listenersRef.add(onStoreChange);
+      return () => {
+        listenersRef.delete(onStoreChange);
+      };
+    },
+    [listenersRef],
+  );
+  const snap = useSyncExternalStore(subscribe, () => snapshotRef.current!);
 
-  // ── Ephemeral UI state (stays local) ──
+  // After first render + subscription, kick off surprise round if pending
+  useEffect(() => {
+    engine.start();
+    return () => {
+      engine.destroy();
+    };
+  }, [engine]);
+
+  // ── Ephemeral UI state ──
   const [subAction, setSubAction] = useState<SubAction>("none");
   const [pendingAbility, setPendingAbility] = useState<Ability | null>(null);
   const [targetIdx, setTargetIdx] = useState(0);
-  const [animating, setAnimating] = useState(false);
 
-  const surpriseRoundDone = useRef(!!storedCombatPlayer);
+  // ── DOM refs for animation positioning ──
+  const panelRefsMap = useRef(new Map<string, HTMLDivElement>());
+  const playerPanelRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const addLog = (msg: string) => setLog((prev) => [msg, ...prev].slice(0, COMBAT_LOG_MAX));
+  // Derived values from snapshot
+  const {
+    enemies,
+    player: p,
+    lightLevel,
+    log,
+    animEvents,
+    phase,
+    enemyAnimStates,
+    playerFlash,
+  } = snap;
   const liveEnems = enemies.filter((e) => e.hp > 0);
   const frontRow = liveEnems.filter((e) => e.row === "front");
   const backRow = liveEnems.filter((e) => e.row === "back");
   const weapon = p.mainWeapon;
-  const allAbilities = getPlayerCombatAbilities(p);
+  const allAbilities = snap.allAbilities;
   const isCharging = !!p.chargingAbility;
+  const animating = phase !== "player_turn";
 
-  function promoteBackRow(enems: Enemy[]): Enemy[] {
-    const alive = enems.filter((e) => e.hp > 0);
-    if (alive.length > 0 && alive.every((e) => e.row === "back")) {
-      return enems.map((e) => (e.hp > 0 ? { ...e, row: "front" as const } : e));
-    }
-    return enems;
+  // Auto-correct target if current target is dead or out of range
+  const correctedTargetIdx = (() => {
+    if (targetIdx < enemies.length && enemies[targetIdx]?.hp > 0) return targetIdx;
+    const first = enemies.findIndex((e) => e.hp > 0);
+    return first >= 0 ? first : 0;
+  })();
+  if (correctedTargetIdx !== targetIdx) {
+    setTargetIdx(correctedTargetIdx);
   }
 
-  function canReach(reach: "melee" | "ranged", target: Enemy, enems: Enemy[]): boolean {
-    if (reach === "ranged") return true;
-    const aliveFront = enems.filter((e) => e.hp > 0 && e.row === "front");
-    return target.row === "front" || aliveFront.length === 0;
-  }
-
-  function makeActionContext(): ActionContext {
-    return {
-      player: p,
-      enemies,
-      lightLevel,
-      weapon: p.mainWeapon,
-      offhandWeapon: p.offhandWeapon,
-    };
-  }
-
-  function checkVictory(enems: Enemy[], np: CombatPlayer) {
-    const alive = enems.filter((e) => e.hp > 0);
-    if (!alive.length) {
-      const loot = room.enemies.reduce(
-        (s, e) => s + (ENEMY_TYPES.find((t) => t.id === e.typeId)?.loot || 0),
-        0,
-      );
-      addLog(`\u{1F3C6} Victory! +${loot} gold`);
-      setP(np);
-      setEnemies([]);
-      setTimeout(() => dispatch(combatVictory({ ...np, gold: np.gold + loot, block: 0 })), 400);
-      return true;
-    }
-    return false;
-  }
-
-  function autoTarget(enems: Enemy[]) {
-    if (targetIdx >= enems.length || enems[targetIdx]?.hp <= 0) {
-      const first = enems.findIndex((e) => e.hp > 0);
-      setTargetIdx(first >= 0 ? first : 0);
-    }
-  }
-
-  /* ── Surprise round: enemies get a free turn before the player acts ── */
+  // Handle victory with a short delay for the animation to finish
   useEffect(() => {
-    if (surpriseRound && !surpriseRoundDone.current) {
-      surpriseRoundDone.current = true;
-      const enems = cloneEnemies(enemies);
-      doEnemyTurn({ ...p }, enems, false);
+    if (phase === "victory") {
+      const timer = setTimeout(() => engine.confirmVictory(), 400);
+      return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [phase, engine]);
 
-  /* ── After any player action, run enemy turn ── */
-  function endPlayerAction(np: CombatPlayer, enems: Enemy[]) {
-    if (!checkVictory(enems, np)) {
-      doEnemyTurn(np, enems, false);
-    }
-  }
-
-  /* ── USE ABILITY (unified: attack, weapon abilities, building abilities, wait, flee) ── */
+  /* ── Ability activation ── */
   function activateAbility(ability: Ability) {
     if (animating) return;
 
-    // Check cooldown
     const cd = p.abilityCooldowns[ability.id] || 0;
     if (cd > 0) return;
 
-    // Silence blocks building abilities
     if (ability.source.type === "building" && (p.statuses?.silence || 0) > 0) {
-      addLog("\u{1F507} Silenced \u2014 can't use abilities!");
       return;
     }
 
-    if (ability.needsTarget) {
+    const needsTarget = engine.activateAbility(ability);
+    if (needsTarget) {
       setPendingAbility(ability);
       setSubAction("pick_target");
-    } else {
-      executePlayerAbility(ability, []);
     }
-  }
-
-  function executePlayerAbility(ability: Ability, targets: number[]) {
-    const ctx = makeActionContext();
-
-    // Special case: flee
-    if (ability.id === "flee") {
-      if (Math.random() < FLEE_CHANCE) {
-        addLog("\u{1F3C3} You flee into the darkness!");
-        setTimeout(() => dispatch(fleeToMap(p)), 300);
-      } else {
-        addLog("\u274C Flee failed! Enemies get a free turn.");
-        const enems = cloneEnemies(enemies);
-        doEnemyTurn({ ...p }, enems, true);
-      }
-      setSubAction("none");
-      setPendingAbility(null);
-      return;
-    }
-
-    // Execute ability → get actions
-    const actions = ability.execute(ctx, targets);
-
-    // Resolve actions against current state
-    const result = resolveActions(actions, p, enemies, lightLevel, []);
-
-    // Apply results
-    result.log.forEach(addLog);
-    setSubAction("none");
-    setPendingAbility(null);
-
-    if (result.endTurn) {
-      // Tick cooldowns at end of player turn
-      const tickedCooldowns = { ...result.player.abilityCooldowns };
-      for (const key of Object.keys(tickedCooldowns)) {
-        tickedCooldowns[key] = Math.max(0, tickedCooldowns[key] - 1);
-      }
-      // Tick charging
-      let np = { ...result.player, abilityCooldowns: tickedCooldowns };
-      let enems = result.enemies;
-      if (np.chargingTurnsLeft !== undefined && np.chargingTurnsLeft > 0) {
-        np = { ...np, chargingTurnsLeft: np.chargingTurnsLeft - 1 };
-        // Auto-resolve when charge completes
-        if (np.chargingTurnsLeft === 0) {
-          const chargeCtx: ActionContext = {
-            player: np,
-            enemies: enems,
-            lightLevel: result.lightLevel,
-            weapon: np.mainWeapon,
-            offhandWeapon: np.offhandWeapon,
-          };
-          const chargeActions = resolveChargingBlow(chargeCtx);
-          const chargeResult = resolveActions(chargeActions, np, enems, result.lightLevel, []);
-          chargeResult.log.forEach(addLog);
-          np = chargeResult.player;
-          enems = chargeResult.enemies;
-        }
-      }
-      endPlayerAction(np, enems);
-    } else {
-      // skip_end_turn (e.g., Quick Strike) — update state but don't end turn
-      setP(result.player);
-      setEnemies(result.enemies);
-      setLightLevel(result.lightLevel);
-      autoTarget(result.enemies);
-    }
-  }
-
-  /* ── SWITCH WEAPON ── */
-  function switchWeapon(w: import("../types").Weapon) {
-    const isOffhand = w.hand === "offhand";
-    let np: CombatPlayer;
-    if (isOffhand) {
-      // Toggle offhand
-      if (p.offhandWeapon?.id === w.id) {
-        np = { ...p, offhandWeapon: null };
-        addLog(`\u{1F504} Unequipped ${w.name}`);
-      } else {
-        np = { ...p, offhandWeapon: { ...w } };
-        addLog(`\u{1F504} Equipped ${w.name} (offhand)`);
-      }
-    } else {
-      np = { ...p, mainWeapon: { ...w } };
-      // 2H weapon clears offhand
-      if (w.hand === "2") {
-        np = { ...np, offhandWeapon: null };
-      }
-      addLog(`\u{1F504} Switched to ${w.name}`);
-    }
-    // Reset weapon ability cooldowns
-    np = { ...np, abilityCooldowns: {} };
-    setSubAction("none");
-    const enems = cloneEnemies(enemies);
-    endPlayerAction(np, enems);
-  }
-
-  /* ── ENEMY PHASE ── */
-  function doEnemyTurn(np: CombatPlayer, enems: Enemy[], isFleeFailure: boolean) {
-    setAnimating(true);
-    np = { ...np, statuses: { ...np.statuses } };
-    const lines: string[] = ["\u2014 Enemy Turn \u2014"];
-    const light = { value: lightLevel };
-    const ctx = (): CombatContext => ({ enemies: enems, player: np, lightLevel: light });
-
-    const aliveAtStart = enems.filter((e) => e.hp > 0);
-    for (const enemy of aliveAtStart) {
-      const actions = enemy.combatMechanics?.onTurnStart?.(enemy, ctx());
-      if (actions?.length) {
-        // Use resolveActions for enemy turn-start effects
-        const result = resolveActions(actions, np, enems, light.value, []);
-        np = result.player;
-        // Update enemy array in-place from result
-        for (let i = 0; i < enems.length; i++) {
-          const updated = result.enemies.find((e) => e.uid === enems[i].uid);
-          if (updated) enems[i] = updated;
-        }
-        // Add any new spawned enemies
-        for (const e of result.enemies) {
-          if (!enems.find((ex) => ex.uid === e.uid)) enems.push(e);
-        }
-        light.value = result.lightLevel;
-        result.log.forEach((l) => lines.push(l));
-      }
-    }
-
-    for (const enemy of enems) {
-      if (enemy.hp <= 0) continue;
-      if ((enemy.statuses?.stun || 0) > 0) {
-        lines.push(`\u26A1 ${enemy.name} stunned.`);
-        continue;
-      }
-      if (np.stealthActive) continue;
-
-      const result = enemy.combatMechanics?.onAttack?.(enemy, ctx()) ?? null;
-
-      if (result?.skip) {
-        if (result.extraActions?.length) {
-          const r = resolveActions(result.extraActions, np, enems, light.value, []);
-          np = r.player;
-          light.value = r.lightLevel;
-          r.log.forEach((l) => lines.push(l));
-        }
-        continue;
-      }
-
-      let atk = result?.atkOverride ?? enemy.atk;
-      if (result?.damageMultiplier) atk = Math.floor(atk * result.damageMultiplier);
-      if ((enemy.statuses?.weaken || 0) > 0) atk = Math.floor(atk * WEAKEN_DMG_MULT);
-
-      // Apply blockReduction (Shield Block)
-      let effectiveAtk = atk;
-      if (np.blockReduction && np.blockReduction > 0) {
-        effectiveAtk = Math.floor(atk * (1 - np.blockReduction));
-        np.blockReduction = undefined;
-        lines.push(`\u{1F6E1}\uFE0F Block reduces damage!`);
-      }
-
-      const bl = Math.min(np.block, effectiveAtk);
-      np.block = Math.max(0, np.block - bl);
-      const dt = effectiveAtk - bl;
-      np.hp -= dt;
-      lines.push(`${enemy.ascii} ${enemy.name}: ${atk}\u2192${dt} dmg`);
-
-      if (result?.lifestealFraction && dt > 0) {
-        const st = Math.floor(dt * result.lifestealFraction);
-        enemy.hp = Math.min(enemy.maxHp, enemy.hp + st);
-        lines.push(`\u{1F9DB} ${enemy.name} heals ${st}`);
-      }
-
-      if (np.counterActive && dt > 0) {
-        const reflect = Math.floor(dt * COUNTER_REFLECT_FRACTION);
-        enemy.hp -= reflect;
-        lines.push(`\u2694\uFE0F Counter! ${reflect} reflected to ${enemy.name}`);
-      }
-
-      if (result?.extraActions?.length) {
-        const r = resolveActions(result.extraActions, np, enems, light.value, []);
-        np = r.player;
-        light.value = r.lightLevel;
-        r.log.forEach((l) => lines.push(l));
-      }
-    }
-
-    if (np.stealthActive) {
-      lines.push("\u{1F464} Enemies can't find you in the shadows!");
-    }
-
-    if (light.value <= 0) {
-      np.hp -= DARKNESS_DAMAGE;
-      lines.push(`\u{1F311} Darkness saps your life! -${DARKNESS_DAMAGE} HP`);
-    }
-
-    const ptick = tickStatuses({ ...np, name: "You" });
-    np = { ...np, ...ptick.entity };
-    ptick.log.forEach((l) => lines.push(l));
-    const tickedEnems = enems.map((e) => {
-      if (e.hp <= 0) return e;
-      const t = tickStatuses(e);
-      t.log.forEach((l) => lines.push(l));
-      return t.entity as Enemy;
-    });
-
-    if (np.hp <= 0) {
-      lines.forEach(addLog);
-      setAnimating(false);
-      dispatch(combatDefeat(np.gold));
-      return;
-    }
-
-    np.block = 0;
-    np.stealthActive = false;
-    np.counterActive = false;
-
-    lines.forEach(addLog);
-    if (!isFleeFailure) addLog("\u2014 Your Turn \u2014");
-
-    const promoted = promoteBackRow(tickedEnems);
-    setP(np);
-    setEnemies(promoted);
-    setLightLevel(light.value);
-    setAnimating(false);
-    setSubAction("none");
-    autoTarget(promoted);
-
-    // Sync game state to Redux store after turn completes
-    const newLog = ["\u2014 Your Turn \u2014", ...lines, ...log].slice(0, COMBAT_LOG_MAX);
-    dispatch(
-      updateCombatState({
-        enemies: promoted.map(toEnemyData),
-        combatPlayer: np,
-        lightLevel: light.value,
-        combatLog: newLog,
-      }),
-    );
   }
 
   /* ── Target click handler ── */
@@ -486,14 +256,21 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
 
     if (subAction === "pick_target" && pendingAbility) {
       const reach = pendingAbility.reach || weapon.reach;
-      if (!canReach(reach, enemy, enemies)) {
-        addLog(`Can't reach ${enemy.name} \u2014 melee can't hit back row!`);
+      if (!engine.canReach(reach, enemy)) {
         return;
       }
-      executePlayerAbility(pendingAbility, [idx]);
+      engine.executeAbilityWithTargets(pendingAbility, [idx]);
+      setSubAction("none");
+      setPendingAbility(null);
     } else {
       setTargetIdx(idx);
     }
+  }
+
+  /* ── Switch weapon ── */
+  function switchWeapon(w: Weapon) {
+    engine.switchWeapon(w);
+    setSubAction("none");
   }
 
   function cancelAction() {
@@ -514,17 +291,33 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
   }
 
   function isAbilityDisabled(a: Ability): boolean {
-    if (animating) return true;
-    if ((p.abilityCooldowns[a.id] || 0) > 0) return true;
-    if (a.source.type === "building" && (p.statuses?.silence || 0) > 0) return true;
-    // While charging, disable all abilities (charge auto-resolves at end of turn)
-    if (isCharging) return true;
-    return false;
+    return engine.isAbilityDisabled(a);
   }
 
+  const setPanelRef = useCallback(
+    (uid: string) => (el: HTMLDivElement | null) => {
+      if (el) panelRefsMap.current.set(uid, el);
+      else panelRefsMap.current.delete(uid);
+    },
+    [],
+  );
+
   return (
-    <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-2 relative overflow-hidden p-3">
+    <div
+      ref={containerRef}
+      className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-2 relative overflow-hidden p-3"
+    >
       <div className="vignette" />
+
+      {/* Animation overlay */}
+      {animEvents.length > 0 && (
+        <AnimationLayer
+          events={animEvents}
+          panelRefs={panelRefsMap as React.RefObject<Map<string, HTMLDivElement>>}
+          playerPanelRef={playerPanelRef}
+          containerRef={containerRef}
+        />
+      )}
 
       {/* Header */}
       <div className="flex gap-4 items-center relative z-1 flex-wrap justify-center">
@@ -550,17 +343,21 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
               {"\u{1F6E1}"} Back Row
             </div>
             <div className="flex gap-2 flex-wrap justify-center">
-              {enemies.map((enemy, i) => {
-                if (enemy.row !== "back" || enemy.hp <= 0) return null;
-                return (
-                  <EnemyPanel
-                    key={enemy.uid}
-                    enemy={enemy}
-                    targeted={isTargeting ? false : targetIdx === i}
-                    onClick={() => handleEnemyClick(i)}
-                  />
-                );
-              })}
+              <AnimatePresence mode="popLayout">
+                {enemies.map((enemy, i) => {
+                  if (enemy.row !== "back" || enemy.hp <= 0) return null;
+                  return (
+                    <EnemyPanel
+                      key={enemy.uid}
+                      enemy={enemy}
+                      targeted={isTargeting ? false : targetIdx === i}
+                      onClick={() => handleEnemyClick(i)}
+                      panelRef={setPanelRef(enemy.uid)}
+                      animState={enemyAnimStates[enemy.uid]}
+                    />
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </div>
         )}
@@ -570,23 +367,31 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
               {"\u2694"} Front Row
             </div>
             <div className="flex gap-2 flex-wrap justify-center">
-              {enemies.map((enemy, i) => {
-                if (enemy.row !== "front" || enemy.hp <= 0) return null;
-                return (
-                  <EnemyPanel
-                    key={enemy.uid}
-                    enemy={enemy}
-                    targeted={isTargeting ? false : targetIdx === i}
-                    onClick={() => handleEnemyClick(i)}
-                  />
-                );
-              })}
+              <AnimatePresence mode="popLayout">
+                {enemies.map((enemy, i) => {
+                  if (enemy.row !== "front" || enemy.hp <= 0) return null;
+                  return (
+                    <EnemyPanel
+                      key={enemy.uid}
+                      enemy={enemy}
+                      targeted={isTargeting ? false : targetIdx === i}
+                      onClick={() => handleEnemyClick(i)}
+                      panelRef={setPanelRef(enemy.uid)}
+                      animState={enemyAnimStates[enemy.uid]}
+                    />
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </div>
         )}
 
         {/* Player panel */}
-        <div className="panel" style={{ minWidth: "160px", maxWidth: "190px" }}>
+        <div
+          ref={playerPanelRef}
+          className={`panel relative ${playerFlash ? "combat-anim-flash-red" : ""}`}
+          style={{ minWidth: "160px", maxWidth: "190px" }}
+        >
           <div className="text-center text-2xl mb-0.5">{"\u{1F9DD}"}</div>
           <div className="text-sm font-bold text-crypt-text text-center mb-0.5">You</div>
           <HpBar current={p.hp} max={p.maxHp} color="#3ddc84" />
@@ -768,5 +573,15 @@ export function CombatScreen({ room }: { room: DungeonNode }) {
           );
         })()}
     </div>
+  );
+}
+
+/* ── Exported wrapper: wraps in ScreenShake provider ── */
+
+export function CombatScreen({ room }: { room: DungeonNode }) {
+  return (
+    <ScreenShake>
+      <CombatScreenInner room={room} />
+    </ScreenShake>
   );
 }
