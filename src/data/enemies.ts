@@ -30,7 +30,7 @@ export const ENEMY_TYPES: EnemyType[] = [
   {
     id: "rat",
     name: "Ravager Rat",
-    maxHp: 3,
+    maxHp: 2,
     atk: 1,
     loot: 3,
     ascii: "\u{1F400}",
