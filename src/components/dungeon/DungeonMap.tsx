@@ -139,7 +139,10 @@ export function DungeonMap({
   const mapPxH = dungeonGrid.height * CELL_PX;
 
   return (
-    <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-3 relative overflow-hidden p-4">
+    <div
+      className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-3 relative overflow-hidden p-4
+                    lg:h-dvh lg:overflow-hidden"
+    >
       <div className="vignette" />
 
       {/* Top bar */}
@@ -163,15 +166,18 @@ export function DungeonMap({
         </div>
       </div>
 
-      <div className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full flex-1 min-h-0">
+      <div
+        className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full flex-1 min-h-0
+                      lg:flex-nowrap"
+      >
         {/* Map canvas */}
         <div
           ref={scrollRef}
-          className="relative shrink-0 rounded-md border border-crypt-border-dim"
+          className="relative shrink-0 rounded-md border border-crypt-border-dim
+                     w-[min(700px,55vw,calc(100vh-160px))] max-h-[calc(100vh-160px)]
+                     lg:w-auto lg:shrink lg:flex-1 lg:max-h-full lg:min-h-0"
           style={{
-            width: "min(700px, 55vw, calc(100vh - 160px))",
             aspectRatio: `${mapPxW} / ${mapPxH}`,
-            maxHeight: "calc(100vh - 160px)",
             background: "#080610",
           }}
         >
@@ -198,7 +204,7 @@ export function DungeonMap({
         </div>
 
         {/* Side panel */}
-        <div className="flex-1 min-w-[280px] max-w-[360px] flex flex-col gap-3">
+        <div className="flex-1 min-w-[280px] max-w-[360px] flex flex-col gap-3 lg:overflow-y-auto lg:max-h-full">
           <RoomPanel
             node={node ?? null}
             currentRoomId={currentRoomId}

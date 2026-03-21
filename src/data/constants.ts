@@ -56,4 +56,3 @@ export const AI_SCOUT_SEND_CHANCE = 0.6;
 
 // Limits
 export const DUNGEON_LOG_MAX = 200;
-export const COMBAT_LOG_MAX = 12;

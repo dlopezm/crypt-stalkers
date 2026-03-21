@@ -13,7 +13,6 @@ import {
   FLEE_CHANCE,
   LIGHT_START,
   DARKNESS_DAMAGE,
-  COMBAT_LOG_MAX,
 } from "../data/constants";
 import { resolveActions } from "./actions";
 import { animationDelay } from "./animTiming";
@@ -188,7 +187,7 @@ export class CombatEngine {
   /* ── Helpers ── */
 
   private _addLog(msg: string) {
-    this._log = [msg, ...this._log].slice(0, COMBAT_LOG_MAX);
+    this._log = [msg, ...this._log].slice(0, 200);
   }
 
   private _notify() {

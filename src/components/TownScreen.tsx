@@ -88,7 +88,7 @@ export function TownScreen({
 
     if (!state?.unlocked) {
       return (
-        <div className="panel max-w-lg w-full">
+        <div className="panel max-w-lg lg:max-w-none w-full">
           <div className="text-lg font-bold text-crypt-text mb-2">
             {b.icon} {b.name}
           </div>
@@ -117,7 +117,7 @@ export function TownScreen({
   function renderSmithy() {
     const owned = new Set(player.ownedWeapons.map((w) => w.id));
     return (
-      <div className="panel max-w-xl w-full">
+      <div className="panel max-w-xl lg:max-w-none w-full">
         <div className="text-lg font-bold text-crypt-text mb-1">{"\u2692\uFE0F"} Smithy</div>
         <p className="text-xs text-crypt-dim mb-3">
           Purchase weapons. You can switch between owned weapons in combat.
@@ -165,7 +165,7 @@ export function TownScreen({
 
   function renderStore() {
     return (
-      <div className="panel max-w-xl w-full">
+      <div className="panel max-w-xl lg:max-w-none w-full">
         <div className="text-lg font-bold text-crypt-text mb-1">{"\u{1F3EA}"} General Store</div>
         <p className="text-xs text-crypt-dim mb-3">Purchase consumables. Use them in combat.</p>
         <div className="flex flex-col gap-2">
@@ -235,7 +235,7 @@ export function TownScreen({
       (a) => a.source.type === "building" && a.source.buildingId === b.id,
     );
     return (
-      <div className="panel max-w-xl w-full">
+      <div className="panel max-w-xl lg:max-w-none w-full">
         <div className="text-lg font-bold text-crypt-text mb-1">
           {b.icon} {b.name}{" "}
           <span className="text-xs text-crypt-dim">(Level {state?.level || 0})</span>
@@ -311,11 +311,14 @@ export function TownScreen({
   const diffColor = (n: number) => (n === 1 ? "#3ddc84" : n === 2 ? "#e6a817" : "#e74c3c");
 
   return (
-    <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-4 relative overflow-y-auto p-4">
+    <div
+      className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-4 relative overflow-y-auto p-4
+                    lg:h-dvh"
+    >
       <div className="vignette" />
 
       {/* Header */}
-      <div className="relative z-1 text-center">
+      <div className="relative z-1 text-center shrink-0">
         <h1
           className="text-[clamp(1.8rem,4vw,2.8rem)] tracking-[0.15em] uppercase text-crypt-gold font-bold"
           style={{ textShadow: "0 0 20px #f0c040, 0 0 40px #8a6010" }}
@@ -328,7 +331,7 @@ export function TownScreen({
       </div>
 
       {/* Player status bar */}
-      <div className="panel max-w-2xl w-full relative z-1">
+      <div className="panel max-w-2xl lg:max-w-none w-full relative z-1 shrink-0">
         <div className="flex gap-6 items-center flex-wrap justify-center">
           <div className="flex-1 min-w-[140px]">
             <HpBar current={player.hp} max={player.maxHp} color="#3ddc84" />
@@ -351,144 +354,154 @@ export function TownScreen({
         <StatusBadges statuses={player.statuses} />
       </div>
 
-      {/* Buildings grid */}
-      <div className="flex gap-3 flex-wrap justify-center relative z-1 max-w-3xl">
-        {BUILDINGS.map((b) => {
-          const state = bld(b.id);
-          const unlocked = state?.unlocked;
-          const isActive = activeBuilding === b.id;
-          return (
-            <div
-              key={b.id}
-              onClick={() => setActiveBuilding(isActive ? null : b.id)}
-              className="panel cursor-pointer transition-all duration-200 select-none"
-              style={{
-                width: "150px",
-                minHeight: "120px",
-                border: `1px solid ${isActive ? "#d4a830" : unlocked ? "#3a3020" : "#201820"}`,
-                opacity: unlocked ? 1 : 0.6,
-                boxShadow: isActive ? "0 0 20px rgba(212,168,48,0.3)" : "none",
-              }}
-            >
-              <div className="text-center text-2xl mb-1">{unlocked ? b.icon : "\u{1F512}"}</div>
-              <div className="text-sm font-bold text-center text-crypt-text leading-tight mb-1">
-                {b.name}
-              </div>
-              {unlocked ? (
-                <div className="text-xs text-crypt-dim text-center">
-                  {state?.level ? `Level ${state.level}` : ""}
-                </div>
-              ) : (
-                <div className="text-xs text-crypt-red text-center">
-                  {b.unlockCost}
-                  {"\u{1FA99}"} to unlock
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Building interior panel */}
-      {activeBuilding && (
-        <div className="relative z-1 flex flex-col items-center gap-3 w-full max-w-xl">
-          {renderBuildingInterior()}
-          <button style={btnStyle("#3a2f25")} onClick={() => setActiveBuilding(null)}>
-            {"\u2190"} Back
-          </button>
-        </div>
-      )}
-
-      {/* Dungeon selection */}
-      {!activeBuilding && (
-        <div className="relative z-1 w-full max-w-2xl">
-          <div className="text-xs text-crypt-dim tracking-[0.2em] mb-2 uppercase text-center">
-            {"\u2620"} Choose Your Descent {"\u2620"}
-          </div>
-          <div className="flex gap-3 flex-wrap justify-center">
-            {DUNGEONS.map((d) => (
+      {/* Main scrollable content */}
+      <div className="flex flex-col gap-4 w-full relative z-1 items-center lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
+        {/* Buildings grid */}
+        <div className="flex gap-3 flex-wrap justify-center max-w-3xl lg:max-w-5xl">
+          {BUILDINGS.map((b) => {
+            const state = bld(b.id);
+            const unlocked = state?.unlocked;
+            const isActive = activeBuilding === b.id;
+            return (
               <div
-                key={d.id}
-                className="panel flex flex-col items-center gap-2"
-                style={{ width: "200px" }}
+                key={b.id}
+                onClick={() => setActiveBuilding(isActive ? null : b.id)}
+                className="panel cursor-pointer transition-all duration-200 select-none"
+                style={{
+                  width: "150px",
+                  minHeight: "120px",
+                  border: `1px solid ${isActive ? "#d4a830" : unlocked ? "#3a3020" : "#201820"}`,
+                  opacity: unlocked ? 1 : 0.6,
+                  boxShadow: isActive ? "0 0 20px rgba(212,168,48,0.3)" : "none",
+                }}
               >
-                <div className="text-sm font-bold text-crypt-text text-center">{d.name}</div>
-                <div className="text-sm tracking-wider" style={{ color: diffColor(d.difficulty) }}>
-                  {diffStars(d.difficulty)}
+                <div className="text-center text-2xl mb-1">{unlocked ? b.icon : "\u{1F512}"}</div>
+                <div className="text-sm font-bold text-center text-crypt-text leading-tight mb-1">
+                  {b.name}
                 </div>
-                <div className="text-xs text-crypt-muted text-center leading-relaxed">{d.desc}</div>
-                <div className="text-xs text-crypt-dim">
-                  Difficulty {d.difficulty} {"\u00B7"} Randomized layout
-                </div>
-                <button
-                  style={btnStyle("#8b0000")}
-                  className="w-full"
-                  onClick={() => onEnterDungeon(d)}
-                >
-                  {"\u2694"} Descend
-                </button>
+                {unlocked ? (
+                  <div className="text-xs text-crypt-dim text-center">
+                    {state?.level ? `Level ${state.level}` : ""}
+                  </div>
+                ) : (
+                  <div className="text-xs text-crypt-red text-center">
+                    {b.unlockCost}
+                    {"\u{1FA99}"} to unlock
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      )}
 
-      {/* Inventory overview when no building selected */}
-      {!activeBuilding && (
-        <div className="panel max-w-2xl w-full relative z-1">
-          <div className="text-xs text-crypt-dim tracking-[0.2em] mb-2 uppercase">
-            Equipment & Inventory
+        {/* Building interior panel */}
+        {activeBuilding && (
+          <div className="flex flex-col items-center gap-3 w-full max-w-xl">
+            {renderBuildingInterior()}
+            <button style={btnStyle("#3a2f25")} onClick={() => setActiveBuilding(null)}>
+              {"\u2190"} Back
+            </button>
           </div>
-          <div className="flex flex-col gap-2">
-            <div>
-              <div className="text-xs text-crypt-muted mb-1">Weapons:</div>
-              <div className="flex gap-1 flex-wrap">
-                {player.ownedWeapons.map((w) => (
-                  <span
-                    key={w.id}
-                    className={`text-xs rounded px-2 py-0.5 ${w.id === player.mainWeapon.id || w.id === player.offhandWeapon?.id ? "bg-[#3a2a14] border border-crypt-gold text-crypt-gold" : "bg-[#1a1610] border border-crypt-border-dim text-crypt-muted"}`}
+        )}
+
+        {/* Bottom section: dungeons + inventory side by side in landscape */}
+        {!activeBuilding && (
+          <div className="flex flex-col lg:flex-row gap-4 w-full items-center lg:items-start lg:justify-center">
+            {/* Dungeon selection */}
+            <div className="w-full max-w-2xl lg:max-w-none lg:flex-1">
+              <div className="text-xs text-crypt-dim tracking-[0.2em] mb-2 uppercase text-center">
+                {"\u2620"} Choose Your Descent {"\u2620"}
+              </div>
+              <div className="flex gap-3 flex-wrap justify-center">
+                {DUNGEONS.map((d) => (
+                  <div
+                    key={d.id}
+                    className="panel flex flex-col items-center gap-2"
+                    style={{ width: "200px" }}
                   >
-                    {w.icon} {w.name} ({w.damage > 0 ? `${w.damage} ${w.damageType}` : "offhand"})
-                  </span>
+                    <div className="text-sm font-bold text-crypt-text text-center">{d.name}</div>
+                    <div
+                      className="text-sm tracking-wider"
+                      style={{ color: diffColor(d.difficulty) }}
+                    >
+                      {diffStars(d.difficulty)}
+                    </div>
+                    <div className="text-xs text-crypt-muted text-center leading-relaxed">
+                      {d.desc}
+                    </div>
+                    <div className="text-xs text-crypt-dim">
+                      Difficulty {d.difficulty} {"\u00B7"} Randomized layout
+                    </div>
+                    <button
+                      style={btnStyle("#8b0000")}
+                      className="w-full"
+                      onClick={() => onEnterDungeon(d)}
+                    >
+                      {"\u2694"} Descend
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
-            {player.consumables.length > 0 && (
-              <div>
-                <div className="text-xs text-crypt-muted mb-1">Consumables:</div>
-                <div className="flex gap-1 flex-wrap">
-                  {player.consumables.map((c, i) => (
-                    <span
-                      key={i}
-                      className="text-xs bg-[#1a1610] border border-crypt-border-dim rounded px-2 py-0.5 text-crypt-muted"
-                    >
-                      {c.icon} {c.name}
-                    </span>
-                  ))}
-                </div>
+
+            {/* Inventory overview */}
+            <div className="panel max-w-2xl lg:max-w-sm w-full lg:shrink-0">
+              <div className="text-xs text-crypt-dim tracking-[0.2em] mb-2 uppercase">
+                Equipment & Inventory
               </div>
-            )}
-            {player.abilities.length > 0 && (
-              <div>
-                <div className="text-xs text-crypt-muted mb-1">Abilities:</div>
-                <div className="flex gap-1 flex-wrap">
-                  {player.abilities.map((id) => {
-                    const a = ABILITIES.find((ab) => ab.id === id);
-                    return a ? (
+              <div className="flex flex-col gap-2">
+                <div>
+                  <div className="text-xs text-crypt-muted mb-1">Weapons:</div>
+                  <div className="flex gap-1 flex-wrap">
+                    {player.ownedWeapons.map((w) => (
                       <span
-                        key={id}
-                        className="text-xs bg-[#1a1610] border border-crypt-border-dim rounded px-2 py-0.5 text-crypt-muted"
+                        key={w.id}
+                        className={`text-xs rounded px-2 py-0.5 ${w.id === player.mainWeapon.id || w.id === player.offhandWeapon?.id ? "bg-[#3a2a14] border border-crypt-gold text-crypt-gold" : "bg-[#1a1610] border border-crypt-border-dim text-crypt-muted"}`}
                       >
-                        {a.icon} {a.name}
+                        {w.icon} {w.name} (
+                        {w.damage > 0 ? `${w.damage} ${w.damageType}` : "offhand"})
                       </span>
-                    ) : null;
-                  })}
+                    ))}
+                  </div>
                 </div>
+                {player.consumables.length > 0 && (
+                  <div>
+                    <div className="text-xs text-crypt-muted mb-1">Consumables:</div>
+                    <div className="flex gap-1 flex-wrap">
+                      {player.consumables.map((c, i) => (
+                        <span
+                          key={i}
+                          className="text-xs bg-[#1a1610] border border-crypt-border-dim rounded px-2 py-0.5 text-crypt-muted"
+                        >
+                          {c.icon} {c.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {player.abilities.length > 0 && (
+                  <div>
+                    <div className="text-xs text-crypt-muted mb-1">Abilities:</div>
+                    <div className="flex gap-1 flex-wrap">
+                      {player.abilities.map((id) => {
+                        const a = ABILITIES.find((ab) => ab.id === id);
+                        return a ? (
+                          <span
+                            key={id}
+                            className="text-xs bg-[#1a1610] border border-crypt-border-dim rounded px-2 py-0.5 text-crypt-muted"
+                          >
+                            {a.icon} {a.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

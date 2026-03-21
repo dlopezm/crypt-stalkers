@@ -1,4 +1,12 @@
-import { useState, useEffect, useRef, useCallback, memo, useSyncExternalStore } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  memo,
+  useSyncExternalStore,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { btnStyle } from "../styles";
 import { WEAKEN_DMG_MULT, LIGHT_MAX } from "../data/constants";
@@ -49,12 +57,11 @@ const EnemyPanel = memo(function EnemyPanel({
       onClick={onClick}
       className={`
         panel cursor-pointer transition-all duration-200 select-none relative
+        min-w-[150px] max-w-[190px] lg:min-w-[180px] lg:max-w-[220px]
         ${targeted ? "scale-[1.03] shadow-[0_0_20px_rgba(196,28,28,0.4)]" : ""}
         ${animClass}
       `}
       style={{
-        minWidth: "150px",
-        maxWidth: "190px",
         border: `1px solid ${targeted ? "#c41c1c" : "#3a3020"}`,
       }}
       initial={{ opacity: 0, scale: 0.8 }}
@@ -302,10 +309,216 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
     [],
   );
 
+  /* ── Shared JSX helpers ── */
+
+  const setPlayerPanelRef = useCallback((el: HTMLDivElement | null) => {
+    if (el && el.offsetParent !== null) {
+      playerPanelRef.current = el;
+    }
+  }, []);
+
+  const playerPanelContent = useMemo(
+    () => (
+      <>
+        <div className="text-center text-2xl mb-0.5">{"\u{1F9DD}"}</div>
+        <div className="text-sm font-bold text-crypt-text text-center mb-0.5">You</div>
+        <HpBar current={p.hp} max={p.maxHp} color="#3ddc84" />
+        {p.block > 0 && (
+          <div className="text-xs text-crypt-blue text-center mt-0.5">
+            {"\u{1F6E1}"} {p.block}
+          </div>
+        )}
+        {p.blockReduction && p.blockReduction > 0 && (
+          <div className="text-xs text-crypt-blue text-center mt-0.5">
+            {"\u{1F6E1}\uFE0F"} Block {Math.round(p.blockReduction * 100)}%
+          </div>
+        )}
+        <StatusBadges statuses={p.statuses} />
+        {p.stealthActive && (
+          <div className="text-xs text-crypt-purple text-center mt-0.5">{"\u{1F464}"} Stealth</div>
+        )}
+        {p.counterActive && (
+          <div className="text-xs text-crypt-purple text-center mt-0.5">
+            {"\u2694\uFE0F"} Counter
+          </div>
+        )}
+        {isCharging && (
+          <div className="text-xs text-crypt-gold text-center mt-0.5">
+            {"\u{1F4A5}"} Charging...
+          </div>
+        )}
+        <div className="text-xs text-crypt-dim text-center mt-1 border-t border-crypt-border-dim pt-1">
+          {weapon.icon} {weapon.name}
+          <br />
+          <span className="text-crypt-muted">
+            {weapon.damage} {weapon.damageType} {weapon.reach}
+          </span>
+          {p.offhandWeapon && (
+            <>
+              <br />
+              <span className="text-crypt-muted">
+                {p.offhandWeapon.icon} {p.offhandWeapon.name} (offhand)
+              </span>
+            </>
+          )}
+        </div>
+      </>
+    ),
+    [
+      p.hp,
+      p.maxHp,
+      p.block,
+      p.blockReduction,
+      p.statuses,
+      p.stealthActive,
+      p.counterActive,
+      p.offhandWeapon,
+      isCharging,
+      weapon,
+    ],
+  );
+
+  const combatLogRef = useRef<HTMLDivElement>(null);
+
+  const combatLogEntries = useMemo(() => {
+    const entries = [...log].reverse();
+    return entries.map((l, i) => {
+      const age = entries.length - 1 - i;
+      const opacity = Math.max(0.35, 1 - age * 0.06);
+      return (
+        <div
+          key={log.length - age}
+          className="text-sm leading-relaxed"
+          style={{ color: age === 0 ? "#ece0c8" : `rgba(168,152,120,${opacity})` }}
+        >
+          {l}
+        </div>
+      );
+    });
+  }, [log]);
+
+  useEffect(() => {
+    combatLogRef.current?.scrollTo({ top: combatLogRef.current.scrollHeight, behavior: "smooth" });
+  }, [log.length]);
+
+  const actionButtonsJsx = (() => {
+    if (isTargeting || subAction !== "none") return null;
+    const combatAbilities = allAbilities.filter((a) => a.source.type !== "item");
+    const itemAbilities = allAbilities.filter((a) => a.source.type === "item");
+    return (
+      <>
+        <div className="flex gap-2 flex-wrap justify-center">
+          {combatAbilities.map((a) => {
+            const cd = p.abilityCooldowns[a.id] || 0;
+            const disabled = isAbilityDisabled(a);
+            return (
+              <button
+                key={a.id}
+                style={btnStyle(abilityColor(a), disabled)}
+                disabled={disabled}
+                onClick={() => activateAbility(a)}
+                title={a.desc}
+              >
+                {a.icon} {a.name}
+                {a.id === "basic_attack" && ` (${weapon.damage})`}
+                {cd > 0 && ` (${cd})`}
+              </button>
+            );
+          })}
+
+          {p.ownedWeapons.length > 1 && (
+            <button
+              style={btnStyle("#5a4a20", animating)}
+              disabled={animating}
+              onClick={() => setSubAction("pick_weapon")}
+            >
+              {"\u{1F504}"} Switch
+            </button>
+          )}
+        </div>
+
+        {itemAbilities.length > 0 && (
+          <>
+            <div className="text-xs text-crypt-dim tracking-wider uppercase">
+              {"\u{1F392}"} Consumables
+            </div>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {itemAbilities.map((a) => {
+                const disabled = isAbilityDisabled(a);
+                return (
+                  <button
+                    key={a.id}
+                    style={btnStyle(abilityColor(a), disabled)}
+                    disabled={disabled}
+                    onClick={() => activateAbility(a)}
+                    title={a.desc}
+                  >
+                    {a.icon} {a.name}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </>
+    );
+  })();
+
+  const targetingJsx = isTargeting && (
+    <div className="flex gap-3 items-center">
+      <div className="text-sm text-crypt-gold">Select target for {pendingAbility?.name}</div>
+      <button style={btnStyle("#3a2f25")} className="text-sm! px-3! py-1!" onClick={cancelAction}>
+        Cancel
+      </button>
+    </div>
+  );
+
+  const weaponPickerJsx = subAction === "pick_weapon" && (
+    <div className="panel max-w-lg w-full lg:max-w-none">
+      <div className="text-sm text-crypt-muted mb-2">Switch weapon (ends your turn):</div>
+      <div className="flex gap-2 flex-wrap">
+        {p.ownedWeapons
+          .filter((w) => w.hand !== "offhand")
+          .map((w) => (
+            <button
+              key={w.id}
+              style={btnStyle(w.id === p.mainWeapon.id ? "#3a3020" : "#6a3a1a")}
+              className="text-sm!"
+              disabled={w.id === p.mainWeapon.id}
+              onClick={() => switchWeapon(w)}
+            >
+              {w.icon} {w.name} ({w.damage} {w.damageType})
+            </button>
+          ))}
+        {p.ownedWeapons
+          .filter((w) => w.hand === "offhand")
+          .map((w) => (
+            <button
+              key={w.id}
+              style={btnStyle(p.offhandWeapon?.id === w.id ? "#3a3020" : "#5a4a20")}
+              className="text-sm!"
+              disabled={p.mainWeapon.hand === "2"}
+              onClick={() => switchWeapon(w)}
+            >
+              {w.icon} {w.name} {p.offhandWeapon?.id === w.id ? "(equipped)" : "(offhand)"}
+            </button>
+          ))}
+      </div>
+      <button
+        style={btnStyle("#3a2f25")}
+        className="mt-2 text-sm! px-3! py-1!"
+        onClick={cancelAction}
+      >
+        Cancel
+      </button>
+    </div>
+  );
+
   return (
     <div
       ref={containerRef}
-      className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-2 relative overflow-hidden p-3"
+      className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-2 relative overflow-hidden p-3
+                 lg:grid lg:grid-cols-[260px_1fr] lg:grid-rows-[auto_1fr] lg:h-dvh lg:gap-3 lg:p-4 lg:overflow-hidden"
     >
       <div className="vignette" />
 
@@ -320,7 +533,7 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
       )}
 
       {/* Header */}
-      <div className="flex gap-4 items-center relative z-1 flex-wrap justify-center">
+      <div className="flex gap-4 items-center relative z-1 flex-wrap justify-center lg:col-span-2">
         <div className="text-crypt-muted text-sm tracking-wider">
           {"\u2694"} <span className="text-crypt-red font-bold">{room.label.toUpperCase()}</span>
         </div>
@@ -335,243 +548,74 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
         </div>
       </div>
 
-      {/* Combatants */}
-      <div className="flex flex-col gap-2 relative z-1 items-center w-full px-4">
-        {backRow.length > 0 && (
-          <div>
-            <div className="text-[0.6rem] text-crypt-dim text-center tracking-wider mb-1 uppercase">
-              {"\u{1F6E1}"} Back Row
-            </div>
-            <div className="flex gap-2 flex-wrap justify-center">
-              <AnimatePresence mode="popLayout">
-                {enemies.map((enemy, i) => {
-                  if (enemy.row !== "back" || enemy.hp <= 0) return null;
-                  return (
-                    <EnemyPanel
-                      key={enemy.uid}
-                      enemy={enemy}
-                      targeted={isTargeting ? false : targetIdx === i}
-                      onClick={() => handleEnemyClick(i)}
-                      panelRef={setPanelRef(enemy.uid)}
-                      animState={enemyAnimStates[enemy.uid]}
-                    />
-                  );
-                })}
-              </AnimatePresence>
-            </div>
-          </div>
-        )}
-        {frontRow.length > 0 && (
-          <div>
-            <div className="text-[0.6rem] text-crypt-dim text-center tracking-wider mb-1 uppercase">
-              {"\u2694"} Front Row
-            </div>
-            <div className="flex gap-2 flex-wrap justify-center">
-              <AnimatePresence mode="popLayout">
-                {enemies.map((enemy, i) => {
-                  if (enemy.row !== "front" || enemy.hp <= 0) return null;
-                  return (
-                    <EnemyPanel
-                      key={enemy.uid}
-                      enemy={enemy}
-                      targeted={isTargeting ? false : targetIdx === i}
-                      onClick={() => handleEnemyClick(i)}
-                      panelRef={setPanelRef(enemy.uid)}
-                      animState={enemyAnimStates[enemy.uid]}
-                    />
-                  );
-                })}
-              </AnimatePresence>
-            </div>
-          </div>
-        )}
-
-        {/* Player panel */}
-        <div
-          ref={playerPanelRef}
-          className={`panel relative ${playerFlash ? "combat-anim-flash-red" : ""}`}
-          style={{ minWidth: "160px", maxWidth: "190px" }}
-        >
-          <div className="text-center text-2xl mb-0.5">{"\u{1F9DD}"}</div>
-          <div className="text-sm font-bold text-crypt-text text-center mb-0.5">You</div>
-          <HpBar current={p.hp} max={p.maxHp} color="#3ddc84" />
-          {p.block > 0 && (
-            <div className="text-xs text-crypt-blue text-center mt-0.5">
-              {"\u{1F6E1}"} {p.block}
-            </div>
-          )}
-          {p.blockReduction && p.blockReduction > 0 && (
-            <div className="text-xs text-crypt-blue text-center mt-0.5">
-              {"\u{1F6E1}\uFE0F"} Block {Math.round(p.blockReduction * 100)}%
-            </div>
-          )}
-          <StatusBadges statuses={p.statuses} />
-          {p.stealthActive && (
-            <div className="text-xs text-crypt-purple text-center mt-0.5">
-              {"\u{1F464}"} Stealth
-            </div>
-          )}
-          {p.counterActive && (
-            <div className="text-xs text-crypt-purple text-center mt-0.5">
-              {"\u2694\uFE0F"} Counter
-            </div>
-          )}
-          {isCharging && (
-            <div className="text-xs text-crypt-gold text-center mt-0.5">
-              {"\u{1F4A5}"} Charging...
-            </div>
-          )}
-          <div className="text-xs text-crypt-dim text-center mt-1 border-t border-crypt-border-dim pt-1">
-            {weapon.icon} {weapon.name}
-            <br />
-            <span className="text-crypt-muted">
-              {weapon.damage} {weapon.damageType} {weapon.reach}
-            </span>
-            {p.offhandWeapon && (
-              <>
-                <br />
-                <span className="text-crypt-muted">
-                  {p.offhandWeapon.icon} {p.offhandWeapon.name} (offhand)
-                </span>
-              </>
-            )}
-          </div>
+      {/* Left sidebar: Combat log (landscape only) */}
+      <div className="hidden lg:flex lg:flex-col lg:col-start-1 lg:row-start-2 lg:self-stretch panel overflow-y-auto relative z-1 px-3 py-1.5 min-h-0">
+        <div className="text-[0.6rem] text-crypt-dim tracking-wider uppercase mb-1 shrink-0">
+          Combat Log
+        </div>
+        <div ref={combatLogRef} className="overflow-y-auto min-h-0 flex-1">
+          {combatLogEntries}
         </div>
       </div>
 
-      {/* Combat log */}
-      <div className="panel w-full max-w-xl px-3 py-1.5 relative z-1">
-        {log.slice(0, 5).map((l, i) => (
+      {/* Center: Combatants */}
+      <div
+        className="flex flex-col gap-2 relative z-1 items-center w-full px-4
+                       lg:col-start-2 lg:row-start-2 lg:overflow-y-auto lg:self-stretch"
+      >
+        {/* Battlefield — centered in available space */}
+        <div className="flex flex-col gap-2 lg:gap-6 items-center lg:flex-1 lg:justify-center">
+          {[
+            { row: "back" as const, list: backRow, icon: "\u{1F6E1}", label: "Back Row" },
+            { row: "front" as const, list: frontRow, icon: "\u2694", label: "Front Row" },
+          ].map(
+            ({ row, list, icon, label }) =>
+              list.length > 0 && (
+                <div key={row}>
+                  <div className="text-[0.6rem] text-crypt-dim text-center tracking-wider mb-1 uppercase">
+                    {icon} {label}
+                  </div>
+                  <div className="flex gap-2 lg:gap-3 flex-wrap justify-center">
+                    <AnimatePresence mode="popLayout">
+                      {enemies.map((enemy, i) => {
+                        if (enemy.row !== row || enemy.hp <= 0) return null;
+                        return (
+                          <EnemyPanel
+                            key={enemy.uid}
+                            enemy={enemy}
+                            targeted={isTargeting ? false : targetIdx === i}
+                            onClick={() => handleEnemyClick(i)}
+                            panelRef={setPanelRef(enemy.uid)}
+                            animState={enemyAnimStates[enemy.uid]}
+                          />
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              ),
+          )}
+
+          {/* Player panel */}
           <div
-            key={i}
-            className="text-sm leading-relaxed"
-            style={{ color: i === 0 ? "#ece0c8" : `rgba(168,152,120,${1 - i * 0.18})` }}
+            ref={setPlayerPanelRef}
+            className={`panel relative lg:shrink-0 ${playerFlash ? "combat-anim-flash-red" : ""}`}
+            style={{ minWidth: "160px", maxWidth: "190px" }}
           >
-            {l}
+            {playerPanelContent}
           </div>
-        ))}
+        </div>
+
+        {/* Combat log (portrait only) */}
+        <div className="panel w-full max-w-xl px-3 py-1.5 lg:hidden">{combatLogEntries}</div>
+
+        {/* Actions — fixed min-height so battlefield doesn't shift when content changes */}
+        <div className="flex flex-col gap-2 items-center justify-center w-full lg:shrink-0 lg:min-h-30 px-4 lg:px-0">
+          {targetingJsx}
+          {weaponPickerJsx}
+          {actionButtonsJsx}
+        </div>
       </div>
-
-      {/* Targeting prompt */}
-      {isTargeting && (
-        <div className="relative z-1 flex gap-3 items-center">
-          <div className="text-sm text-crypt-gold">Select target for {pendingAbility?.name}</div>
-          <button
-            style={btnStyle("#3a2f25")}
-            className="text-sm! px-3! py-1!"
-            onClick={cancelAction}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {/* Weapon picker */}
-      {subAction === "pick_weapon" && (
-        <div className="relative z-1 panel max-w-lg w-full">
-          <div className="text-sm text-crypt-muted mb-2">Switch weapon (ends your turn):</div>
-          <div className="flex gap-2 flex-wrap">
-            {p.ownedWeapons
-              .filter((w) => w.hand !== "offhand")
-              .map((w) => (
-                <button
-                  key={w.id}
-                  style={btnStyle(w.id === p.mainWeapon.id ? "#3a3020" : "#6a3a1a")}
-                  className="text-sm!"
-                  disabled={w.id === p.mainWeapon.id}
-                  onClick={() => switchWeapon(w)}
-                >
-                  {w.icon} {w.name} ({w.damage} {w.damageType})
-                </button>
-              ))}
-            {p.ownedWeapons
-              .filter((w) => w.hand === "offhand")
-              .map((w) => (
-                <button
-                  key={w.id}
-                  style={btnStyle(p.offhandWeapon?.id === w.id ? "#3a3020" : "#5a4a20")}
-                  className="text-sm!"
-                  disabled={p.mainWeapon.hand === "2"}
-                  onClick={() => switchWeapon(w)}
-                >
-                  {w.icon} {w.name} {p.offhandWeapon?.id === w.id ? "(equipped)" : "(offhand)"}
-                </button>
-              ))}
-          </div>
-          <button
-            style={btnStyle("#3a2f25")}
-            className="mt-2 text-sm! px-3! py-1!"
-            onClick={cancelAction}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {/* Action buttons */}
-      {!isTargeting &&
-        subAction === "none" &&
-        (() => {
-          const combatAbilities = allAbilities.filter((a) => a.source.type !== "item");
-          const itemAbilities = allAbilities.filter((a) => a.source.type === "item");
-          return (
-            <div className="flex flex-col gap-2 items-center relative z-1 px-4">
-              <div className="flex gap-2 flex-wrap justify-center">
-                {combatAbilities.map((a) => {
-                  const cd = p.abilityCooldowns[a.id] || 0;
-                  const disabled = isAbilityDisabled(a);
-                  return (
-                    <button
-                      key={a.id}
-                      style={btnStyle(abilityColor(a), disabled)}
-                      disabled={disabled}
-                      onClick={() => activateAbility(a)}
-                      title={a.desc}
-                    >
-                      {a.icon} {a.name}
-                      {a.id === "basic_attack" && ` (${weapon.damage})`}
-                      {cd > 0 && ` (${cd})`}
-                    </button>
-                  );
-                })}
-
-                {p.ownedWeapons.length > 1 && (
-                  <button
-                    style={btnStyle("#5a4a20", animating)}
-                    disabled={animating}
-                    onClick={() => setSubAction("pick_weapon")}
-                  >
-                    {"\u{1F504}"} Switch
-                  </button>
-                )}
-              </div>
-
-              {itemAbilities.length > 0 && (
-                <>
-                  <div className="text-xs text-crypt-dim tracking-wider uppercase">
-                    {"\u{1F392}"} Consumables
-                  </div>
-                  <div className="flex gap-2 flex-wrap justify-center">
-                    {itemAbilities.map((a) => {
-                      const disabled = isAbilityDisabled(a);
-                      return (
-                        <button
-                          key={a.id}
-                          style={btnStyle(abilityColor(a), disabled)}
-                          disabled={disabled}
-                          onClick={() => activateAbility(a)}
-                          title={a.desc}
-                        >
-                          {a.icon} {a.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })()}
     </div>
   );
 }

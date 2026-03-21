@@ -25,9 +25,8 @@ export function TarotCard({ enemyId, ascii, isBoss, flipReveal }: TarotCardProps
   return (
     <div className="flex justify-center mb-0.5">
       <div
-        className="relative overflow-hidden rounded"
+        className={`relative overflow-hidden rounded ${isBoss ? "w-[80px] lg:w-[100px]" : "w-[64px] lg:w-[84px]"}`}
         style={{
-          width: isBoss ? 80 : 64,
           border: `2px solid ${isBoss ? "#c41c1c" : "#8a6010"}`,
           boxShadow: isBoss ? "0 0 12px rgba(196,28,28,0.4)" : "0 0 8px rgba(138,96,16,0.3)",
         }}
@@ -53,16 +52,14 @@ function FlipRevealCard({
   backSrc: string;
   isBoss?: boolean;
 }) {
-  const width = isBoss ? 80 : 64;
   const borderColor = isBoss ? "#c41c1c" : "#8a6010";
   const shadow = isBoss ? "0 0 12px rgba(196,28,28,0.4)" : "0 0 8px rgba(138,96,16,0.3)";
 
   return (
     <div className="flex justify-center mb-0.5" style={{ perspective: 600 }}>
       <motion.div
-        className="relative overflow-hidden rounded"
+        className={`relative overflow-hidden rounded ${isBoss ? "w-[80px] lg:w-[100px]" : "w-[64px] lg:w-[84px]"}`}
         style={{
-          width,
           border: `2px solid ${borderColor}`,
           boxShadow: shadow,
           transformStyle: "preserve-3d",
