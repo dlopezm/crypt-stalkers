@@ -132,6 +132,23 @@ export class CombatEngine {
 
       this._lightLevel = LIGHT_START;
       this._log = [`⚔ Combat begins: ${room.label}`];
+
+      // Run onStartCombat hooks (e.g. ghoul hides)
+      const startCtx: CombatContext = {
+        enemies: this._enemies,
+        player: this._player,
+        lightLevel: { value: this._lightLevel },
+      };
+      for (const e of this._enemies) {
+        const actions = e.combatMechanics?.onStartCombat?.(e, startCtx);
+        if (actions?.length) {
+          const result = resolveActions(actions, this._player, this._enemies, this._lightLevel, []);
+          this._player = result.player;
+          this._enemies = result.enemies;
+          this._lightLevel = result.lightLevel;
+          result.log.forEach((l) => this._log.push(l));
+        }
+      }
     }
 
     if (opts?.surpriseRound && !opts?.restored) {
@@ -186,6 +203,17 @@ export class CombatEngine {
 
   /* ── Helpers ── */
 
+  /** Sync resolveActions results back into a mutable enemy array in-place. */
+  private static _syncEnemyArray(target: Enemy[], source: Enemy[]): void {
+    for (let i = 0; i < target.length; i++) {
+      const updated = source.find((e) => e.uid === target[i].uid);
+      if (updated) target[i] = updated;
+    }
+    for (const e of source) {
+      if (!target.find((ex) => ex.uid === e.uid)) target.push(e);
+    }
+  }
+
   private _addLog(msg: string) {
     this._log = [msg, ...this._log].slice(0, 200);
   }
@@ -193,14 +221,6 @@ export class CombatEngine {
   private _notify() {
     if (this._destroyed) return;
     this._cb.onStateChange();
-  }
-
-  private _promoteBackRow(enems: Enemy[]): Enemy[] {
-    const alive = enems.filter((e) => e.hp > 0);
-    if (alive.length > 0 && alive.every((e) => e.row === "back")) {
-      return enems.map((e) => (e.hp > 0 ? { ...e, row: "front" as const } : e));
-    }
-    return enems;
   }
 
   private _makeActionContext(): ActionContext {
@@ -230,8 +250,9 @@ export class CombatEngine {
   }
 
   canReach(reach: "melee" | "ranged", target: Enemy): boolean {
+    if (target.hidden) return false;
     if (reach === "ranged") return true;
-    const aliveFront = this._enemies.filter((e) => e.hp > 0 && e.row === "front");
+    const aliveFront = this._enemies.filter((e) => e.hp > 0 && !e.hidden && e.row === "front");
     return target.row === "front" || aliveFront.length === 0;
   }
 
@@ -438,7 +459,6 @@ export class CombatEngine {
         if (e.type === "enemy_attack") return { [uid]: "attacking" };
         if (e.type === "lifesteal") return { [uid]: "lifesteal" };
         if (e.type === "weaken_aura") return { [uid]: "weaken_aura" };
-        if (e.type === "ambush_leap") return { [uid]: "attacking" };
       }
       if (e.type === "drain_light" && e.amount > 0) return { [uid]: "drain_light" };
     }
@@ -455,12 +475,14 @@ export class CombatEngine {
     ctx: () => CombatContext,
     syncState: () => void,
   ): Promise<void> {
+    const wasHidden = enemy.hidden;
     const mechResult = enemy.combatMechanics?.onAttack?.(enemy, ctx()) ?? null;
 
     if (mechResult?.skip) {
       if (mechResult.extraActions?.length) {
         const r = resolveActions(mechResult.extraActions, p.current, enems, light.value, []);
         p.current = r.player;
+        CombatEngine._syncEnemyArray(enems, r.enemies);
         light.value = r.lightLevel;
         r.log.forEach((l) => this._addLog(l));
         if (r.anim.length > 0) {
@@ -468,6 +490,13 @@ export class CombatEngine {
         }
       }
       return;
+    }
+
+    // Reveal hidden enemy before attacking
+    if (wasHidden) {
+      enemy.hidden = false;
+      syncState();
+      await this._playAnimations([{ type: "enemy_reveal", uid: enemy.uid }]);
     }
 
     // Compute effective attack value
@@ -507,13 +536,7 @@ export class CombatEngine {
 
     const r = resolveActions(actions, p.current, enems, light.value, []);
     p.current = r.player;
-    for (let i = 0; i < enems.length; i++) {
-      const updated = r.enemies.find((e) => e.uid === enems[i].uid);
-      if (updated) enems[i] = updated;
-    }
-    for (const e of r.enemies) {
-      if (!enems.find((ex) => ex.uid === e.uid)) enems.push(e);
-    }
+    CombatEngine._syncEnemyArray(enems, r.enemies);
     light.value = r.lightLevel;
     r.log.forEach((l) => this._addLog(l));
 
@@ -568,13 +591,7 @@ export class CombatEngine {
       if (actions?.length) {
         const result = resolveActions(actions, p.current, enems, light.value, []);
         p.current = result.player;
-        for (let i = 0; i < enems.length; i++) {
-          const updated = result.enemies.find((e) => e.uid === enems[i].uid);
-          if (updated) enems[i] = updated;
-        }
-        for (const e of result.enemies) {
-          if (!enems.find((ex) => ex.uid === e.uid)) enems.push(e);
-        }
+        CombatEngine._syncEnemyArray(enems, result.enemies);
         light.value = result.lightLevel;
         result.log.forEach((l) => this._addLog(l));
 
@@ -648,10 +665,6 @@ export class CombatEngine {
       this._cb.onDefeat(p.current.gold);
       return;
     }
-
-    // Promote back row if needed
-    const promoted = this._promoteBackRow(enems);
-    for (let i = 0; i < enems.length; i++) enems[i] = promoted[i];
 
     syncState();
     this._phase = "player_turn";

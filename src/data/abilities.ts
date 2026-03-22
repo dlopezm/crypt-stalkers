@@ -173,7 +173,9 @@ const runThrough: Ability = {
       { type: "damage_enemy", targetUid: t.uid, amount: dmg, damageType: ctx.weapon.damageType },
     ];
     // Hit an enemy behind (in back row if target is front, or another back row enemy)
-    const behind = ctx.enemies.find((e) => e.hp > 0 && e.uid !== t.uid && e.row === "back");
+    const behind = ctx.enemies.find(
+      (e) => e.hp > 0 && !e.hidden && e.uid !== t.uid && e.row === "back",
+    );
     if (behind) {
       actions.push({
         type: "damage_enemy",
@@ -276,7 +278,7 @@ const groundSlam: Ability = {
   cooldown: 4,
   needsTarget: false,
   execute(ctx) {
-    const frontRow = ctx.enemies.filter((e) => e.hp > 0 && e.row === "front");
+    const frontRow = ctx.enemies.filter((e) => e.hp > 0 && !e.hidden && e.row === "front");
     const actions: Action[] = [{ type: "log", message: `\u{1F30B} Ground Slam!` }];
     for (const e of frontRow) {
       actions.push({
@@ -394,7 +396,9 @@ const cleave: Ability = {
       damageType: ctx.weapon.damageType,
     });
     // Hit adjacent foes in same row
-    const sameRow = ctx.enemies.filter((e) => e.hp > 0 && e.row === t.row && e.uid !== t.uid);
+    const sameRow = ctx.enemies.filter(
+      (e) => e.hp > 0 && !e.hidden && e.row === t.row && e.uid !== t.uid,
+    );
     for (const adj of sameRow) {
       actions.push({
         type: "damage_enemy",
@@ -637,7 +641,7 @@ const smokeBomb: Ability = {
   needsTarget: false,
   execute(ctx) {
     const actions: Action[] = [{ type: "log", message: `\u{1F4A8} Smoke Bomb!` }];
-    for (const e of ctx.enemies.filter((e) => e.hp > 0)) {
+    for (const e of ctx.enemies.filter((e) => e.hp > 0 && !e.hidden)) {
       actions.push({
         type: "apply_status_enemy",
         targetUid: e.uid,
@@ -740,9 +744,9 @@ function makeItemAbility(item: Consumable, index: number): Ability {
       }
       if (item.damage) {
         if (item.aoe) {
-          // Damage all living enemies
+          // Damage all living visible enemies
           for (const e of _ctx.enemies) {
-            if (e.hp <= 0) continue;
+            if (e.hp <= 0 || e.hidden) continue;
             actions.push({
               type: "damage_enemy",
               targetUid: e.uid,
@@ -768,7 +772,7 @@ function makeItemAbility(item: Consumable, index: number): Ability {
         const { status, stacks } = item.applyStatus;
         if (item.aoe) {
           for (const e of _ctx.enemies) {
-            if (e.hp <= 0) continue;
+            if (e.hp <= 0 || e.hidden) continue;
             actions.push({ type: "apply_status_enemy", targetUid: e.uid, status, stacks });
           }
         } else {

@@ -84,6 +84,7 @@ export const necromancerMechanics: CombatMechanics = {
       dead.hp = Math.floor(dead.maxHp * NECRO_REVIVE_HP_FRAC);
       dead.statuses = {};
       dead.reassembled = false;
+      dead.hidden = false;
       return [{ type: "log", message: `\u{1F9D9} Necro revives ${dead.name}!` }];
     }
     return [
@@ -105,21 +106,38 @@ export const zombieMechanics: CombatMechanics = {
 };
 
 export const ghoulMechanics: CombatMechanics = {
+  onStartCombat(self) {
+    return [{ type: "set_hidden", targetUid: self.uid, hidden: true }];
+  },
   onAttack(self) {
-    const turns = self.ambushTurns!;
-    if (turns <= 0) return null;
-    self.ambushTurns = turns - 1;
-    if (self.ambushTurns > 0) {
+    if (self.hidden) {
+      // Leap from the shadows — engine handles reveal animation
       return {
-        skip: true,
-        extraActions: [{ type: "log", message: `\u{1F9B4} ${self.name} crouches...` }],
+        damageMultiplier: AMBUSH_DMG_MULT,
+        extraActions: [
+          { type: "push_row", targetUid: self.uid, to: "front" as const },
+          { type: "set_hidden", targetUid: self.uid, hidden: false },
+          { type: "log", message: `\u{1F9B4} ${self.name} LEAPS from the darkness!` },
+        ],
       };
     }
-    // Leap! Re-hide afterward so the cycle repeats
-    self.ambushTurns = 2;
+    if (self.row === "front") {
+      // Retreat to back row
+      return {
+        skip: true,
+        extraActions: [
+          { type: "push_row", targetUid: self.uid, to: "back" as const },
+          { type: "log", message: `\u{1F9B4} ${self.name} slinks to the back...` },
+        ],
+      };
+    }
+    // Back row — hide
     return {
-      damageMultiplier: AMBUSH_DMG_MULT,
-      extraActions: [{ type: "log", message: `\u{1F9B4} ${self.name} LEAPS!` }],
+      skip: true,
+      extraActions: [
+        { type: "set_hidden", targetUid: self.uid, hidden: true },
+        { type: "log", message: `\u{1F9B4} ${self.name} vanishes into the shadows...` },
+      ],
     };
   },
 };
@@ -137,6 +155,7 @@ export const lichMechanics: CombatMechanics = {
     dead.hp = Math.floor(dead.maxHp * LICH_REVIVE_HP_FRAC);
     dead.statuses = {};
     dead.reassembled = false;
+    dead.hidden = false;
     return [{ type: "log", message: `\u2620\uFE0F Lich King raises ${dead.name}!` }];
   },
 };

@@ -27,9 +27,9 @@ export function makeEnemyData(id: string, existingUid?: string, hpOverride?: num
     block: 0,
     statuses: {},
     reassembled: false,
-    ambushTurns: b.ambushTurns ?? 0,
     summonCooldown: NECRO_SUMMON_COOLDOWN,
     row: b.defaultRow,
+    hidden: false,
   };
 }
 
@@ -47,9 +47,9 @@ export function toEnemyData({
   reassembled,
   summonCooldown,
   row,
-  ambushTurns,
+  hidden,
 }: Enemy): EnemyData {
-  return { id, uid, hp, block, statuses, reassembled, summonCooldown, row, ambushTurns };
+  return { id, uid, hp, block, statuses, reassembled, summonCooldown, row, hidden };
 }
 
 export function makeEnemy(id: string): Enemy {

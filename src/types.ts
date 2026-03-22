@@ -90,7 +90,8 @@ export type Action =
   // Logging
   | { type: "log"; message: string }
   // Enemy-specific
-  | { type: "skip_attack" };
+  | { type: "skip_attack" }
+  | { type: "set_hidden"; targetUid: string; hidden: boolean };
 
 /* ── Abilities ── */
 
@@ -161,6 +162,7 @@ export interface CombatContext {
 }
 
 export interface CombatMechanics {
+  onStartCombat?: (self: Enemy, ctx: CombatContext) => Action[];
   onTurnStart?: (self: Enemy, ctx: CombatContext) => Action[];
   onAttack?: (self: Enemy, ctx: CombatContext) => AttackResult | null;
   onReceiveHit?: (
@@ -212,7 +214,7 @@ export interface EnemyType {
   ascii: string;
   mechanic: string;
   evadeChance?: number;
-  ambushTurns?: number;
+
   isBoss?: boolean;
   defaultRow: "front" | "back";
   combatMechanics?: CombatMechanics;
@@ -237,10 +239,10 @@ export interface EnemyData {
   reassembled: boolean;
   summonCooldown: number;
   row: "front" | "back";
-  ambushTurns: number;
+  hidden: boolean;
 }
 
-export interface Enemy extends Omit<EnemyType, "ambushTurns">, EnemyData {}
+export interface Enemy extends EnemyType, EnemyData {}
 
 /* ── Dungeon ── */
 
@@ -377,7 +379,7 @@ export type AnimationEvent =
   | { type: "lifesteal"; attackerUid: string; amount: number }
   | { type: "drain_light"; amount: number }
   | { type: "weaken_aura"; attackerUid: string }
-  | { type: "ambush_leap"; attackerUid: string; damage: number }
   | { type: "phase"; targetUid: string }
   | { type: "screen_shake" }
-  | { type: "turn_label"; label: string };
+  | { type: "turn_label"; label: string }
+  | { type: "enemy_reveal"; uid: string };

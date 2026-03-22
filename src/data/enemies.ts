@@ -155,7 +155,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     loot: 12,
     ascii: "\u{1F9B4}",
     mechanic: "ambush",
-    ambushTurns: 2,
     defaultRow: "front",
     combatMechanics: ghoulMechanics,
     outOfCombatMechanics: ghoulDungeonMechanics,

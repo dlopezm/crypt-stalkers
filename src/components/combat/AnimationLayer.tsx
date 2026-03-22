@@ -81,6 +81,8 @@ export function AnimationLayer({
           return { uid: event.targetUid, dx: 0, dy: -16 };
         case "phase":
           return { uid: event.targetUid, dx: 0, dy: -10 };
+        case "enemy_reveal":
+          return { uid: event.uid, dx: 0, dy: -10 };
         default:
           return null;
       }
@@ -163,7 +165,8 @@ function EffectRenderer({ effect, onComplete }: { effect: ActiveEffect; onComple
     event.type !== "heal_enemy" &&
     event.type !== "block" &&
     event.type !== "status_apply" &&
-    event.type !== "phase";
+    event.type !== "phase" &&
+    event.type !== "enemy_reveal";
 
   useEffect(() => {
     if (isUnhandled) onComplete();
@@ -245,6 +248,12 @@ function EffectRenderer({ effect, onComplete }: { effect: ActiveEffect; onComple
             style="miss"
             onComplete={onComplete}
           />
+        </div>
+      );
+    case "enemy_reveal":
+      return (
+        <div className="absolute" style={{ left: x, top: y, transform: "translateX(-50%)" }}>
+          <FloatingNumber value="Emerged!" color="#d4a520" style="status" onComplete={onComplete} />
         </div>
       );
     default:

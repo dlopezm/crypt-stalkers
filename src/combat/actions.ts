@@ -271,6 +271,13 @@ export function resolveActions(
           break;
         }
 
+        case "set_hidden": {
+          const t = findEnemy(action.targetUid);
+          if (!t) break;
+          t.hidden = action.hidden;
+          break;
+        }
+
         case "skip_attack":
           break;
       }

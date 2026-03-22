@@ -38,8 +38,6 @@ const EnemyPanel = memo(function EnemyPanel({
   animState?: string;
 }) {
   const stunned = (enemy.statuses?.stun || 0) > 0;
-  const crouching = enemy.mechanic === "ambush" && (enemy.ambushTurns ?? 0) > 0;
-
   let animClass = "";
   if (animState === "attacked") animClass = "combat-anim-recoil";
   if (animState === "attacking") animClass = "combat-anim-lunge";
@@ -83,11 +81,6 @@ const EnemyPanel = memo(function EnemyPanel({
           {"\u2699"} {enemy.mechanic.replace("_", " ")} {"\u2139"}
         </div>
       )}
-      {crouching && (
-        <div className="text-[0.6rem] text-crypt-gold text-center mb-0.5">
-          {"\u{1F9B4}"} Crouching {enemy.ambushTurns}t
-        </div>
-      )}
       {stunned && (
         <div className="text-[0.6rem] text-crypt-gold text-center">{"\u26A1"} Stunned</div>
       )}
@@ -99,13 +92,11 @@ const EnemyPanel = memo(function EnemyPanel({
       )}
       <StatusBadges statuses={enemy.statuses} />
       <div className="text-[0.6rem] text-crypt-dim text-center mt-0.5 italic">
-        {crouching
-          ? "Preparing..."
-          : stunned
-            ? "Skip turn"
-            : enemy.atk === 0
-              ? "No attack"
-              : `ATK ${(enemy.statuses?.weaken || 0) > 0 ? Math.floor(enemy.atk * WEAKEN_DMG_MULT) : enemy.atk}`}
+        {stunned
+          ? "Skip turn"
+          : enemy.atk === 0
+            ? "No attack"
+            : `ATK ${(enemy.statuses?.weaken || 0) > 0 ? Math.floor(enemy.atk * WEAKEN_DMG_MULT) : enemy.atk}`}
       </div>
     </motion.div>
   );
@@ -212,7 +203,7 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
     enemyAnimStates,
     playerFlash,
   } = snap;
-  const liveEnems = enemies.filter((e) => e.hp > 0);
+  const liveEnems = enemies.filter((e) => e.hp > 0 && !e.hidden);
   const frontRow = liveEnems.filter((e) => e.row === "front");
   const backRow = liveEnems.filter((e) => e.row === "back");
   const weapon = p.mainWeapon;
@@ -222,8 +213,9 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
 
   // Auto-correct target if current target is dead or out of range
   const correctedTargetIdx = (() => {
-    if (targetIdx < enemies.length && enemies[targetIdx]?.hp > 0) return targetIdx;
-    const first = enemies.findIndex((e) => e.hp > 0);
+    if (targetIdx < enemies.length && enemies[targetIdx]?.hp > 0 && !enemies[targetIdx]?.hidden)
+      return targetIdx;
+    const first = enemies.findIndex((e) => e.hp > 0 && !e.hidden);
     return first >= 0 ? first : 0;
   })();
   if (correctedTargetIdx !== targetIdx) {
@@ -259,7 +251,7 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
   /* ── Target click handler ── */
   function handleEnemyClick(idx: number) {
     const enemy = enemies[idx];
-    if (!enemy || enemy.hp <= 0) return;
+    if (!enemy || enemy.hp <= 0 || enemy.hidden) return;
 
     if (subAction === "pick_target" && pendingAbility) {
       const reach = pendingAbility.reach || weapon.reach;
@@ -570,7 +562,7 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
             { row: "front" as const, list: frontRow, icon: "\u2694", label: "Front Row" },
           ].map(
             ({ row, list, icon, label }) =>
-              list.length > 0 && (
+              (list.length > 0 || row === "front") && (
                 <div key={row}>
                   <div className="text-[0.6rem] text-crypt-dim text-center tracking-wider mb-1 uppercase">
                     {icon} {label}
@@ -578,7 +570,7 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
                   <div className="flex gap-2 lg:gap-3 flex-wrap justify-center">
                     <AnimatePresence mode="popLayout">
                       {enemies.map((enemy, i) => {
-                        if (enemy.row !== row || enemy.hp <= 0) return null;
+                        if (enemy.row !== row || enemy.hp <= 0 || enemy.hidden) return null;
                         return (
                           <EnemyPanel
                             key={enemy.uid}
@@ -594,6 +586,12 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
                   </div>
                 </div>
               ),
+          )}
+
+          {liveEnems.length === 0 && phase !== "victory" && phase !== "defeat" && (
+            <div className="text-crypt-gold text-center italic text-sm py-4">
+              Something lurks in the darkness...
+            </div>
           )}
 
           {/* Player panel */}

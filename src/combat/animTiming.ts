@@ -11,6 +11,8 @@ export function animationDelay(event: AnimationEvent): number {
       return 480;
     case "spawn":
       return 540;
+    case "enemy_reveal":
+      return 600;
     case "block":
       return 180;
     default:
