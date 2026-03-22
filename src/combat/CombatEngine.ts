@@ -1,5 +1,5 @@
 import { ENEMY_TYPES } from "../data/enemies";
-import { getPlayerCombatAbilities, resolveChargingBlow } from "../data/abilities";
+import { ABILITIES, getPlayerCombatAbilities, resolveChargingBlow } from "../data/abilities";
 import {
   hydrateEnemy,
   makeEnemyData,
@@ -339,6 +339,13 @@ export class CombatEngine {
 
     const ctx = this._makeActionContext();
     const actions = ability.execute(ctx, targets);
+
+    // Inject cooldown from the ability definition (single source of truth).
+    // Charged abilities get their cooldown when the charge resolves (in _doEnemyTurn).
+    if (ability.cooldown > 0 && !actions.some((a) => a.type === "begin_charge")) {
+      actions.push({ type: "set_cooldown", abilityId: ability.id, turns: ability.cooldown });
+    }
+
     const { player, enemies, lightLevel } = this._state;
     const result = resolveActions(actions, player, enemies, lightLevel, []);
 
@@ -350,27 +357,8 @@ export class CombatEngine {
       }
     }
 
-    let np = { ...result.player, abilityCooldowns: tickedCooldowns };
-    let enems = result.enemies;
-
-    // Charging blow resolution
-    if (result.endTurn && np.chargingTurnsLeft !== undefined && np.chargingTurnsLeft > 0) {
-      np = { ...np, chargingTurnsLeft: np.chargingTurnsLeft - 1 };
-      if (np.chargingTurnsLeft === 0) {
-        const chargeCtx: ActionContext = {
-          player: np,
-          enemies: enems,
-          lightLevel: result.lightLevel,
-          weapon: np.mainWeapon,
-          offhandWeapon: np.offhandWeapon,
-        };
-        const chargeActions = resolveChargingBlow(chargeCtx);
-        const chargeResult = resolveActions(chargeActions, np, enems, result.lightLevel, []);
-        chargeResult.log.forEach((l) => this._addLog(l));
-        np = chargeResult.player;
-        enems = chargeResult.enemies;
-      }
-    }
+    const np = { ...result.player, abilityCooldowns: tickedCooldowns };
+    const enems = result.enemies;
 
     // Apply state and log
     result.log.forEach((l) => this._addLog(l));
@@ -671,6 +659,42 @@ export class CombatEngine {
       this._notify();
       this._cb.onDefeat(state.player.gold);
       return;
+    }
+
+    // Resolve charged abilities before handing control back
+    if (state.player.chargingTurnsLeft !== undefined && state.player.chargingTurnsLeft > 0) {
+      state.player.chargingTurnsLeft -= 1;
+      if (state.player.chargingTurnsLeft === 0) {
+        const chargeCtx: ActionContext = {
+          player: state.player,
+          enemies: state.enemies,
+          lightLevel: state.lightLevel,
+          weapon: state.player.mainWeapon,
+          offhandWeapon: state.player.offhandWeapon,
+        };
+        const chargeActions = resolveChargingBlow(chargeCtx);
+        const chargeDef = state.player.chargingAbility
+          ? ABILITIES.find((a) => a.id === state.player.chargingAbility)
+          : undefined;
+        if (chargeDef && chargeDef.cooldown > 0) {
+          chargeActions.push({
+            type: "set_cooldown",
+            abilityId: chargeDef.id,
+            turns: chargeDef.cooldown,
+          });
+        }
+        const chargeResult = resolveActions(
+          chargeActions,
+          state.player,
+          state.enemies,
+          state.lightLevel,
+          [],
+        );
+        state.player = chargeResult.player;
+        state.enemies = chargeResult.enemies;
+        state.lightLevel = chargeResult.lightLevel;
+        chargeResult.log.forEach((l) => this._addLog(l));
+      }
     }
 
     commit();

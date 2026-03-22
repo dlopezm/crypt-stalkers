@@ -99,7 +99,6 @@ const silentStab: Ability = {
     if (blindMiss(ctx)) {
       return [
         { type: "log", message: `\u{1F441}\uFE0F Blinded \u2014 miss!` },
-        { type: "set_cooldown", abilityId: "silent_stab", turns: 1 },
         { type: "end_turn" },
       ];
     }
@@ -109,7 +108,6 @@ const silentStab: Ability = {
     return [
       { type: "log", message: `\u{1F92B} Silent Stab:` },
       { type: "damage_enemy", targetUid: t.uid, amount: dmg, damageType: ctx.weapon.damageType },
-      { type: "set_cooldown", abilityId: "silent_stab", turns: 1 },
       { type: "end_turn" },
     ];
   },
@@ -128,7 +126,6 @@ const quickStrike: Ability = {
     if (blindMiss(ctx)) {
       return [
         { type: "log", message: `\u{1F441}\uFE0F Blinded \u2014 miss!` },
-        { type: "set_cooldown", abilityId: "quick_strike", turns: 3 },
         { type: "skip_end_turn" },
       ];
     }
@@ -138,7 +135,6 @@ const quickStrike: Ability = {
     return [
       { type: "log", message: `\u26A1 Quick Strike:` },
       { type: "damage_enemy", targetUid: t.uid, amount: dmg, damageType: ctx.weapon.damageType },
-      { type: "set_cooldown", abilityId: "quick_strike", turns: 3 },
       { type: "skip_end_turn" },
     ];
   },
@@ -161,7 +157,6 @@ const runThrough: Ability = {
     if (blindMiss(ctx)) {
       return [
         { type: "log", message: `\u{1F441}\uFE0F Blinded \u2014 miss!` },
-        { type: "set_cooldown", abilityId: "run_through", turns: 1 },
         { type: "end_turn" },
       ];
     }
@@ -185,7 +180,6 @@ const runThrough: Ability = {
       });
       actions.push({ type: "log", message: `\u{1F531} Pierces through to ${behind.name}!` });
     }
-    actions.push({ type: "set_cooldown", abilityId: "run_through", turns: 1 });
     actions.push({ type: "end_turn" });
     return actions;
   },
@@ -206,7 +200,6 @@ const hook: Ability = {
     const actions: Action[] = [
       { type: "log", message: `\u{1FA9D} Hook! Pulled ${t.name} to front row.` },
       { type: "push_row", targetUid: t.uid, to: "front" },
-      { type: "set_cooldown", abilityId: "hook", turns: 3 },
       { type: "end_turn" },
     ];
     return actions;
@@ -244,7 +237,6 @@ export function resolveChargingBlow(ctx: ActionContext): Action[] {
     return [
       { type: "log", message: `\u{1F441}\uFE0F Blinded \u2014 charged blow misses!` },
       { type: "resolve_charge" },
-      { type: "set_cooldown", abilityId: "charging_blow", turns: 2 },
     ];
   }
   const targetUid = ctx.player.chargingTargetUid;
@@ -265,7 +257,6 @@ export function resolveChargingBlow(ctx: ActionContext): Action[] {
       damageType: ctx.weapon.damageType,
     },
     { type: "resolve_charge" },
-    { type: "set_cooldown", abilityId: "charging_blow", turns: 2 },
   ];
 }
 
@@ -288,7 +279,6 @@ const groundSlam: Ability = {
         stacks: 2,
       });
     }
-    actions.push({ type: "set_cooldown", abilityId: "ground_slam", turns: 4 });
     actions.push({ type: "end_turn" });
     return actions;
   },
@@ -311,7 +301,6 @@ const piercingShot: Ability = {
     if (blindMiss(ctx)) {
       return [
         { type: "log", message: `\u{1F441}\uFE0F Blinded \u2014 miss!` },
-        { type: "set_cooldown", abilityId: "piercing_shot", turns: 2 },
         { type: "end_turn" },
       ];
     }
@@ -327,7 +316,6 @@ const piercingShot: Ability = {
         damageType: ctx.weapon.damageType,
         pierceArmor: true,
       },
-      { type: "set_cooldown", abilityId: "piercing_shot", turns: 2 },
       { type: "end_turn" },
     ];
   },
@@ -346,7 +334,6 @@ const throatShot: Ability = {
     if (blindMiss(ctx)) {
       return [
         { type: "log", message: `\u{1F441}\uFE0F Blinded \u2014 miss!` },
-        { type: "set_cooldown", abilityId: "throat_shot", turns: 3 },
         { type: "end_turn" },
       ];
     }
@@ -357,7 +344,6 @@ const throatShot: Ability = {
       { type: "log", message: `\u{1F910} Throat Shot!` },
       { type: "damage_enemy", targetUid: t.uid, amount: dmg, damageType: ctx.weapon.damageType },
       { type: "apply_status_enemy", targetUid: t.uid, status: "silence", stacks: 2 },
-      { type: "set_cooldown", abilityId: "throat_shot", turns: 3 },
       { type: "end_turn" },
     ];
   },
@@ -380,7 +366,6 @@ const cleave: Ability = {
     if (blindMiss(ctx)) {
       return [
         { type: "log", message: `\u{1F441}\uFE0F Blinded \u2014 miss!` },
-        { type: "set_cooldown", abilityId: "cleave", turns: 2 },
         { type: "end_turn" },
       ];
     }
@@ -407,7 +392,6 @@ const cleave: Ability = {
         damageType: ctx.weapon.damageType,
       });
     }
-    actions.push({ type: "set_cooldown", abilityId: "cleave", turns: 2 });
     actions.push({ type: "end_turn" });
     return actions;
   },
@@ -426,7 +410,6 @@ const deepGash: Ability = {
     if (blindMiss(ctx)) {
       return [
         { type: "log", message: `\u{1F441}\uFE0F Blinded \u2014 miss!` },
-        { type: "set_cooldown", abilityId: "deep_gash", turns: 2 },
         { type: "end_turn" },
       ];
     }
@@ -437,7 +420,6 @@ const deepGash: Ability = {
       { type: "log", message: `\u{1FA78} Deep Gash!` },
       { type: "damage_enemy", targetUid: t.uid, amount: dmg, damageType: ctx.weapon.damageType },
       { type: "apply_status_enemy", targetUid: t.uid, status: "bleed", stacks: 3 },
-      { type: "set_cooldown", abilityId: "deep_gash", turns: 2 },
       { type: "end_turn" },
     ];
   },
@@ -487,7 +469,6 @@ const shieldBash: Ability = {
       actions.push({ type: "push_row", targetUid: t.uid, to: "back" });
       actions.push({ type: "log", message: `${t.name} pushed to back row!` });
     }
-    actions.push({ type: "set_cooldown", abilityId: "shield_bash", turns: 2 });
     actions.push({ type: "end_turn" });
     return actions;
   },
