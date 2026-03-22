@@ -155,6 +155,12 @@ export interface HitResponse {
   damageMultiplier?: number;
 }
 
+export interface CombatState {
+  player: CombatPlayer;
+  enemies: Enemy[];
+  lightLevel: number;
+}
+
 export interface CombatContext {
   enemies: Enemy[];
   player: CombatPlayer;

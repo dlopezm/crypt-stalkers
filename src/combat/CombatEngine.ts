@@ -21,6 +21,7 @@ import type {
   Enemy,
   EnemyData,
   CombatPlayer,
+  CombatState,
   CombatContext,
   Ability,
   ActionContext,
@@ -74,9 +75,7 @@ export interface CombatCallbacks {
 
 export class CombatEngine {
   private _phase: CombatPhase = "player_turn";
-  private _enemies: Enemy[];
-  private _player: CombatPlayer;
-  private _lightLevel: number;
+  private _state: CombatState;
   private _log: string[] = [];
   private _animEvents: AnimationEvent[] = [];
   private _enemyAnimStates: Record<string, string> = {};
@@ -106,9 +105,11 @@ export class CombatEngine {
     this._cb = callbacks;
 
     if (opts?.restored) {
-      this._enemies = opts.restored.enemies.map(hydrateEnemy);
-      this._player = opts.restored.combatPlayer;
-      this._lightLevel = opts.restored.lightLevel;
+      this._state = {
+        player: opts.restored.combatPlayer,
+        enemies: opts.restored.enemies.map(hydrateEnemy),
+        lightLevel: opts.restored.lightLevel,
+      };
       this._log = opts.restored.combatLog;
     } else {
       let enems = room.enemies.map((e) =>
@@ -120,9 +121,8 @@ export class CombatEngine {
           statuses: { ...e.statuses, stun: 1 },
         }));
       if (room.trap === "flash") enems = enems.map((e) => ({ ...e, hp: Math.max(1, e.hp - 8) }));
-      this._enemies = enems;
 
-      this._player = {
+      let combatPlayer: CombatPlayer = {
         ...player,
         block: 0,
         stealthActive: false,
@@ -130,25 +130,27 @@ export class CombatEngine {
         abilityCooldowns: {},
       };
 
-      this._lightLevel = LIGHT_START;
+      let lightLevel = LIGHT_START;
       this._log = [`⚔ Combat begins: ${room.label}`];
 
       // Run onStartCombat hooks (e.g. ghoul hides)
       const startCtx: CombatContext = {
-        enemies: this._enemies,
-        player: this._player,
-        lightLevel: { value: this._lightLevel },
+        enemies: enems,
+        player: combatPlayer,
+        lightLevel: { value: lightLevel },
       };
-      for (const e of this._enemies) {
+      for (const e of enems) {
         const actions = e.combatMechanics?.onStartCombat?.(e, startCtx);
         if (actions?.length) {
-          const result = resolveActions(actions, this._player, this._enemies, this._lightLevel, []);
-          this._player = result.player;
-          this._enemies = result.enemies;
-          this._lightLevel = result.lightLevel;
+          const result = resolveActions(actions, combatPlayer, enems, lightLevel, []);
+          combatPlayer = result.player;
+          enems = result.enemies;
+          lightLevel = result.lightLevel;
           result.log.forEach((l) => this._log.push(l));
         }
       }
+
+      this._state = { player: combatPlayer, enemies: enems, lightLevel };
     }
 
     if (opts?.surpriseRound && !opts?.restored) {
@@ -173,26 +175,27 @@ export class CombatEngine {
   /* ── Public read-only snapshot ── */
 
   get snapshot(): CombatSnapshot {
+    const { player, enemies, lightLevel } = this._state;
     return {
       phase: this._phase,
-      enemies: this._enemies,
-      player: this._player,
-      lightLevel: this._lightLevel,
+      enemies: enemies.map((e) => ({ ...e, statuses: { ...(e.statuses || {}) } })),
+      player: { ...player, statuses: { ...player.statuses } },
+      lightLevel,
       log: this._log,
       animEvents: this._animEvents,
       enemyAnimStates: this._enemyAnimStates,
       playerFlash: this._playerFlash,
       victoryLoot: this._victoryLoot,
-      allAbilities: getPlayerCombatAbilities(this._player),
+      allAbilities: getPlayerCombatAbilities(player),
     };
   }
 
   /** Serializable state for Redux persistence / saves */
   get serializable() {
     return {
-      enemies: this._enemies.map(toEnemyData),
-      combatPlayer: this._player,
-      lightLevel: this._lightLevel,
+      enemies: this._state.enemies.map(toEnemyData),
+      combatPlayer: this._state.player,
+      lightLevel: this._state.lightLevel,
       combatLog: this._log,
     };
   }
@@ -202,17 +205,6 @@ export class CombatEngine {
   }
 
   /* ── Helpers ── */
-
-  /** Sync resolveActions results back into a mutable enemy array in-place. */
-  private static _syncEnemyArray(target: Enemy[], source: Enemy[]): void {
-    for (let i = 0; i < target.length; i++) {
-      const updated = source.find((e) => e.uid === target[i].uid);
-      if (updated) target[i] = updated;
-    }
-    for (const e of source) {
-      if (!target.find((ex) => ex.uid === e.uid)) target.push(e);
-    }
-  }
 
   private _addLog(msg: string) {
     this._log = [msg, ...this._log].slice(0, 200);
@@ -225,16 +217,16 @@ export class CombatEngine {
 
   private _makeActionContext(): ActionContext {
     return {
-      player: this._player,
-      enemies: this._enemies,
-      lightLevel: this._lightLevel,
-      weapon: this._player.mainWeapon,
-      offhandWeapon: this._player.offhandWeapon,
+      player: this._state.player,
+      enemies: this._state.enemies,
+      lightLevel: this._state.lightLevel,
+      weapon: this._state.player.mainWeapon,
+      offhandWeapon: this._state.player.offhandWeapon,
     };
   }
 
   private _checkVictory(): boolean {
-    const alive = this._enemies.filter((e) => e.hp > 0);
+    const alive = this._state.enemies.filter((e: Enemy) => e.hp > 0);
     if (!alive.length) {
       const loot = this._room.enemies.reduce(
         (s, e) => s + (ENEMY_TYPES.find((t) => t.id === e.typeId)?.loot || 0),
@@ -252,7 +244,9 @@ export class CombatEngine {
   canReach(reach: "melee" | "ranged", target: Enemy): boolean {
     if (target.hidden) return false;
     if (reach === "ranged") return true;
-    const aliveFront = this._enemies.filter((e) => e.hp > 0 && !e.hidden && e.row === "front");
+    const aliveFront = this._state.enemies.filter(
+      (e: Enemy) => e.hp > 0 && !e.hidden && e.row === "front",
+    );
     return target.row === "front" || aliveFront.length === 0;
   }
 
@@ -299,10 +293,10 @@ export class CombatEngine {
   /** Check if an ability is currently usable */
   isAbilityDisabled(ability: Ability): boolean {
     if (this._phase !== "player_turn") return true;
-    if ((this._player.abilityCooldowns[ability.id] || 0) > 0) return true;
-    if (ability.source.type === "building" && (this._player.statuses?.silence || 0) > 0)
+    if ((this._state.player.abilityCooldowns[ability.id] || 0) > 0) return true;
+    if (ability.source.type === "building" && (this._state.player.statuses?.silence || 0) > 0)
       return true;
-    if (this._player.chargingAbility) return true;
+    if (this._state.player.chargingAbility) return true;
     return false;
   }
 
@@ -334,7 +328,7 @@ export class CombatEngine {
         this._notify();
         // Small delay for the log to render
         await this._delay(300);
-        this._cb.onFlee(this._player);
+        this._cb.onFlee(this._state.player);
       } else {
         this._addLog("❌ Flee failed! Enemies get a free turn.");
         this._notify();
@@ -345,7 +339,8 @@ export class CombatEngine {
 
     const ctx = this._makeActionContext();
     const actions = ability.execute(ctx, targets);
-    const result = resolveActions(actions, this._player, this._enemies, this._lightLevel, []);
+    const { player, enemies, lightLevel } = this._state;
+    const result = resolveActions(actions, player, enemies, lightLevel, []);
 
     // Tick cooldowns at end of player turn
     const tickedCooldowns = { ...result.player.abilityCooldowns };
@@ -379,9 +374,7 @@ export class CombatEngine {
 
     // Apply state and log
     result.log.forEach((l) => this._addLog(l));
-    this._player = np;
-    this._enemies = enems;
-    this._lightLevel = result.lightLevel;
+    this._state = { player: np, enemies: enems, lightLevel: result.lightLevel };
 
     // Animate player action (phase already set to player_animating at method entry)
     this._notify();
@@ -405,15 +398,15 @@ export class CombatEngine {
     const isOffhand = w.hand === "offhand";
     let np: CombatPlayer;
     if (isOffhand) {
-      if (this._player.offhandWeapon?.id === w.id) {
-        np = { ...this._player, offhandWeapon: null };
+      if (this._state.player.offhandWeapon?.id === w.id) {
+        np = { ...this._state.player, offhandWeapon: null };
         this._addLog(`🔄 Unequipped ${w.name}`);
       } else {
-        np = { ...this._player, offhandWeapon: { ...w } };
+        np = { ...this._state.player, offhandWeapon: { ...w } };
         this._addLog(`🔄 Equipped ${w.name} (offhand)`);
       }
     } else {
-      np = { ...this._player, mainWeapon: { ...w } };
+      np = { ...this._state.player, mainWeapon: { ...w } };
       if (w.hand === "2") {
         np = { ...np, offhandWeapon: null };
       }
@@ -421,7 +414,7 @@ export class CombatEngine {
     }
     np = { ...np, abilityCooldowns: {} };
 
-    this._player = np;
+    this._state = { ...this._state, player: np };
     this._notify();
 
     if (!this._checkVictory()) {
@@ -469,24 +462,32 @@ export class CombatEngine {
 
   private async _processEnemyAttack(
     enemy: Enemy,
-    p: { current: CombatPlayer },
-    enems: Enemy[],
-    light: { value: number },
-    ctx: () => CombatContext,
-    syncState: () => void,
+    state: CombatState,
+    commit: () => void,
   ): Promise<void> {
+    const ctx: CombatContext = {
+      enemies: state.enemies,
+      player: state.player,
+      lightLevel: { value: state.lightLevel },
+    };
     const wasHidden = enemy.hidden;
-    const mechResult = enemy.combatMechanics?.onAttack?.(enemy, ctx()) ?? null;
+    const mechResult = enemy.combatMechanics?.onAttack?.(enemy, ctx) ?? null;
 
     if (mechResult?.skip) {
       if (mechResult.extraActions?.length) {
-        const r = resolveActions(mechResult.extraActions, p.current, enems, light.value, []);
-        p.current = r.player;
-        CombatEngine._syncEnemyArray(enems, r.enemies);
-        light.value = r.lightLevel;
+        const r = resolveActions(
+          mechResult.extraActions,
+          state.player,
+          state.enemies,
+          state.lightLevel,
+          [],
+        );
+        state.player = r.player;
+        state.enemies = r.enemies;
+        state.lightLevel = r.lightLevel;
         r.log.forEach((l) => this._addLog(l));
         if (r.anim.length > 0) {
-          await this._applyAndAnimate(r.anim, syncState);
+          await this._applyAndAnimate(r.anim, commit);
         }
       }
       return;
@@ -495,7 +496,7 @@ export class CombatEngine {
     // Reveal hidden enemy before attacking
     if (wasHidden) {
       enemy.hidden = false;
-      syncState();
+      commit();
       await this._playAnimations([{ type: "enemy_reveal", uid: enemy.uid }]);
     }
 
@@ -516,7 +517,7 @@ export class CombatEngine {
       actions.push({ type: "log", message: `🧛 ${enemy.name} heals ${st}` });
     }
 
-    if (p.current.counterActive && atk > 0) {
+    if (state.player.counterActive && atk > 0) {
       const reflect = Math.floor(atk * COUNTER_REFLECT_FRACTION);
       actions.push({
         type: "damage_enemy",
@@ -534,10 +535,10 @@ export class CombatEngine {
       actions.push(...mechResult.extraActions);
     }
 
-    const r = resolveActions(actions, p.current, enems, light.value, []);
-    p.current = r.player;
-    CombatEngine._syncEnemyArray(enems, r.enemies);
-    light.value = r.lightLevel;
+    const r = resolveActions(actions, state.player, state.enemies, state.lightLevel, []);
+    state.player = r.player;
+    state.enemies = r.enemies;
+    state.lightLevel = r.lightLevel;
     r.log.forEach((l) => this._addLog(l));
 
     // Build animation events
@@ -553,7 +554,7 @@ export class CombatEngine {
       });
     }
 
-    await this._applyAndAnimate(beatAnim, syncState, {
+    await this._applyAndAnimate(beatAnim, commit, {
       enemyAnimStates: { [enemy.uid]: "attacking" },
     });
   }
@@ -568,35 +569,39 @@ export class CombatEngine {
     this._notify();
     await this._playAnimations([{ type: "turn_label", label: "Enemy Turn" }]);
 
-    const enems = cloneEnemies(this._enemies);
-    const p = { current: { ...this._player, statuses: { ...this._player.statuses } } };
-    const light = { value: this._lightLevel };
-    const ctx = (): CombatContext => ({
-      enemies: enems,
-      player: p.current,
-      lightLevel: light,
-    });
+    const state: CombatState = {
+      player: { ...this._state.player, statuses: { ...this._state.player.statuses } },
+      enemies: cloneEnemies(this._state.enemies),
+      lightLevel: this._state.lightLevel,
+    };
 
-    /** Sync mutable working copies back into React-visible state */
-    const syncState = () => {
-      this._player = { ...p.current };
-      this._enemies = enems.map((e) => ({ ...e, statuses: { ...(e.statuses || {}) } }));
-      this._lightLevel = light.value;
+    /** Commit working state to the engine so React sees it */
+    const commit = () => {
+      this._state = {
+        player: { ...state.player },
+        enemies: state.enemies.map((e) => ({ ...e, statuses: { ...(e.statuses || {}) } })),
+        lightLevel: state.lightLevel,
+      };
     };
 
     // ── onTurnStart for each enemy (spawns, auras, etc.) ──
-    const aliveAtStart = enems.filter((e) => e.hp > 0);
+    const aliveAtStart = state.enemies.filter((e) => e.hp > 0);
     for (const enemy of aliveAtStart) {
-      const actions = enemy.combatMechanics?.onTurnStart?.(enemy, ctx());
+      const ctx: CombatContext = {
+        enemies: state.enemies,
+        player: state.player,
+        lightLevel: { value: state.lightLevel },
+      };
+      const actions = enemy.combatMechanics?.onTurnStart?.(enemy, ctx);
       if (actions?.length) {
-        const result = resolveActions(actions, p.current, enems, light.value, []);
-        p.current = result.player;
-        CombatEngine._syncEnemyArray(enems, result.enemies);
-        light.value = result.lightLevel;
+        const result = resolveActions(actions, state.player, state.enemies, state.lightLevel, []);
+        state.player = result.player;
+        state.enemies = result.enemies;
+        state.lightLevel = result.lightLevel;
         result.log.forEach((l) => this._addLog(l));
 
         if (result.anim.length > 0) {
-          await this._applyAndAnimate(result.anim, syncState, {
+          await this._applyAndAnimate(result.anim, commit, {
             enemyAnimStates: this._deriveEnemyAnimState(enemy.uid, result.anim),
           });
         }
@@ -604,84 +609,84 @@ export class CombatEngine {
     }
 
     // ── Individual enemy attacks — one beat per enemy ──
-    for (const enemy of enems) {
+    for (let i = 0; i < state.enemies.length; i++) {
+      const enemy = state.enemies[i];
       if (enemy.hp <= 0) continue;
       if ((enemy.statuses?.stun || 0) > 0) {
         this._addLog(`⚡ ${enemy.name} stunned.`);
         continue;
       }
-      if (p.current.stealthActive) continue;
+      if (state.player.stealthActive) continue;
 
-      await this._processEnemyAttack(enemy, p, enems, light, ctx, syncState);
+      await this._processEnemyAttack(enemy, state, commit);
 
-      if (p.current.hp <= 0) {
+      if (state.player.hp <= 0) {
+        commit();
         this._phase = "defeat";
         this._notify();
-        this._cb.onDefeat(p.current.gold);
+        this._cb.onDefeat(state.player.gold);
         return;
       }
     }
 
-    if (p.current.stealthActive) {
+    if (state.player.stealthActive) {
       this._addLog("👤 Enemies can't find you in the shadows!");
     }
 
     // ── Darkness damage ──
-    if (light.value <= 0) {
-      p.current.hp -= DARKNESS_DAMAGE;
+    if (state.lightLevel <= 0) {
+      state.player.hp -= DARKNESS_DAMAGE;
       this._addLog(`🌑 Darkness saps your life! -${DARKNESS_DAMAGE} HP`);
       await this._applyAndAnimate(
         [
           { type: "damage_player", amount: DARKNESS_DAMAGE },
           { type: "drain_light", amount: 0 },
         ],
-        syncState,
+        commit,
       );
     }
 
     // ── Tick statuses ──
-    const ptick = tickStatuses({ ...p.current, name: "You" });
-    p.current = { ...p.current, ...ptick.entity };
+    const ptick = tickStatuses({ ...state.player, name: "You" });
+    state.player = { ...state.player, ...ptick.entity };
     ptick.log.forEach((l) => this._addLog(l));
-    for (let i = 0; i < enems.length; i++) {
-      if (enems[i].hp <= 0) continue;
-      const t = tickStatuses(enems[i]);
+    for (let i = 0; i < state.enemies.length; i++) {
+      if (state.enemies[i].hp <= 0) continue;
+      const t = tickStatuses(state.enemies[i]);
       t.log.forEach((l) => this._addLog(l));
-      enems[i] = t.entity as Enemy;
+      state.enemies[i] = t.entity as Enemy;
     }
 
     // Reset per-turn buffs
-    p.current.block = 0;
-    p.current.stealthActive = false;
-    p.current.counterActive = false;
+    state.player.block = 0;
+    state.player.stealthActive = false;
+    state.player.counterActive = false;
 
     if (!isFleeFailure) this._addLog("— Your Turn —");
 
     // Check defeat after status ticks
-    if (p.current.hp <= 0) {
-      syncState();
+    if (state.player.hp <= 0) {
+      commit();
       this._phase = "defeat";
       this._notify();
-      this._cb.onDefeat(p.current.gold);
+      this._cb.onDefeat(state.player.gold);
       return;
     }
 
-    syncState();
+    commit();
     this._phase = "player_turn";
     this._notify();
   }
 
   /** Confirm victory — called by React after the victory loot display */
   confirmVictory() {
-    this._cb.onVictory(
-      { ...this._player, gold: this._player.gold + this._victoryLoot, block: 0 },
-      this._victoryLoot,
-    );
+    const p = this._state.player;
+    this._cb.onVictory({ ...p, gold: p.gold + this._victoryLoot, block: 0 }, this._victoryLoot);
   }
 
   /** Confirm defeat — called by React after the defeat display */
   confirmDefeat() {
-    this._cb.onDefeat(this._player.gold);
+    this._cb.onDefeat(this._state.player.gold);
   }
 
   /* ── Cleanup ── */
