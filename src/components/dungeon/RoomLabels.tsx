@@ -93,7 +93,7 @@ export function RoomLabels({
               top: `${cyPct}%`,
               transform: "translate(-50%, -50%)",
               fontSize: isCurrent ? "0.75rem" : "0.65rem",
-              color: isCurrent ? "#ece0c0" : visited ? "#7f8c8d" : "#5a4028",
+              color: isCurrent ? "#ece0c0" : visited ? "#000000" : "#5a4028",
               whiteSpace: "nowrap",
               textShadow: "0 1px 4px #000, 0 0 8px #000",
               letterSpacing: "0.04em",
