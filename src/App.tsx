@@ -5,6 +5,7 @@ import { generateDungeon } from "./utils/dungeon";
 import { loadGame, clearSave, hasSave } from "./utils/save";
 import { TitleScreen } from "./components/TitleScreen";
 import { TownScreen } from "./components/TownScreen";
+import { AuthoredDungeonEditor } from "./components/editor/AuthoredDungeonEditor";
 import { DungeonMap } from "./components/dungeon/DungeonMap";
 import { CombatScreen } from "./components/CombatScreen";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
@@ -267,8 +268,13 @@ export default function App() {
         player={player}
         onUpdatePlayer={updatePlayerAndSave}
         onEnterDungeon={enterDungeon}
+        onOpenEditor={() => dispatch(setScreen("editor"))}
       />
     );
+  }
+
+  if (screen === "editor") {
+    return <AuthoredDungeonEditor onBack={() => dispatch(setScreen("town"))} />;
   }
 
   if (screen === "victory") {

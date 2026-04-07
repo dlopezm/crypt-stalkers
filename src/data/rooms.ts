@@ -1,4 +1,5 @@
 import type { RoomTemplate, DungeonDef, TrapInfo } from "../types";
+import { PALE_VIGIL_VAULT } from "./dungeons/pale_vigil_vault";
 
 /* ── Room Templates ── */
 
@@ -148,6 +149,7 @@ const KITCHEN_SINK_COMBAT: RoomTemplate[] = [
 /* ── Dungeon Definitions ── */
 
 export const DUNGEONS: DungeonDef[] = [
+  PALE_VIGIL_VAULT,
   {
     id: "shallow_graves",
     name: "Shallow Graves",

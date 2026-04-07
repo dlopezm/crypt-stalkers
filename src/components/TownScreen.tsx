@@ -14,10 +14,12 @@ export function TownScreen({
   player,
   onUpdatePlayer,
   onEnterDungeon,
+  onOpenEditor,
 }: {
   player: Player;
   onUpdatePlayer: (p: Player) => void;
   onEnterDungeon: (def: DungeonDef) => void;
+  onOpenEditor: () => void;
 }) {
   const [activeBuilding, setActiveBuilding] = useState<ActiveBuilding>(null);
 
@@ -328,6 +330,9 @@ export function TownScreen({
         <div className="text-crypt-dim tracking-[0.25em] text-xs">
           {"\u25C6"} A HAVEN FROM DARKNESS {"\u25C6"}
         </div>
+        <button style={btnStyle("#3a2f25")} className="mt-2 text-xs" onClick={onOpenEditor}>
+          {"\u25C6"} Dungeon Editor {"\u25C6"}
+        </button>
       </div>
 
       {/* Player status bar */}

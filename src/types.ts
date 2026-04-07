@@ -1,4 +1,4 @@
-export type Screen = "title" | "town" | "map" | "combat" | "victory" | "gameover";
+export type Screen = "title" | "town" | "map" | "combat" | "victory" | "gameover" | "editor";
 
 export type StatusKey = "bleed" | "weaken" | "blind" | "silence" | "poison" | "stun";
 export type Statuses = Partial<Record<StatusKey, number>>;
@@ -268,6 +268,19 @@ export interface RoomTemplate {
   hint: string;
 }
 
+export interface AuthoredRoom {
+  label: string;
+  hint: string;
+  enemies: string[];
+  isStart?: boolean;
+  isBoss?: boolean;
+}
+
+export interface AuthoredLayout {
+  grid: number[][];
+  rooms: Record<number, AuthoredRoom>;
+}
+
 export interface DungeonDef {
   id: string;
   name: string;
@@ -275,7 +288,8 @@ export interface DungeonDef {
   difficulty: number;
   combatRooms: RoomTemplate[];
   bossRoom: RoomTemplate;
-  generator?: "stamp";
+  generator?: "stamp" | "authored";
+  authored?: AuthoredLayout;
 }
 
 export interface RoomBBox {

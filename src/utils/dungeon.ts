@@ -34,7 +34,7 @@ interface ExtractedRoom {
   cy: number;
 }
 
-function extractRoomsFromGrid(grid: number[][]): {
+export function extractRoomsFromGrid(grid: number[][]): {
   rooms: ExtractedRoom[];
   connections: [number, number][];
 } {
@@ -170,45 +170,76 @@ function generateGrid(def: DungeonDef): {
 }
 
 export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
-  const { grid, extracted } = generateGrid(def);
+  const authored = def.generator === "authored" ? def.authored : undefined;
+
+  let grid: number[][];
+  let extracted: ReturnType<typeof extractRoomsFromGrid>;
+  if (authored) {
+    grid = authored.grid;
+    extracted = extractRoomsFromGrid(grid);
+  } else {
+    const generated = generateGrid(def);
+    grid = generated.grid;
+    extracted = generated.extracted;
+  }
 
   const { rooms: extractedRooms, connections } = extracted;
 
-  // Pick start room (closest to top-left corner)
-  const sortedByCorner = [...extractedRooms].sort((a, b) => a.cx + a.cy - (b.cx + b.cy));
-  const startGridId = sortedByCorner[0].gridId;
-
-  // Build temporary adjacency for BFS to find farthest room for boss
-  const adjMap = new Map<number, Set<number>>();
-  for (const room of extractedRooms) {
-    adjMap.set(room.gridId, new Set());
-  }
-  for (const [a, b] of connections) {
-    adjMap.get(a)?.add(b);
-    adjMap.get(b)?.add(a);
-  }
-
-  // BFS from start to find farthest room
-  const distFromStart = new Map<number, number>();
-  distFromStart.set(startGridId, 0);
-  const bfsQueue = [startGridId];
-  while (bfsQueue.length) {
-    const cur = bfsQueue.shift()!;
-    const d = distFromStart.get(cur)!;
-    for (const nb of adjMap.get(cur) || []) {
-      if (!distFromStart.has(nb)) {
-        distFromStart.set(nb, d + 1);
-        bfsQueue.push(nb);
+  // Pick start and boss rooms: from authored metadata if available, else derive from layout
+  let startGridId: number;
+  let bossGridId: number;
+  if (authored) {
+    const startEntry = Object.entries(authored.rooms).find(([, r]) => r.isStart);
+    if (!startEntry) {
+      throw new Error(`Authored dungeon "${def.id}" has no room flagged isStart.`);
+    }
+    const bossEntries = Object.entries(authored.rooms).filter(([, r]) => r.isBoss);
+    if (bossEntries.length !== 1) {
+      throw new Error(
+        `Authored dungeon "${def.id}" must have exactly one isBoss room (found ${bossEntries.length}).`,
+      );
+    }
+    for (const room of extractedRooms) {
+      if (!authored.rooms[room.gridId]) {
+        throw new Error(
+          `Authored dungeon "${def.id}" grid contains room ID ${room.gridId} with no metadata entry.`,
+        );
       }
     }
-  }
+    startGridId = Number(startEntry[0]);
+    bossGridId = Number(bossEntries[0][0]);
+  } else {
+    // Pick start nearest the top-left corner, then BFS to place the boss in the
+    // farthest-reachable room. Only runs for generated layouts; authored dungeons
+    // get both from metadata.
+    const sortedByCorner = [...extractedRooms].sort((a, b) => a.cx + a.cy - (b.cx + b.cy));
+    startGridId = sortedByCorner[0].gridId;
 
-  let bossGridId = startGridId;
-  let maxDist = 0;
-  for (const [gid, d] of distFromStart) {
-    if (d > maxDist) {
-      maxDist = d;
-      bossGridId = gid;
+    const adjMap = new Map<number, Set<number>>();
+    for (const room of extractedRooms) adjMap.set(room.gridId, new Set());
+    for (const [a, b] of connections) {
+      adjMap.get(a)?.add(b);
+      adjMap.get(b)?.add(a);
+    }
+    const distFromStart = new Map<number, number>([[startGridId, 0]]);
+    const bfsQueue = [startGridId];
+    while (bfsQueue.length) {
+      const cur = bfsQueue.shift()!;
+      const d = distFromStart.get(cur)!;
+      for (const nb of adjMap.get(cur) || []) {
+        if (!distFromStart.has(nb)) {
+          distFromStart.set(nb, d + 1);
+          bfsQueue.push(nb);
+        }
+      }
+    }
+    bossGridId = startGridId;
+    let maxDist = 0;
+    for (const [gid, d] of distFromStart) {
+      if (d > maxDist) {
+        maxDist = d;
+        bossGridId = gid;
+      }
     }
   }
 
@@ -231,7 +262,10 @@ export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
     gridIdToNodeId.set(room.gridId, nodeId);
 
     let tmpl: RoomTemplate;
-    if (isStart) {
+    if (authored) {
+      const ar = authored.rooms[room.gridId];
+      tmpl = { label: ar.label, enemies: [...ar.enemies], hint: ar.hint };
+    } else if (isStart) {
       tmpl = { label: "Entrance", enemies: [], hint: "" };
     } else if (isBoss) {
       tmpl = { ...def.bossRoom };
