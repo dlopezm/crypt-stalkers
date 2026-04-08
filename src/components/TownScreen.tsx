@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useAppDispatch, useAppSelector } from "../store";
+import { toggleDebugMode } from "../store/debugSlice";
 import { btnStyle } from "../styles";
 import { BUILDINGS } from "../data/buildings";
 import { WEAPONS } from "../data/weapons";
@@ -22,6 +24,8 @@ export function TownScreen({
   onOpenEditor: () => void;
 }) {
   const [activeBuilding, setActiveBuilding] = useState<ActiveBuilding>(null);
+  const dispatch = useAppDispatch();
+  const debugMode = useAppSelector((s) => s.debug.debugMode);
 
   const bld = (id: string) => player.buildings[id];
 
@@ -330,9 +334,29 @@ export function TownScreen({
         <div className="text-crypt-dim tracking-[0.25em] text-xs">
           {"\u25C6"} A HAVEN FROM DARKNESS {"\u25C6"}
         </div>
-        <button style={btnStyle("#3a2f25")} className="mt-2 text-xs" onClick={onOpenEditor}>
-          {"\u25C6"} Dungeon Editor {"\u25C6"}
-        </button>
+        <div className="mt-2 flex gap-2 justify-center flex-wrap">
+          <button
+            style={btnStyle(debugMode ? "#9b59b6" : "#3a2f25")}
+            className="text-xs"
+            onClick={() => dispatch(toggleDebugMode())}
+          >
+            {"\u{1F6E0}"} Debug {debugMode ? "ON" : "OFF"}
+          </button>
+          {debugMode && (
+            <>
+              <button style={btnStyle("#3a2f25")} className="text-xs" onClick={onOpenEditor}>
+                {"\u25C6"} Dungeon Editor {"\u25C6"}
+              </button>
+              <button
+                style={btnStyle("#6a5020")}
+                className="text-xs"
+                onClick={() => onUpdatePlayer({ ...player, gold: player.gold + 500 })}
+              >
+                +500 {"\u{1FA99}"}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Player status bar */}
