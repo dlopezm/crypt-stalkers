@@ -4,9 +4,9 @@ import { BUILDINGS } from "../data/buildings";
 import { WEAPONS } from "../data/weapons";
 import { CONSUMABLES } from "../data/consumables";
 import { ABILITIES } from "../data/abilities";
-import { DUNGEONS } from "../data/rooms";
+import { AREAS } from "../data/rooms";
 import { HpBar, StatusBadges } from "./shared";
-import type { Player, Weapon, Consumable, BuildingDef, DungeonDef } from "../types";
+import type { Player, Weapon, Consumable, BuildingDef, AreaDef } from "../types";
 
 type ActiveBuilding = string | null;
 
@@ -18,7 +18,7 @@ export function TownScreen({
 }: {
   player: Player;
   onUpdatePlayer: (p: Player) => void;
-  onEnterDungeon: (def: DungeonDef) => void;
+  onEnterDungeon: (def: AreaDef) => void;
   onOpenEditor: () => void;
 }) {
   const [activeBuilding, setActiveBuilding] = useState<ActiveBuilding>(null);
@@ -418,13 +418,15 @@ export function TownScreen({
                 {"\u2620"} Choose Your Descent {"\u2620"}
               </div>
               <div className="flex gap-3 flex-wrap justify-center">
-                {DUNGEONS.map((d) => (
+                {AREAS.filter((d) => !d.hiddenFromTown).map((d) => (
                   <div
                     key={d.id}
                     className="panel flex flex-col items-center gap-2"
                     style={{ width: "200px" }}
                   >
-                    <div className="text-sm font-bold text-crypt-text text-center">{d.name}</div>
+                    <div className="text-sm font-bold text-crypt-text text-center">
+                      {d.townName ?? d.name}
+                    </div>
                     <div
                       className="text-sm tracking-wider"
                       style={{ color: diffColor(d.difficulty) }}

@@ -13,21 +13,22 @@ preloadTarotImages();
 // Guards prevent saving incomplete state during multi-dispatch operations.
 store.subscribe(() => {
   const state = store.getState();
-  const { player, dungeon: d, combat, screen } = state;
+  const { player, area: a, combat, screen } = state;
 
   if (screen === "title" || !player) return;
-  // Skip if screen requires dungeon but it isn't set yet (mid-continueGame)
-  if ((screen === "map" || screen === "combat") && !d.dungeon) return;
+  // Skip if screen requires area but it isn't set yet (mid-continueGame)
+  if ((screen === "map" || screen === "combat") && !a.area) return;
 
   saveGame({
     player,
     screen,
-    dungeon: d.dungeon,
-    dungeonGrid: d.dungeonGrid,
-    dungeonDef: d.dungeonDef,
-    currentRoomId: d.currentRoomId,
-    dungeonLog: d.dungeonLog,
-    dungeonTurn: d.dungeonTurn,
+    area: a.area,
+    areaGrid: a.areaGrid,
+    areaDef: a.areaDef,
+    currentRoomId: a.currentRoomId,
+    areaLog: a.areaLog,
+    areaTurn: a.areaTurn,
+    visitedAreas: a.visitedAreas,
     combat:
       combat.enemies && combat.combatPlayer
         ? {

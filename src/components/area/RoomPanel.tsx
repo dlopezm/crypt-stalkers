@@ -1,7 +1,7 @@
 import { btnStyle } from "../../styles";
 import { TRAP_INFO } from "../../data/rooms";
 import { BLOCK_DOOR_COST } from "../../data/constants";
-import type { DungeonNode, Player } from "../../types";
+import type { AreaNode, Player } from "../../types";
 
 export function RoomPanel({
   node,
@@ -16,7 +16,7 @@ export function RoomPanel({
   onSetTrap,
   onBlockDoor,
 }: {
-  node: DungeonNode | null;
+  node: AreaNode | null;
   currentRoomId: string;
   adjacentIds: Set<string>;
   debugMode: boolean;
@@ -45,7 +45,7 @@ export function RoomPanel({
         <p className="text-sm text-crypt-gold mb-1">{"\u2691"} You are here.</p>
       )}
 
-      {node.id !== currentRoomId && node.enemies.length > 0 && (
+      {node.id !== currentRoomId && node.enemies.length > 0 && !node.exit && (
         <div className="text-sm text-crypt-muted mb-2 leading-relaxed">
           {debugMode ? (
             <span className="text-crypt-purple">
@@ -79,14 +79,23 @@ export function RoomPanel({
         </div>
       )}
 
+      {node.exit && node.id !== currentRoomId && (
+        <p className="text-sm text-crypt-gold mb-2 leading-relaxed">
+          {"\u{1F6AA}"} A way through to another part of the dungeon.
+        </p>
+      )}
+
       <div className="flex flex-col gap-1.5">
         {(adjacentIds.has(node.id) || debugMode) && !node.blocked && node.id !== currentRoomId && (
-          <button style={btnStyle("#8b0000")} onClick={() => onEnterRoom(node.id)}>
-            Enter
+          <button
+            style={btnStyle(node.exit ? "#8b6914" : "#8b0000")}
+            onClick={() => onEnterRoom(node.id)}
+          >
+            {node.exit ? `\u{1F6AA} Travel — ${node.label}` : "Enter"}
           </button>
         )}
 
-        {adjacentIds.has(node.id) && node.id !== currentRoomId && (
+        {adjacentIds.has(node.id) && node.id !== currentRoomId && !node.exit && (
           <div className="flex gap-1">
             <button
               title="Listen at door (quiet, safe)"
@@ -117,6 +126,7 @@ export function RoomPanel({
 
         {(adjacentIds.has(node.id) || node.id === currentRoomId) &&
           node.enemies.length > 0 &&
+          !node.exit &&
           !node.trap && (
             <div className="flex gap-1 flex-wrap">
               {Object.entries(TRAP_INFO).map(([key, t]) => (
@@ -138,6 +148,7 @@ export function RoomPanel({
 
         {(adjacentIds.has(node.id) || node.id === currentRoomId) &&
           node.enemies.length > 0 &&
+          !node.exit &&
           !node.blocked && (
             <button
               style={btnStyle("#2980b9", player.gold < BLOCK_DOOR_COST)}

@@ -1,15 +1,15 @@
 import { ENEMY_TYPES } from "../data/enemies";
 import type {
-  DungeonNode,
-  DungeonEnemy,
-  DungeonDef,
-  DungeonGrid,
+  AreaNode,
+  AreaEnemy,
+  AreaDef,
+  AreaGrid,
   RoomTemplate,
   RoomBBox,
   AILogEntry,
   SoundVolume,
-  DungeonAction,
-  DungeonAIContext,
+  AreaAction,
+  AreaAIContext,
   OutOfCombatMechanics,
 } from "../types";
 import { shuffle, uid } from "./helpers";
@@ -146,12 +146,12 @@ export function extractRoomsFromGrid(grid: number[][]): {
   return { rooms, connections };
 }
 
-export interface GenerateDungeonResult {
-  nodes: DungeonNode[];
-  grid: DungeonGrid;
+export interface GenerateAreaResult {
+  nodes: AreaNode[];
+  grid: AreaGrid;
 }
 
-function generateGrid(def: DungeonDef): {
+function generateGrid(def: AreaDef): {
   grid: number[][];
   extracted: ReturnType<typeof extractRoomsFromGrid>;
 } {
@@ -169,7 +169,7 @@ function generateGrid(def: DungeonDef): {
   return { grid, extracted: extractRoomsFromGrid(grid) };
 }
 
-export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
+export function generateArea(def: AreaDef): GenerateAreaResult {
   const authored = def.generator === "authored" ? def.authored : undefined;
 
   let grid: number[][];
@@ -187,27 +187,28 @@ export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
 
   // Pick start and boss rooms: from authored metadata if available, else derive from layout
   let startGridId: number;
-  let bossGridId: number;
+  // -1 signals "no boss room" — valid for authored transit areas.
+  let bossGridId: number = -1;
   if (authored) {
     const startEntry = Object.entries(authored.rooms).find(([, r]) => r.isStart);
     if (!startEntry) {
-      throw new Error(`Authored dungeon "${def.id}" has no room flagged isStart.`);
+      throw new Error(`Authored area "${def.id}" has no room flagged isStart.`);
     }
     const bossEntries = Object.entries(authored.rooms).filter(([, r]) => r.isBoss);
-    if (bossEntries.length !== 1) {
+    if (bossEntries.length > 1) {
       throw new Error(
-        `Authored dungeon "${def.id}" must have exactly one isBoss room (found ${bossEntries.length}).`,
+        `Authored area "${def.id}" must have at most one isBoss room (found ${bossEntries.length}).`,
       );
     }
     for (const room of extractedRooms) {
       if (!authored.rooms[room.gridId]) {
         throw new Error(
-          `Authored dungeon "${def.id}" grid contains room ID ${room.gridId} with no metadata entry.`,
+          `Authored area "${def.id}" grid contains room ID ${room.gridId} with no metadata entry.`,
         );
       }
     }
     startGridId = Number(startEntry[0]);
-    bossGridId = Number(bossEntries[0][0]);
+    bossGridId = bossEntries.length === 1 ? Number(bossEntries[0][0]) : -1;
   } else {
     // Pick start nearest the top-left corner, then BFS to place the boss in the
     // farthest-reachable room. Only runs for generated layouts; authored dungeons
@@ -255,7 +256,7 @@ export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
     return { ...t };
   }
 
-  const nodes: DungeonNode[] = extractedRooms.map((room) => {
+  const nodes: AreaNode[] = extractedRooms.map((room) => {
     const isStart = room.gridId === startGridId;
     const isBoss = room.gridId === bossGridId;
     const nodeId = isStart ? "start" : uid("room");
@@ -267,7 +268,7 @@ export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
       tmpl = { label: ar.label, enemies: [...ar.enemies], hint: ar.hint };
     } else if (isStart) {
       tmpl = { label: "Entrance", enemies: [], hint: "" };
-    } else if (isBoss) {
+    } else if (isBoss && def.bossRoom) {
       tmpl = { ...def.bossRoom };
     } else {
       tmpl = pickCombatTemplate();
@@ -305,6 +306,23 @@ export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
     if (!bNode.connections.includes(aId)) bNode.connections.push(aId);
   }
 
+  // Cross-area transitions: any authored room with an `exit` field gets its
+  // node's `exit` populated. The room is otherwise a normal room — the author
+  // controls its grid placement, label, and neighbors. enterRoom checks `exit`
+  // and routes to switchArea instead of the usual enter flow.
+  if (authored) {
+    for (const room of extractedRooms) {
+      const ar = authored.rooms[room.gridId];
+      if (!ar?.exit) continue;
+      const nodeId = gridIdToNodeId.get(room.gridId);
+      if (!nodeId) continue;
+      const node = nodes.find((n) => n.id === nodeId)!;
+      node.exit = { toAreaId: ar.exit.toAreaId, toRoomGridId: ar.exit.toRoomGridId };
+      // Exit rooms are travel-only: never populate enemies.
+      node.enemies = [];
+    }
+  }
+
   // Mark rooms adjacent to start as reachable
   const startNode = nodes.find((n) => n.id === "start")!;
   for (const cid of startNode.connections) {
@@ -319,7 +337,7 @@ export function generateDungeon(def: DungeonDef): GenerateDungeonResult {
 }
 
 /* ── BFS distance from a room to all other rooms ── */
-export function roomDistances(rooms: DungeonNode[], fromId: string): Map<string, number> {
+export function roomDistances(rooms: AreaNode[], fromId: string): Map<string, number> {
   const dist = new Map<string, number>();
   dist.set(fromId, 0);
   const queue = [fromId];
@@ -349,8 +367,8 @@ const ACTION_NOISE: Record<string, "quiet" | "medium" | "loud"> = {
   rest: "quiet",
 };
 
-export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, action = "move") {
-  const rooms = dungeon.map((r) => ({ ...r, enemies: [...r.enemies], corpses: { ...r.corpses } }));
+export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "move") {
+  const rooms = area.map((r) => ({ ...r, enemies: [...r.enemies], corpses: { ...r.corpses } }));
   const aiLog: AILogEntry[] = [];
   const arrivedInPlayerRoom: string[] = [];
 
@@ -358,9 +376,9 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
   const byId = (id: string) => rooms.find((r) => r.id === id);
 
   function moveEnemy(
-    enemy: DungeonEnemy,
-    fromRoom: DungeonNode,
-    toRoom: DungeonNode,
+    enemy: AreaEnemy,
+    fromRoom: AreaNode,
+    toRoom: AreaNode,
     reason: string,
     mechanics?: OutOfCombatMechanics,
   ): boolean {
@@ -406,11 +424,11 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
     return true;
   }
 
-  function executeDungeonActions(
-    actions: DungeonAction[],
-    enemy: DungeonEnemy,
-    room: DungeonNode,
-    neighbours: DungeonNode[],
+  function executeAreaActions(
+    actions: AreaAction[],
+    enemy: AreaEnemy,
+    room: AreaNode,
+    neighbours: AreaNode[],
     mechanics: OutOfCombatMechanics,
   ) {
     let moved = false;
@@ -450,7 +468,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
           break;
         }
         case "reproduce": {
-          const newEnemy: DungeonEnemy = { typeId: enemy.typeId, uid: uid(enemy.typeId) };
+          const newEnemy: AreaEnemy = { typeId: enemy.typeId, uid: uid(enemy.typeId) };
           room.enemies = [...room.enemies, newEnemy];
           break;
         }
@@ -499,7 +517,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
               const hpOverride = etype
                 ? Math.max(1, Math.floor(etype.maxHp * hpFraction))
                 : undefined;
-              const newEnemy: DungeonEnemy = { typeId, uid: uid(typeId), hpOverride };
+              const newEnemy: AreaEnemy = { typeId, uid: uid(typeId), hpOverride };
               room.enemies = [...room.enemies, newEnemy];
               if (room.id === currentRoomId) arrivedInPlayerRoom.push(newEnemy.uid);
               aiLog.push({
@@ -522,7 +540,7 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
     if (room.id === currentRoomId) return;
     if (!room.enemies.length) return;
 
-    const neighbours = room.connections.map((id) => byId(id)).filter(Boolean) as DungeonNode[];
+    const neighbours = room.connections.map((id) => byId(id)).filter(Boolean) as AreaNode[];
     const snapshot = [...room.enemies];
 
     for (const enemy of snapshot) {
@@ -532,16 +550,16 @@ export function runDungeonAI(dungeon: DungeonNode[], currentRoomId: string, acti
       const mechanics = etype?.outOfCombatMechanics;
       if (!mechanics) continue;
 
-      const ctx: DungeonAIContext = { rooms, currentRoomId, room, neighbours, noise, byId };
+      const ctx: AreaAIContext = { rooms, currentRoomId, room, neighbours, noise, byId };
       const actions = mechanics.onTick(enemy, ctx);
-      executeDungeonActions(actions, enemy, room, neighbours, mechanics);
+      executeAreaActions(actions, enemy, room, neighbours, mechanics);
     }
   });
 
-  return { newDungeon: rooms, aiLog, arrivedInPlayerRoom };
+  return { newArea: rooms, aiLog, arrivedInPlayerRoom };
 }
 
-export function getScoutIntel(room: DungeonNode, scoutLevel: number): string {
+export function getScoutIntel(room: AreaNode, scoutLevel: number): string {
   if (!room) return "Nothing unusual.";
   const count = room.enemies.length;
   if (count === 0) {

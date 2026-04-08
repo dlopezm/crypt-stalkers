@@ -17,7 +17,7 @@ import {
 import { resolveActions } from "./actions";
 import { animationDelay } from "./animTiming";
 import type {
-  DungeonNode,
+  AreaNode,
   Enemy,
   EnemyData,
   CombatPlayer,
@@ -81,13 +81,13 @@ export class CombatEngine {
   private _enemyAnimStates: Record<string, string> = {};
   private _playerFlash: string | null = null;
   private _victoryLoot = 0;
-  private _room: DungeonNode;
+  private _room: AreaNode;
   private _cb: CombatCallbacks;
   private _animAbort: AbortController | null = null;
   private _destroyed = false;
 
   constructor(
-    room: DungeonNode,
+    room: AreaNode,
     player: Player,
     callbacks: CombatCallbacks,
     opts?: {

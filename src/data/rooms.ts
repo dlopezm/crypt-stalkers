@@ -1,5 +1,10 @@
-import type { RoomTemplate, DungeonDef, TrapInfo } from "../types";
-import { PALE_VIGIL_VAULT } from "./dungeons/pale_vigil_vault";
+import type { RoomTemplate, AreaDef, TrapInfo } from "../types";
+import { PALE_VIGIL_VAULT } from "./areas/pale_vigil_vault";
+import { SALT_BARRIER_NORTH } from "./areas/salt_barrier_north";
+import { SALT_BARRIER_EAST } from "./areas/salt_barrier_east";
+import { SALT_BARRIER_SOUTH } from "./areas/salt_barrier_south";
+import { SALT_BARRIER_WEST } from "./areas/salt_barrier_west";
+import { BARRACKS } from "./areas/barracks";
 
 /* ── Room Templates ── */
 
@@ -148,8 +153,13 @@ const KITCHEN_SINK_COMBAT: RoomTemplate[] = [
 
 /* ── Dungeon Definitions ── */
 
-export const DUNGEONS: DungeonDef[] = [
+export const AREAS: AreaDef[] = [
   PALE_VIGIL_VAULT,
+  SALT_BARRIER_NORTH,
+  SALT_BARRIER_EAST,
+  SALT_BARRIER_SOUTH,
+  SALT_BARRIER_WEST,
+  BARRACKS,
   {
     id: "shallow_graves",
     name: "Shallow Graves",

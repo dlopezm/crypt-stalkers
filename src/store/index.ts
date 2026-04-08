@@ -2,7 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { useDispatch, useSelector } from "react-redux";
 import screenReducer from "./screenSlice";
 import playerReducer from "./playerSlice";
-import dungeonReducer from "./dungeonSlice";
+import areaReducer from "./areaSlice";
 import combatReducer from "./combatSlice";
 import debugReducer from "./debugSlice";
 
@@ -10,7 +10,7 @@ export const store = configureStore({
   reducer: {
     screen: screenReducer,
     player: playerReducer,
-    dungeon: dungeonReducer,
+    area: areaReducer,
     combat: combatReducer,
     debug: debugReducer,
   },

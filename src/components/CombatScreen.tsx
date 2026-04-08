@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { btnStyle } from "../styles";
 import { WEAKEN_DMG_MULT, LIGHT_MAX } from "../data/constants";
 import { CombatEngine, type CombatSnapshot, type CombatCallbacks } from "../combat/CombatEngine";
-import type { DungeonNode, Enemy, Ability, Weapon } from "../types";
+import type { AreaNode, Enemy, Ability, Weapon } from "../types";
 import { useAppDispatch, useAppSelector } from "../store";
 import { updateCombatState } from "../store/combatSlice";
 import { combatVictory, combatDefeat, fleeToMap } from "../store/thunks";
@@ -104,7 +104,7 @@ const EnemyPanel = memo(function EnemyPanel({
 
 /* ── Combat Screen (inner, receives ScreenShake context) ── */
 
-function CombatScreenInner({ room }: { room: DungeonNode }) {
+function CombatScreenInner({ room }: { room: AreaNode }) {
   const dispatch = useAppDispatch();
 
   // Read initial combat state from store (set by App.tsx before mount)
@@ -620,7 +620,7 @@ function CombatScreenInner({ room }: { room: DungeonNode }) {
 
 /* ── Exported wrapper: wraps in ScreenShake provider ── */
 
-export function CombatScreen({ room }: { room: DungeonNode }) {
+export function CombatScreen({ room }: { room: AreaNode }) {
   return (
     <ScreenShake>
       <CombatScreenInner room={room} />

@@ -1,28 +1,28 @@
-import { roomDistances, runDungeonAI } from "../utils/dungeon";
+import { roomDistances, runAreaAI } from "../utils/area";
 import { makeEnemyData } from "../utils/helpers";
 import type { AppDispatch, RootState } from "./index";
 import { setPlayer } from "./playerSlice";
 import { setScreen } from "./screenSlice";
-import { updateDungeon, addLogEntries, incrementTurn } from "./dungeonSlice";
+import { updateArea, addLogEntries, incrementTurn } from "./areaSlice";
 import { startCombat, updateCombatState, clearCombat } from "./combatSlice";
-import type { CombatPlayer, DungeonLogEntry, DungeonNode } from "../types";
+import type { CombatPlayer, AreaLogEntry, AreaNode } from "../types";
 
 /* ── tickAI ─────────────────────────────────────────────────────────────────
-   Runs one dungeon AI tick. Dispatches incrementTurn + log entries.
-   Returns { newDungeon, arrivedInPlayerRoom } for callers to use.
+   Runs one area AI tick. Dispatches incrementTurn + log entries.
+   Returns { newArea, arrivedInPlayerRoom } for callers to use.
 ────────────────────────────────────────────────────────────────────────────── */
-export function tickAI(currentDungeon: DungeonNode[], roomId: string, action: string) {
+export function tickAI(currentArea: AreaNode[], roomId: string, action: string) {
   return (
     dispatch: AppDispatch,
     getState: () => RootState,
-  ): { newDungeon: DungeonNode[]; arrivedInPlayerRoom: string[] } => {
-    const turn = getState().dungeon.dungeonTurn;
-    const { newDungeon, aiLog, arrivedInPlayerRoom } = runDungeonAI(currentDungeon, roomId, action);
+  ): { newArea: AreaNode[]; arrivedInPlayerRoom: string[] } => {
+    const turn = getState().area.areaTurn;
+    const { newArea, aiLog, arrivedInPlayerRoom } = runAreaAI(currentArea, roomId, action);
     dispatch(incrementTurn());
 
     if (aiLog.length) {
       // Debug entries (always logged, visible in debug overlay)
-      const debugEntries: DungeonLogEntry[] = aiLog.map((e) => ({
+      const debugEntries: AreaLogEntry[] = aiLog.map((e) => ({
         turn,
         text: e.debugText,
         source: "monster",
@@ -33,7 +33,7 @@ export function tickAI(currentDungeon: DungeonNode[], roomId: string, action: st
 
       // Audible entries filtered by distance
       const maxRange: Record<string, number> = { quiet: 1, normal: 2, loud: Infinity };
-      const dist = roomDistances(currentDungeon, roomId);
+      const dist = roomDistances(currentArea, roomId);
       const audible = aiLog.filter((e) => {
         const range = maxRange[e.volume] ?? 2;
         const d1 = dist.get(e.roomId) ?? Infinity;
@@ -41,7 +41,7 @@ export function tickAI(currentDungeon: DungeonNode[], roomId: string, action: st
         return Math.min(d1, d2) <= range;
       });
       if (audible.length) {
-        const audibleEntries: DungeonLogEntry[] = audible.map((e) => {
+        const audibleEntries: AreaLogEntry[] = audible.map((e) => {
           const d1 = dist.get(e.roomId) ?? Infinity;
           const d2 = e.toRoomId ? (dist.get(e.toRoomId) ?? Infinity) : Infinity;
           const closestRoom = d2 < d1 ? e.toRoomId! : e.roomId;
@@ -51,7 +51,7 @@ export function tickAI(currentDungeon: DungeonNode[], roomId: string, action: st
       }
     }
 
-    return { newDungeon, arrivedInPlayerRoom };
+    return { newArea, arrivedInPlayerRoom };
   };
 }
 
@@ -60,9 +60,9 @@ export function tickAI(currentDungeon: DungeonNode[], roomId: string, action: st
 ────────────────────────────────────────────────────────────────────────────── */
 export function combatVictory(newPlayer: CombatPlayer) {
   return (dispatch: AppDispatch, getState: () => RootState) => {
-    const { dungeon: dungeonState, combat: combatState } = getState();
-    const { dungeon, currentRoomId } = dungeonState;
-    if (!dungeon || !currentRoomId) return;
+    const { area: areaState, combat: combatState } = getState();
+    const { area, areaDef, currentRoomId } = areaState;
+    if (!area || !currentRoomId) return;
 
     // Tally dead enemies as corpses (exclude bosses and internal types like heap_of_bones)
     const SKIP_CORPSE = new Set([
@@ -78,7 +78,7 @@ export function combatVictory(newPlayer: CombatPlayer) {
       }
     }
 
-    const base = dungeon.map((n) => {
+    const base = area.map((n) => {
       if (n.id !== currentRoomId) return n;
       const merged: Record<string, number> = { ...n.corpses };
       for (const [id, count] of Object.entries(newCorpses)) {
@@ -86,13 +86,13 @@ export function combatVictory(newPlayer: CombatPlayer) {
       }
       return { ...n, state: "visited" as const, enemies: [], corpses: merged };
     });
-    const curRoom = dungeon.find((r) => r.id === currentRoomId);
-    const newDungeon = base.map((n) => {
+    const curRoom = area.find((r) => r.id === currentRoomId);
+    const newArea = base.map((n) => {
       if (n.state === "locked" && curRoom?.connections.includes(n.id))
         return { ...n, state: "reachable" as const };
       return n;
     });
-    dispatch(updateDungeon(newDungeon));
+    dispatch(updateArea(newArea));
 
     const {
       block: _b,
@@ -106,7 +106,10 @@ export function combatVictory(newPlayer: CombatPlayer) {
       ...playerState
     } = newPlayer;
 
-    if (curRoom?.boss) {
+    // Only fire the victory screen if this area defines a boss room and the
+    // defeated room is that boss. Areas without a boss (transit/ring segments)
+    // are left in the map view — the player exits via inter-area doors.
+    if (curRoom?.boss && areaDef?.bossRoom) {
       dispatch(setPlayer({ ...playerState, hp: playerState.maxHp }));
       dispatch(clearCombat());
       dispatch(setScreen("victory"));
@@ -136,9 +139,9 @@ export function combatDefeat(gold: number) {
 ────────────────────────────────────────────────────────────────────────────── */
 export function fleeToMap(newPlayer: CombatPlayer) {
   return (dispatch: AppDispatch, getState: () => RootState) => {
-    const { dungeon: dungeonState } = getState();
-    const { dungeon, currentRoomId } = dungeonState;
-    if (!dungeon || !currentRoomId) return;
+    const { area: areaState } = getState();
+    const { area, currentRoomId } = areaState;
+    if (!area || !currentRoomId) return;
 
     const {
       block: _b,
@@ -153,8 +156,8 @@ export function fleeToMap(newPlayer: CombatPlayer) {
     } = newPlayer;
     dispatch(setPlayer(playerState));
 
-    const { newDungeon: afterAI } = dispatch(tickAI(dungeon, currentRoomId, "move"));
-    dispatch(updateDungeon(afterAI));
+    const { newArea: afterAI } = dispatch(tickAI(area, currentRoomId, "move"));
+    dispatch(updateArea(afterAI));
     dispatch(clearCombat());
     dispatch(setScreen("map"));
   };

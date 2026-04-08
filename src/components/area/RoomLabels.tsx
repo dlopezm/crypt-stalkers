@@ -1,20 +1,20 @@
-import type { DungeonNode } from "../../types";
+import type { AreaNode } from "../../types";
 
 /* ── Individual sound icon ── */
 function SoundIcon({
   icon,
-  dungeon,
+  area,
   gridWidth,
   gridHeight,
   onSelectRoom,
 }: {
   icon: { roomId: string; texts: string[]; key: number };
-  dungeon: DungeonNode[];
+  area: AreaNode[];
   gridWidth: number;
   gridHeight: number;
   onSelectRoom: (id: string) => void;
 }) {
-  const room = dungeon.find((n) => n.id === icon.roomId);
+  const room = area.find((n) => n.id === icon.roomId);
   if (!room?.bbox) return null;
   const { minRow, maxRow, minCol, maxCol } = room.bbox;
   const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
@@ -56,7 +56,7 @@ function SoundIcon({
 
 /* ── Room labels overlay ── */
 export function RoomLabels({
-  dungeon,
+  area,
   currentRoomId,
   debugMode,
   soundIcons,
@@ -64,7 +64,7 @@ export function RoomLabels({
   gridHeight,
   onSelectRoom,
 }: {
-  dungeon: DungeonNode[];
+  area: AreaNode[];
   currentRoomId: string;
   debugMode: boolean;
   soundIcons: { roomId: string; texts: string[]; key: number }[];
@@ -74,11 +74,13 @@ export function RoomLabels({
 }) {
   return (
     <>
-      {dungeon.map((n) => {
+      {area.map((n) => {
         if (!n.bbox) return null;
         const isCurrent = n.id === currentRoomId;
         const visited = n.state === "visited";
-        if (!debugMode && !isCurrent && !visited) return null;
+        const isExit = !!n.exit;
+        const exitVisible = isExit && (n.state === "reachable" || visited);
+        if (!debugMode && !isCurrent && !visited && !exitVisible) return null;
 
         const { minRow, maxRow, minCol, maxCol } = n.bbox;
         const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
@@ -116,7 +118,7 @@ export function RoomLabels({
         <SoundIcon
           key={icon.key}
           icon={icon}
-          dungeon={dungeon}
+          area={area}
           gridWidth={gridWidth}
           gridHeight={gridHeight}
           onSelectRoom={onSelectRoom}

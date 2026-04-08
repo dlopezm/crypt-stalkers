@@ -179,18 +179,18 @@ export interface CombatMechanics {
   onDeath?: (self: Enemy, ctx: CombatContext, killingHit: { damageType: DamageType }) => Action[];
 }
 
-/* ── Out-of-Combat (Dungeon AI) Mechanics ── */
+/* ── Out-of-Combat (Area AI) Mechanics ── */
 
-export interface DungeonAIContext {
-  rooms: DungeonNode[];
+export interface AreaAIContext {
+  rooms: AreaNode[];
   currentRoomId: string;
-  room: DungeonNode;
-  neighbours: DungeonNode[];
+  room: AreaNode;
+  neighbours: AreaNode[];
   noise: "quiet" | "medium" | "loud";
-  byId: (id: string) => DungeonNode | undefined;
+  byId: (id: string) => AreaNode | undefined;
 }
 
-export type DungeonAction =
+export type AreaAction =
   | { type: "move_toward_player"; reason: string }
   | { type: "move_away_from_player"; reason: string }
   | { type: "move_random"; reason: string }
@@ -203,8 +203,8 @@ export type DungeonAction =
   | { type: "tick_ritual" };
 
 export interface OutOfCombatMechanics {
-  onTick: (self: DungeonEnemy, ctx: DungeonAIContext) => DungeonAction[];
-  canPassDoor?: (self: DungeonEnemy, door: DungeonNode) => boolean;
+  onTick: (self: AreaEnemy, ctx: AreaAIContext) => AreaAction[];
+  canPassDoor?: (self: AreaEnemy, door: AreaNode) => boolean;
   sounds?: {
     move?: { texts: string[]; volume: SoundVolume };
     blocked?: { texts: string[]; volume: SoundVolume };
@@ -250,10 +250,17 @@ export interface EnemyData {
 
 export interface Enemy extends EnemyType, EnemyData {}
 
-/* ── Dungeon ── */
+/* ── Dungeon / Area ──
+ *
+ * Terminology: a *Dungeon* is a set of interconnected *Areas*. The data model
+ * below (AreaDef, AreaNode, AreaGrid) describes a single area — one authored
+ * or generated grid with its own start/boss and enemies. Inter-area travel
+ * happens via RoomExit entries on AuthoredRoom; the runtime materializes
+ * those as synthetic AreaNodes with `exit` set.
+ */
 
-/** An individual monster instance living in a dungeon room. */
-export interface DungeonEnemy {
+/** An individual monster instance living in an area room. */
+export interface AreaEnemy {
   typeId: string; // key into ENEMY_TYPES
   uid: string; // unique instance id — carried into combat via makeEnemyData
   /** If set, overrides maxHp when this enemy enters combat (e.g. resurrected at reduced HP). */
@@ -268,12 +275,25 @@ export interface RoomTemplate {
   hint: string;
 }
 
+/** A door from one room to a room in another area. */
+export interface RoomExit {
+  toAreaId: string;
+  toRoomGridId: number;
+}
+
 export interface AuthoredRoom {
   label: string;
   hint: string;
   enemies: string[];
   isStart?: boolean;
   isBoss?: boolean;
+  /**
+   * If set, this room is a cross-area transition room. Entering it triggers
+   * `switchArea` to the target area + room. The room can still be authored
+   * normally (label, hint, grid position); it just behaves as a one-way door
+   * in addition to being a visitable room.
+   */
+  exit?: RoomExit;
 }
 
 export interface AuthoredLayout {
@@ -281,15 +301,23 @@ export interface AuthoredLayout {
   rooms: Record<number, AuthoredRoom>;
 }
 
-export interface DungeonDef {
+export interface AreaDef {
   id: string;
   name: string;
   desc: string;
   difficulty: number;
   combatRooms: RoomTemplate[];
-  bossRoom: RoomTemplate;
+  /** Optional: authored areas can have zero boss rooms (transit/ring segments). */
+  bossRoom?: RoomTemplate;
   generator?: "stamp" | "authored";
   authored?: AuthoredLayout;
+  /** If true, this area is not shown as an entry in the town dungeon menu. */
+  hiddenFromTown?: boolean;
+  /**
+   * Optional display name shown in the town menu (instead of `name`). Used when
+   * an entry area represents a larger multi-area dungeon in the UI.
+   */
+  townName?: string;
 }
 
 export interface RoomBBox {
@@ -299,15 +327,15 @@ export interface RoomBBox {
   maxCol: number;
 }
 
-export interface DungeonNode {
+export interface AreaNode {
   id: string;
   slot: string;
   label: string;
   boss: boolean;
-  enemies: DungeonEnemy[];
+  enemies: AreaEnemy[];
   /** Dead enemies left in this room, by typeId. Necromancer can resurrect these. */
   corpses: Record<string, number>;
-  /** Active necromancer resurrection ritual. Counts down each dungeon turn. */
+  /** Active necromancer resurrection ritual. Counts down each area turn. */
   necroRitual: { typeId: string; turnsLeft: number; hpFraction: number } | null;
   hint: string;
   state: RoomState;
@@ -319,10 +347,12 @@ export interface DungeonNode {
   scouted: boolean;
   gridRoomId?: number;
   bbox?: RoomBBox;
+  /** If set, entering this room transitions to another area. Mirrors `AuthoredRoom.exit`. */
+  exit?: RoomExit;
 }
 
-/** The raw grid + metadata produced by dungeon generation */
-export interface DungeonGrid {
+/** The raw grid + metadata produced by area generation */
+export interface AreaGrid {
   cells: number[][];
   width: number;
   height: number;
@@ -364,7 +394,7 @@ export interface TrapInfo {
   color: string;
 }
 
-export interface DungeonLogEntry {
+export interface AreaLogEntry {
   turn: number;
   text: string;
   source: "player" | "monster" | "system";

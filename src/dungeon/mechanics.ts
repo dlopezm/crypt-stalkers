@@ -5,7 +5,7 @@ import {
   AI_ROAM_CHANCE,
   AI_SCOUT_SEND_CHANCE,
 } from "../data/constants";
-import type { DungeonAction, OutOfCombatMechanics } from "../types";
+import type { AreaAction, OutOfCombatMechanics } from "../types";
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -21,7 +21,7 @@ const RAT_REPRODUCE_TEXTS = [
 
 export const ratDungeonMechanics: OutOfCombatMechanics = {
   onTick(_self, ctx) {
-    const actions: DungeonAction[] = [];
+    const actions: AreaAction[] = [];
 
     if (Math.random() < AI_REPRODUCE_CHANCE) {
       actions.push({ type: "reproduce" });
@@ -188,7 +188,7 @@ const RITUAL_TICK_TEXTS = ["The chanting intensifies", "Dark energies coil and t
 
 export const necromancerDungeonMechanics: OutOfCombatMechanics = {
   onTick(_self, ctx) {
-    const actions: DungeonAction[] = [];
+    const actions: AreaAction[] = [];
 
     // Continue an in-progress ritual
     if (ctx.room.necroRitual) {

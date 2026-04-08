@@ -1,13 +1,14 @@
 import type {
   Player,
-  DungeonNode,
-  DungeonDef,
-  DungeonGrid,
-  DungeonLogEntry,
+  AreaNode,
+  AreaDef,
+  AreaGrid,
+  AreaLogEntry,
   EnemyData,
   CombatPlayer,
   Screen,
 } from "../types";
+import type { VisitedAreaSnapshot } from "../store/areaSlice";
 
 export interface CombatSave {
   enemies: EnemyData[];
@@ -20,12 +21,13 @@ export interface CombatSave {
 export interface SaveGame {
   player: Player;
   screen: Screen;
-  dungeon: DungeonNode[] | null;
-  dungeonGrid?: DungeonGrid | null;
-  dungeonDef: DungeonDef | null;
+  area: AreaNode[] | null;
+  areaGrid?: AreaGrid | null;
+  areaDef: AreaDef | null;
   currentRoomId: string | null;
-  dungeonLog: DungeonLogEntry[];
-  dungeonTurn: number;
+  areaLog: AreaLogEntry[];
+  areaTurn: number;
+  visitedAreas?: Record<string, VisitedAreaSnapshot>;
   combat: CombatSave | null;
 }
 

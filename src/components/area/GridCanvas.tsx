@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
-import type { DungeonNode, DungeonGrid } from "../../types";
+import type { AreaNode, AreaGrid } from "../../types";
 
 export const CELL_PX = 16;
 const RENDER_SCALE = 4; // Internal render resolution multiplier
@@ -64,7 +64,7 @@ function mulberry32(seed: number) {
 }
 
 /* ── Room fill color by state (parchment tones) ── */
-function roomColor(node: DungeonNode, currentRoomId: string): string {
+function roomColor(node: AreaNode, currentRoomId: string): string {
   if (node.id === currentRoomId) return "#ede4d0";
   if (node.state === "visited") return "#ddd0b8";
   if (node.state === "reachable") return "#b8a888";
@@ -72,9 +72,9 @@ function roomColor(node: DungeonNode, currentRoomId: string): string {
 }
 
 /* ── Determine which rooms are visible ── */
-export function visibleRooms(dungeon: DungeonNode[], debugMode: boolean): Set<string> {
+export function visibleRooms(area: AreaNode[], debugMode: boolean): Set<string> {
   const vis = new Set<string>();
-  for (const node of dungeon) {
+  for (const node of area) {
     if (debugMode || node.state === "visited" || node.state === "reachable") {
       vis.add(node.id);
     }
@@ -477,15 +477,15 @@ function drawWallHatching(
 /* ── Grid Canvas Renderer (Dyson Logos style) ── */
 export function GridCanvas({
   grid,
-  dungeon,
+  area,
   currentRoomId,
   selectedRoomId,
   visible,
   debugMode,
   onClickRoom,
 }: {
-  grid: DungeonGrid;
-  dungeon: DungeonNode[];
+  grid: AreaGrid;
+  area: AreaNode[];
   currentRoomId: string;
   selectedRoomId: string | null;
   visible: Set<string>;
@@ -506,8 +506,8 @@ export function GridCanvas({
     canvas.width = canvasW;
     canvas.height = canvasH;
 
-    const gridIdToNode = new Map<number, DungeonNode>();
-    for (const node of dungeon) {
+    const gridIdToNode = new Map<number, AreaNode>();
+    for (const node of area) {
       if (node.gridRoomId != null) gridIdToNode.set(node.gridRoomId, node);
     }
 
@@ -537,7 +537,7 @@ export function GridCanvas({
         for (let c = 0; c < width; c++) if (cells[r][c] === 0) corVisible[r][c] = 1;
     }
 
-    for (const node of dungeon) {
+    for (const node of area) {
       if (node.gridRoomId == null || !visible.has(node.id)) continue;
       if (node.state !== "visited") continue;
       const q: [number, number][] = [];
@@ -582,7 +582,7 @@ export function GridCanvas({
       }
     }
 
-    for (const node of dungeon) {
+    for (const node of area) {
       if (node.gridRoomId == null || !visible.has(node.id)) continue;
       if (node.state !== "reachable") continue;
       for (let r = 0; r < height; r++) {
@@ -774,24 +774,40 @@ export function GridCanvas({
       ctx.stroke();
     }
 
-    const curNode = dungeon.find((n) => n.id === currentRoomId);
+    const curNode = area.find((n) => n.id === currentRoomId);
     if (curNode?.gridRoomId != null && visible.has(curNode.id)) {
       outlineRoomCells(curNode.gridRoomId, "#c8982a", 2.5);
     }
 
-    for (const node of dungeon) {
+    for (const node of area) {
       if (node.state === "reachable" && node.gridRoomId != null && visible.has(node.id)) {
         outlineRoomCells(node.gridRoomId, "#8a7050", 1.5);
       }
     }
 
     if (selectedRoomId && selectedRoomId !== currentRoomId) {
-      const selNode = dungeon.find((n) => n.id === selectedRoomId);
+      const selNode = area.find((n) => n.id === selectedRoomId);
       if (selNode?.gridRoomId != null && visible.has(selNode.id)) {
         outlineRoomCells(selNode.gridRoomId, "#b08828", 2);
       }
     }
-  }, [grid, dungeon, currentRoomId, selectedRoomId, visible, debugMode]);
+
+    // ── Pass 7: Exit marker — rooms with `exit` get a door glyph overlay ──
+    for (const node of area) {
+      if (!node.exit || !node.bbox || !visible.has(node.id)) continue;
+      const { minRow, maxRow, minCol, maxCol } = node.bbox;
+      const cx = ((minCol + maxCol + 1) / 2) * R_CELL;
+      const cy = ((minRow + maxRow + 1) / 2) * R_CELL;
+      ctx.font = `bold ${R_CELL * 1.1}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(200,152,42,0.95)";
+      ctx.strokeStyle = "#1a0e05";
+      ctx.lineWidth = 2 * RENDER_SCALE;
+      ctx.strokeText("\u{1F6AA}", cx, cy);
+      ctx.fillText("\u{1F6AA}", cx, cy);
+    }
+  }, [grid, area, currentRoomId, selectedRoomId, visible, debugMode]);
 
   useEffect(() => {
     draw();
@@ -805,7 +821,7 @@ export function GridCanvas({
     const scaleY = canvas.height / bcr.height;
     const x = (e.clientX - bcr.left) * scaleX;
     const y = (e.clientY - bcr.top) * scaleY;
-    for (const node of dungeon) {
+    for (const node of area) {
       if (!node.bbox || !visible.has(node.id)) continue;
       const { minRow, maxRow, minCol, maxCol } = node.bbox;
       if (

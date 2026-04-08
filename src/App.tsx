@@ -1,25 +1,26 @@
-import { TRAP_INFO } from "./data/rooms";
+import { TRAP_INFO, AREAS } from "./data/rooms";
 import { REST_HEAL_FRACTION, BLOCK_DOOR_COST, GAME_OVER_GOLD_KEEP } from "./data/constants";
 import { makeStarterPlayer, makeEnemyData } from "./utils/helpers";
-import { generateDungeon } from "./utils/dungeon";
+import { generateArea } from "./utils/area";
 import { loadGame, clearSave, hasSave } from "./utils/save";
 import { TitleScreen } from "./components/TitleScreen";
 import { TownScreen } from "./components/TownScreen";
-import { AuthoredDungeonEditor } from "./components/editor/AuthoredDungeonEditor";
-import { DungeonMap } from "./components/dungeon/DungeonMap";
+import { AuthoredAreaEditor } from "./components/editor/AuthoredAreaEditor";
+import { AreaMap } from "./components/area/AreaMap";
 import { CombatScreen } from "./components/CombatScreen";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
-import type { DungeonNode, DungeonDef, DungeonLogEntry, Player } from "./types";
+import type { AreaNode, AreaDef, AreaLogEntry, Player } from "./types";
 import { useAppDispatch, useAppSelector } from "./store";
 import { setScreen } from "./store/screenSlice";
 import { setPlayer } from "./store/playerSlice";
 import {
-  setDungeonFull,
-  updateDungeon,
+  setAreaFull,
+  updateArea,
   setCurrentRoomId,
   addLogEntries,
-  clearDungeon,
-} from "./store/dungeonSlice";
+  clearArea,
+  switchArea,
+} from "./store/areaSlice";
 import { startCombat, clearCombat } from "./store/combatSlice";
 import { toggleDebugMode, toggleShowDebug, setShowDebug } from "./store/debugSlice";
 import { tickAI as tickAIThunk } from "./store/thunks";
@@ -29,12 +30,12 @@ export default function App() {
 
   const screen = useAppSelector((s) => s.screen);
   const player = useAppSelector((s) => s.player);
-  const dungeon = useAppSelector((s) => s.dungeon.dungeon);
-  const dungeonGrid = useAppSelector((s) => s.dungeon.dungeonGrid);
-  const dungeonDef = useAppSelector((s) => s.dungeon.dungeonDef);
-  const currentRoomId = useAppSelector((s) => s.dungeon.currentRoomId);
-  const dungeonLog = useAppSelector((s) => s.dungeon.dungeonLog);
-  const dungeonTurn = useAppSelector((s) => s.dungeon.dungeonTurn);
+  const area = useAppSelector((s) => s.area.area);
+  const areaGrid = useAppSelector((s) => s.area.areaGrid);
+  const areaDef = useAppSelector((s) => s.area.areaDef);
+  const currentRoomId = useAppSelector((s) => s.area.currentRoomId);
+  const areaLog = useAppSelector((s) => s.area.areaLog);
+  const areaTurn = useAppSelector((s) => s.area.areaTurn);
   const debugMode = useAppSelector((s) => s.debug.debugMode);
   const showDebug = useAppSelector((s) => s.debug.showDebug);
   const combatKey = useAppSelector((s) => s.combat.combatKey);
@@ -44,16 +45,16 @@ export default function App() {
     source: "player" | "monster" | "system" = "system",
     debugOnly = false,
   ) {
-    const logEntries: DungeonLogEntry[] = entries.map((e) => {
+    const logEntries: AreaLogEntry[] = entries.map((e) => {
       const text = typeof e === "string" ? e : e.text;
       const roomId = typeof e === "string" ? undefined : e.roomId;
-      return { turn: dungeonTurn, text, source, roomId, ...(debugOnly ? { debugText: text } : {}) };
+      return { turn: areaTurn, text, source, roomId, ...(debugOnly ? { debugText: text } : {}) };
     });
     dispatch(addLogEntries({ entries: logEntries }));
   }
 
-  function tickAI(currentDungeon: DungeonNode[], roomId: string, action: string) {
-    return dispatch(tickAIThunk(currentDungeon, roomId, action));
+  function tickAI(currentArea: AreaNode[], roomId: string, action: string) {
+    return dispatch(tickAIThunk(currentArea, roomId, action));
   }
 
   /* ── New Game ── */
@@ -69,18 +70,19 @@ export default function App() {
     if (!save) return;
     dispatch(setPlayer(save.player));
     dispatch(
-      setDungeonFull({
-        dungeon:
-          save.dungeon?.map((n) => ({
+      setAreaFull({
+        area:
+          save.area?.map((n) => ({
             ...n,
             corpses: n.corpses ?? {},
             necroRitual: n.necroRitual ?? null,
           })) ?? null,
-        dungeonGrid: save.dungeonGrid ?? null,
-        dungeonDef: save.dungeonDef,
+        areaGrid: save.areaGrid ?? null,
+        areaDef: save.areaDef,
         currentRoomId: save.currentRoomId,
-        dungeonLog: save.dungeonLog,
-        dungeonTurn: save.dungeonTurn,
+        areaLog: save.areaLog,
+        areaTurn: save.areaTurn,
+        visitedAreas: save.visitedAreas ?? {},
       }),
     );
     if (save.combat) {
@@ -104,18 +106,19 @@ export default function App() {
     dispatch(setPlayer(p));
   }
 
-  /* ── Enter Dungeon from Town ── */
-  function enterDungeon(def: DungeonDef) {
+  /* ── Enter Area from Town ── */
+  function enterArea(def: AreaDef) {
     if (!player) return;
-    const { nodes, grid } = generateDungeon(def);
+    const { nodes, grid } = generateArea(def);
+    const startNode = nodes.find((n) => n.slot === "start") ?? nodes[0];
     dispatch(
-      setDungeonFull({
-        dungeon: nodes,
-        dungeonGrid: grid,
-        dungeonDef: def,
-        currentRoomId: "start",
-        dungeonLog: [],
-        dungeonTurn: 0,
+      setAreaFull({
+        area: nodes,
+        areaGrid: grid,
+        areaDef: def,
+        currentRoomId: startNode?.id ?? "start",
+        areaLog: [],
+        areaTurn: 0,
       }),
     );
     dispatch(clearCombat());
@@ -125,22 +128,18 @@ export default function App() {
   /* ── Return to Town ── */
   function returnToTown(p?: Player) {
     if (p) dispatch(setPlayer(p));
-    dispatch(clearDungeon());
+    dispatch(clearArea());
     dispatch(clearCombat());
     dispatch(setScreen("town"));
   }
 
   /* ── Check if the player's room has enemies after an AI tick ── */
-  function checkAmbush(
-    afterAI: DungeonNode[],
-    roomId: string,
-    opts?: { player?: Player },
-  ): boolean {
+  function checkAmbush(afterAI: AreaNode[], roomId: string, opts?: { player?: Player }): boolean {
     const roomAfterAI = afterAI.find((n) => n.id === roomId);
     if (!roomAfterAI || roomAfterAI.enemies.length === 0) return false;
 
     const updated = afterAI.map((n) => (n.id === roomId ? { ...n, state: "visited" as const } : n));
-    dispatch(updateDungeon(updated));
+    dispatch(updateArea(updated));
     addLog(["\u26A0\uFE0F Monsters have found you!"], "system");
     if (opts?.player) dispatch(setPlayer(opts.player));
     dispatch(
@@ -154,18 +153,38 @@ export default function App() {
     return true;
   }
 
-  /* ── Dungeon Navigation ── */
+  /* ── Area Navigation ── */
   function enterRoom(roomId: string) {
-    if (!dungeon || !currentRoomId) return;
-    const room = dungeon.find((n) => n.id === roomId);
+    if (!area || !currentRoomId) return;
+    const room = area.find((n) => n.id === roomId);
     if (!room) return;
     if (room.blocked) return;
-    const currentRoom = dungeon.find((n) => n.id === currentRoomId);
+    const currentRoom = area.find((n) => n.id === currentRoomId);
     if (!debugMode && currentRoom && !currentRoom.connections.includes(roomId)) return;
+
+    // Cross-area exit pseudo-room
+    if (room.exit) {
+      const targetDef = AREAS.find((a) => a.id === room.exit!.toAreaId);
+      if (!targetDef) return;
+      addLog([`\u{1F6AA} Stepped through to ${room.label}`], "player");
+      // Build fresh area data; switchArea reducer will use it only if not already visited.
+      const { nodes: freshNodes, grid: freshGrid } = generateArea(targetDef);
+      const targetNode = freshNodes.find((n) => n.gridRoomId === room.exit!.toRoomGridId);
+      const targetRoomId = targetNode?.id;
+      if (!targetRoomId) return;
+      dispatch(
+        switchArea({
+          toAreaId: targetDef.id,
+          targetRoomId,
+          fresh: { area: freshNodes, grid: freshGrid, def: targetDef },
+        }),
+      );
+      return;
+    }
 
     addLog([`\u{1F6B6} Moved to ${room.label}`], "player");
     const hasEnemies = room.enemies.length > 0;
-    const marked = dungeon.map((n) => {
+    const marked = area.map((n) => {
       if (n.id !== roomId) return n;
       return { ...n, state: "visited" as const };
     });
@@ -177,11 +196,11 @@ export default function App() {
             : n,
         );
 
-    const { newDungeon: afterAI } = tickAI(unlocked, roomId, "move");
+    const { newArea: afterAI } = tickAI(unlocked, roomId, "move");
     dispatch(setCurrentRoomId(roomId));
 
     if (hasEnemies) {
-      dispatch(updateDungeon(afterAI));
+      dispatch(updateArea(afterAI));
       dispatch(
         startCombat({
           enemies: room.enemies.map((e) => makeEnemyData(e.typeId, e.uid, e.hpOverride)),
@@ -191,20 +210,20 @@ export default function App() {
       );
       dispatch(setScreen("combat"));
     } else if (!checkAmbush(afterAI, roomId)) {
-      dispatch(updateDungeon(afterAI));
+      dispatch(updateArea(afterAI));
     }
   }
 
   /* ── Map actions ── */
   function onRestOnMap() {
-    if (!dungeon || !currentRoomId || !player) return;
+    if (!area || !currentRoomId || !player) return;
     const healAmt = Math.floor(player.maxHp * REST_HEAL_FRACTION);
     const newPlayer = { ...player, hp: Math.min(player.maxHp, player.hp + healAmt) };
     dispatch(setPlayer(newPlayer));
     addLog([`\u{1FA79} Rested (+${healAmt} HP)`], "player");
-    const { newDungeon: afterAI } = tickAI(dungeon, currentRoomId, "rest");
+    const { newArea: afterAI } = tickAI(area, currentRoomId, "rest");
     if (!checkAmbush(afterAI, currentRoomId, { player: newPlayer })) {
-      dispatch(updateDungeon(afterAI));
+      dispatch(updateArea(afterAI));
     }
   }
 
@@ -212,7 +231,6 @@ export default function App() {
     if (!player) return;
     const weapon = player.ownedWeapons.find((w) => w.id === weaponId);
     if (!weapon) return;
-    // 2H weapon clears offhand; 1H weapon keeps offhand as-is
     const offhand = weapon.hand === "2" ? null : player.offhandWeapon;
     dispatch(setPlayer({ ...player, mainWeapon: weapon, offhandWeapon: offhand }));
   }
@@ -220,10 +238,10 @@ export default function App() {
   function onSetTrap(roomId: string, trapKey: string) {
     if (!player) return;
     dispatch(setPlayer({ ...player, gold: player.gold - TRAP_INFO[trapKey].cost }));
-    if (dungeon)
-      dispatch(updateDungeon(dungeon.map((n) => (n.id === roomId ? { ...n, trap: trapKey } : n))));
+    if (area)
+      dispatch(updateArea(area.map((n) => (n.id === roomId ? { ...n, trap: trapKey } : n))));
     addLog(
-      [`\u{1FAA4} Trap set in ${dungeon?.find((n) => n.id === roomId)?.label || roomId}`],
+      [`\u{1FAA4} Trap set in ${area?.find((n) => n.id === roomId)?.label || roomId}`],
       "player",
     );
   }
@@ -231,24 +249,21 @@ export default function App() {
   function onBlockDoor(roomId: string) {
     if (!player) return;
     dispatch(setPlayer({ ...player, gold: player.gold - BLOCK_DOOR_COST }));
-    if (dungeon)
-      dispatch(updateDungeon(dungeon.map((n) => (n.id === roomId ? { ...n, blocked: true } : n))));
+    if (area)
+      dispatch(updateArea(area.map((n) => (n.id === roomId ? { ...n, blocked: true } : n))));
     addLog(
-      [`\u{1F6A7} Door blocked in ${dungeon?.find((n) => n.id === roomId)?.label || roomId}`],
+      [`\u{1F6A7} Door blocked in ${area?.find((n) => n.id === roomId)?.label || roomId}`],
       "player",
     );
   }
 
   function onScout(roomId: string, _scoutLevel: number) {
-    if (!dungeon || !currentRoomId) return;
-    const { newDungeon: afterAI } = tickAI(dungeon, currentRoomId, "scout");
-    const scoutedDungeon = afterAI.map((n) => (n.id === roomId ? { ...n, scouted: true } : n));
-    addLog(
-      [`\u{1F50D} Scouted ${dungeon.find((n) => n.id === roomId)?.label || roomId}`],
-      "player",
-    );
-    if (!checkAmbush(scoutedDungeon, currentRoomId)) {
-      dispatch(updateDungeon(scoutedDungeon));
+    if (!area || !currentRoomId) return;
+    const { newArea: afterAI } = tickAI(area, currentRoomId, "scout");
+    const scoutedArea = afterAI.map((n) => (n.id === roomId ? { ...n, scouted: true } : n));
+    addLog([`\u{1F50D} Scouted ${area.find((n) => n.id === roomId)?.label || roomId}`], "player");
+    if (!checkAmbush(scoutedArea, currentRoomId)) {
+      dispatch(updateArea(scoutedArea));
     }
   }
 
@@ -267,14 +282,14 @@ export default function App() {
       <TownScreen
         player={player}
         onUpdatePlayer={updatePlayerAndSave}
-        onEnterDungeon={enterDungeon}
+        onEnterDungeon={enterArea}
         onOpenEditor={() => dispatch(setScreen("editor"))}
       />
     );
   }
 
   if (screen === "editor") {
-    return <AuthoredDungeonEditor onBack={() => dispatch(setScreen("town"))} />;
+    return <AuthoredAreaEditor onBack={() => dispatch(setScreen("town"))} />;
   }
 
   if (screen === "victory") {
@@ -295,15 +310,15 @@ export default function App() {
     );
   }
 
-  if (!dungeon || !player || !currentRoomId) return null;
+  if (!area || !player || !currentRoomId) return null;
 
-  const dungeonName = dungeonDef?.name || "The Crypt";
+  const areaName = areaDef?.name || "The Crypt";
 
   const debugOverlay = showDebug && debugMode && (
     <div className="fixed top-0 right-0 w-[380px] h-screen bg-[#080610ee] border-l border-[#2a1f40] z-100 flex flex-col overflow-hidden font-mono text-sm">
       <div className="px-3 py-2 border-b border-[#2a1f40] flex justify-between items-center bg-[#0f0c1a]">
         <span className="text-crypt-purple font-bold tracking-wider">
-          {"\u{1F6E0}"} DEBUG {"\u2014"} Turn {dungeonTurn}
+          {"\u{1F6E0}"} DEBUG {"\u2014"} Turn {areaTurn}
         </span>
         <button
           onClick={() => dispatch(setShowDebug(false))}
@@ -315,7 +330,7 @@ export default function App() {
 
       <div className="px-3 py-2 border-b border-[#1a1430] shrink-0">
         <div className="text-crypt-muted mb-1 tracking-wider text-xs">ROOMS</div>
-        {dungeon.map((n) => (
+        {area.map((n) => (
           <div
             key={n.id}
             className={`mb-1 leading-relaxed ${n.id === currentRoomId ? "text-crypt-gold" : "text-crypt-muted"}`}
@@ -343,7 +358,7 @@ export default function App() {
 
       <div className="flex-1 overflow-y-auto px-3 py-2">
         <div className="text-crypt-muted mb-1 tracking-wider text-xs">AI LOG (newest first)</div>
-        {[...dungeonLog].reverse().map((entry, i) => (
+        {[...areaLog].reverse().map((entry, i) => (
           <div
             key={i}
             className={`leading-relaxed border-b border-[#1a1428] pb-0.5 mb-0.5 ${entry.debugText ? "text-crypt-purple" : "text-[#9a8aaa]"}`}
@@ -351,7 +366,7 @@ export default function App() {
             <span className="text-[#6a5a8a]">[T{entry.turn}]</span> {entry.text}
           </div>
         ))}
-        {!dungeonLog.length && <div className="text-[#3a2a50] italic">No AI actions yet.</div>}
+        {!areaLog.length && <div className="text-[#3a2a50] italic">No AI actions yet.</div>}
       </div>
     </div>
   );
@@ -368,15 +383,15 @@ export default function App() {
             {"\u{1F6E0}"} {showDebug ? "Hide" : "Debug"}
           </button>
         )}
-        <DungeonMap
-          dungeon={dungeon}
-          dungeonGrid={dungeonGrid}
+        <AreaMap
+          area={area}
+          areaGrid={areaGrid}
           player={player}
           currentRoomId={currentRoomId}
-          dungeonName={dungeonName}
+          areaName={areaName}
           debugMode={debugMode}
-          dungeonTurn={dungeonTurn}
-          dungeonLog={dungeonLog}
+          areaTurn={areaTurn}
+          areaLog={areaLog}
           onEnterRoom={enterRoom}
           onScout={onScout}
           onSetTrap={onSetTrap}
@@ -390,7 +405,7 @@ export default function App() {
     );
 
   if (screen === "combat") {
-    const room = dungeon.find((n) => n.id === currentRoomId);
+    const room = area.find((n) => n.id === currentRoomId);
     if (!room) return null;
     return <CombatScreen key={combatKey} room={room} />;
   }

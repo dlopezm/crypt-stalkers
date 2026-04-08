@@ -1,9 +1,9 @@
-import type { AuthoredRoom, DungeonDef } from "../../types";
+import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
  * The Pale Vigil's Vault
  *
- * Generated/edited via the in-game Authored Dungeon Editor.
+ * Generated/edited via the in-game Authored Area Editor.
  * Encoding: 1 = wall, 0 = corridor, integers >= 2 = room IDs.
  */
 
@@ -28,8 +28,9 @@ export const PALE_VIGIL_VAULT_GRID: number[][] = [
   [ 1,  1,  1,  7,  7,  7,  1,  1,  1,  1,  1,  1,  1,  8,  8,  8,  8,  8,  8,  1,  1,  1], // 15
   [ 1,  1,  1,  7,  7,  7,  1,  1,  1,  1,  1,  1,  1,  8,  8,  8,  8,  8,  8,  1,  1,  1], // 16
   [ 1,  1,  1,  7,  7,  7,  1,  1,  1,  1,  1,  1,  1,  1,  8,  8,  8,  8,  1,  1,  1,  1], // 17
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  8,  8,  1,  1,  1,  1,  1], // 18
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 19
+  [ 1,  1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  8,  8,  1,  1,  1,  1,  1], // 18
+  [ 1,  1,  1, 10, 10, 10,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  0,  1,  1,  1,  1,  1], // 19
+  [ 1,  1,  1, 10, 10, 10,  1,  1,  1,  1,  1,  1,  1,  1,  1,  9,  9,  1,  1,  1,  1,  1], // 20
 ];
 
 export const PALE_VIGIL_VAULT_ROOMS: Record<number, AuthoredRoom> = {
@@ -62,17 +63,28 @@ export const PALE_VIGIL_VAULT_ROOMS: Record<number, AuthoredRoom> = {
   7: {
     label: "Door towards Salt Barrier",
     hint: "zombies are hauling sacks and barrels towards the south door",
-    enemies: ["zombie", "zombie"],
+    enemies: [],
   },
   8: {
     label: "Gate to Barracks",
     hint: "a heavily patrolled room, a door towards the south",
     enemies: ["skeleton", "skeleton"],
-    isBoss: true,
+  },
+  9: {
+    label: "Proceed",
+    hint: "",
+    enemies: [],
+    exit: { toAreaId: "barracks", toRoomGridId: 2 },
+  },
+  10: {
+    label: "Proceed",
+    hint: "",
+    enemies: [],
+    exit: { toAreaId: "salt_barrier_north", toRoomGridId: 2 },
   },
 };
 
-export const PALE_VIGIL_VAULT: DungeonDef = {
+export const PALE_VIGIL_VAULT: AreaDef = {
   id: "pale_vigil_vault",
   name: "The Pale Vigil's Vault",
   desc: "Aldric gave you a key. The wardens are long dead. Something is still moving the salt.",
@@ -83,9 +95,4 @@ export const PALE_VIGIL_VAULT: DungeonDef = {
     rooms: PALE_VIGIL_VAULT_ROOMS,
   },
   combatRooms: [],
-  bossRoom: {
-    label: "Gate to Barracks",
-    enemies: ["skeleton", "skeleton"],
-    hint: "a heavily patrolled room, a door towards the south",
-  },
 };

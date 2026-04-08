@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { btnStyle } from "../../styles";
-import { DUNGEONS } from "../../data/rooms";
+import { AREAS } from "../../data/rooms";
 import { ENEMY_TYPES } from "../../data/enemies";
-import { extractRoomsFromGrid } from "../../utils/dungeon";
-import type { AuthoredRoom, DungeonDef } from "../../types";
+import { extractRoomsFromGrid } from "../../utils/area";
+import type { AuthoredRoom, AreaDef, RoomExit } from "../../types";
 
 /*
  * Authored Dungeon Editor
  * ───────────────────────
- * Visual editor for hand-authored dungeons (DungeonDef.generator === "authored").
+ * Visual editor for hand-authored dungeons (AreaDef.generator === "authored").
  *
  * - Paint cells with a palette: wall (1), corridor (0), or room IDs 2..9.
  * - Edit per-room metadata: label, hint, isStart/isBoss, enemy list.
@@ -18,7 +18,7 @@ import type { AuthoredRoom, DungeonDef } from "../../types";
  *   to paste over the file. No filesystem writes — round-trip is manual.
  *
  * Persistence model: edits live in component state. Reloading the editor
- * re-reads from the in-memory DungeonDef (which only changes when you paste
+ * re-reads from the in-memory AreaDef (which only changes when you paste
  * the copied output and reload the dev server).
  */
 
@@ -43,6 +43,7 @@ function cloneRooms(r: RoomsMeta): RoomsMeta {
 }
 
 /* ── Cell colors (must read clearly without hatching) ── */
+const MAX_ROOM_ID = 20;
 const ROOM_COLORS: Record<number, string> = {
   2: "#c8a8ff",
   3: "#a8d8ff",
@@ -52,6 +53,17 @@ const ROOM_COLORS: Record<number, string> = {
   7: "#ffa8e8",
   8: "#d8ffa8",
   9: "#a8ffff",
+  10: "#e8c8ff",
+  11: "#c8e8ff",
+  12: "#c8ffc8",
+  13: "#fff0c0",
+  14: "#ffd0c0",
+  15: "#ffc0e0",
+  16: "#e0ffc0",
+  17: "#c0ffe8",
+  18: "#ffd8a0",
+  19: "#a0d0ff",
+  20: "#d0a0ff",
 };
 
 function cellFill(v: Cell): string {
@@ -104,7 +116,7 @@ function extractConnections(grid: Grid): {
 }
 
 /* ── TS source serialization ── */
-function serializeDungeonFile(def: DungeonDef, grid: Grid, rooms: RoomsMeta): string {
+function serializeAreaFile(def: AreaDef, grid: Grid, rooms: RoomsMeta): string {
   const w = grid[0]?.length ?? 0;
   const colHeader =
     "  // " + Array.from({ length: w }, (_, i) => i.toString().padStart(2, " ")).join(", ") + "\n";
@@ -123,6 +135,11 @@ function serializeDungeonFile(def: DungeonDef, grid: Grid, rooms: RoomsMeta): st
       const flags: string[] = [];
       if (r.isStart) flags.push("    isStart: true,");
       if (r.isBoss) flags.push("    isBoss: true,");
+      if (r.exit) {
+        flags.push(
+          `    exit: { toAreaId: ${JSON.stringify(r.exit.toAreaId)}, toRoomGridId: ${r.exit.toRoomGridId} },`,
+        );
+      }
       const enemies =
         r.enemies.length > 0 ? `[${r.enemies.map((e) => JSON.stringify(e)).join(", ")}]` : "[]";
       return `  ${id}: {
@@ -133,27 +150,27 @@ function serializeDungeonFile(def: DungeonDef, grid: Grid, rooms: RoomsMeta): st
     })
     .join("\n");
 
-  // Find boss room metadata for the placeholder bossRoom field
+  // Find boss room metadata for the optional bossRoom field
   const bossEntry = Object.values(rooms).find((r) => r.isBoss);
   const bossRoomBlock = bossEntry
-    ? `{
+    ? `\n  bossRoom: {
     label: ${JSON.stringify(bossEntry.label)},
     enemies: [${bossEntry.enemies.map((e) => JSON.stringify(e)).join(", ")}],
     hint: ${JSON.stringify(bossEntry.hint)},
-  }`
-    : `{ label: "Boss", enemies: [], hint: "" }`;
+  },`
+    : "";
 
   const upperId = def.id.toUpperCase();
   const gridConst = `${upperId}_GRID`;
   const roomsConst = `${upperId}_ROOMS`;
   const defConst = upperId;
 
-  return `import type { AuthoredRoom, DungeonDef } from "../../types";
+  return `import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
  * ${def.name}
  *
- * Generated/edited via the in-game Authored Dungeon Editor.
+ * Generated/edited via the in-game Authored Area Editor.
  * Encoding: 1 = wall, 0 = corridor, integers >= 2 = room IDs.
  */
 
@@ -166,7 +183,7 @@ export const ${roomsConst}: Record<number, AuthoredRoom> = {
 ${roomEntries}
 };
 
-export const ${defConst}: DungeonDef = {
+export const ${defConst}: AreaDef = {
   id: ${JSON.stringify(def.id)},
   name: ${JSON.stringify(def.name)},
   desc: ${JSON.stringify(def.desc)},
@@ -176,22 +193,21 @@ export const ${defConst}: DungeonDef = {
     grid: ${gridConst},
     rooms: ${roomsConst},
   },
-  combatRooms: [],
-  bossRoom: ${bossRoomBlock},
+  combatRooms: [],${bossRoomBlock}
 };
 `;
 }
 
 /* ── Component ── */
-export function AuthoredDungeonEditor({ onBack }: { onBack: () => void }) {
-  const authoredDungeons = useMemo(
-    () => DUNGEONS.filter((d) => d.generator === "authored" && d.authored),
+export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
+  const authoredAreas = useMemo(
+    () => AREAS.filter((d) => d.generator === "authored" && d.authored),
     [],
   );
-  const [defId, setDefId] = useState<string>(authoredDungeons[0]?.id ?? "");
+  const [defId, setDefId] = useState<string>(authoredAreas[0]?.id ?? "");
   const def = useMemo(
-    () => authoredDungeons.find((d) => d.id === defId) ?? authoredDungeons[0],
-    [authoredDungeons, defId],
+    () => authoredAreas.find((d) => d.id === defId) ?? authoredAreas[0],
+    [authoredAreas, defId],
   );
 
   // If there are no authored dungeons, def is undefined and we early-return below
@@ -317,9 +333,26 @@ export function AuthoredDungeonEditor({ onBack }: { onBack: () => void }) {
     }));
   }
 
+  function setExit(id: number, patch: Partial<RoomExit> | null) {
+    setRooms((prev) => {
+      const r = prev[id];
+      if (patch === null) {
+        const { exit: _exit, ...rest } = r;
+        void _exit;
+        return { ...prev, [id]: rest };
+      }
+      const existing = r.exit ?? { toAreaId: "", toRoomGridId: 2 };
+      // Exit rooms are travel-only: clear enemies and boss flag.
+      return {
+        ...prev,
+        [id]: { ...r, enemies: [], isBoss: false, exit: { ...existing, ...patch } },
+      };
+    });
+  }
+
   function copyToClipboard() {
     if (!def) return;
-    const src = serializeDungeonFile(def, grid, rooms);
+    const src = serializeAreaFile(def, grid, rooms);
     navigator.clipboard.writeText(src).then(
       () => {
         setCopied(true);
@@ -361,7 +394,7 @@ export function AuthoredDungeonEditor({ onBack }: { onBack: () => void }) {
   if (!def) {
     return (
       <div className="p-6 text-crypt-text">
-        <p>No authored dungeons found.</p>
+        <p>No authored areas found.</p>
         <button style={btnStyle("#3a2f25")} onClick={onBack}>
           ← Back
         </button>
@@ -383,13 +416,13 @@ export function AuthoredDungeonEditor({ onBack }: { onBack: () => void }) {
           </div>
 
           <div>
-            <div className="text-xs text-crypt-dim uppercase tracking-wider mb-1">Dungeon</div>
+            <div className="text-xs text-crypt-dim uppercase tracking-wider mb-1">Area</div>
             <select
               value={defId}
               onChange={(e) => setDefId(e.target.value)}
               className="w-full bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-2 py-1"
             >
-              {authoredDungeons.map((d) => (
+              {authoredAreas.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
                 </option>
@@ -400,7 +433,7 @@ export function AuthoredDungeonEditor({ onBack }: { onBack: () => void }) {
           <div>
             <div className="text-xs text-crypt-dim uppercase tracking-wider mb-1">Palette</div>
             <div className="flex flex-wrap gap-1">
-              {[1, 0, 2, 3, 4, 5, 6, 7, 8, 9].map((v) => (
+              {[1, 0, ...Array.from({ length: MAX_ROOM_ID - 1 }, (_, i) => i + 2)].map((v) => (
                 <button
                   key={v}
                   onClick={() => setPaint(v)}
@@ -467,8 +500,8 @@ export function AuthoredDungeonEditor({ onBack }: { onBack: () => void }) {
               label={`Start rooms: ${startRooms.length} (need 1)`}
             />
             <ValidationLine
-              ok={bossRooms.length === 1}
-              label={`Boss rooms: ${bossRooms.length} (need 1)`}
+              ok={bossRooms.length <= 1}
+              label={`Boss rooms: ${bossRooms.length} (0 or 1)`}
             />
             <ValidationLine
               ok={missingMeta.length === 0}
@@ -593,45 +626,107 @@ export function AuthoredDungeonEditor({ onBack }: { onBack: () => void }) {
                   />
                   isStart
                 </label>
-                <label className="flex items-center gap-1 text-crypt-muted">
-                  <input
-                    type="checkbox"
-                    checked={!!selectedRoom.isBoss}
-                    onChange={(e) => setRoomFlag(selectedRoomId, "isBoss", e.target.checked)}
-                  />
-                  isBoss
-                </label>
+                {!selectedRoom.exit && (
+                  <label className="flex items-center gap-1 text-crypt-muted">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedRoom.isBoss}
+                      onChange={(e) => setRoomFlag(selectedRoomId, "isBoss", e.target.checked)}
+                    />
+                    isBoss
+                  </label>
+                )}
               </div>
+              {!selectedRoom.exit && (
+                <div>
+                  <div className="text-xs text-crypt-muted mb-1">
+                    Enemies ({selectedRoom.enemies.length})
+                  </div>
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {selectedRoom.enemies.map((e, i) => (
+                      <button
+                        key={i}
+                        onClick={() => removeEnemyAt(selectedRoomId, i)}
+                        className="text-xs bg-[#2a1f15] border border-[#3a2f25] text-crypt-text px-1 py-0.5"
+                        title="Click to remove"
+                      >
+                        {e} ✕
+                      </button>
+                    ))}
+                  </div>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) addEnemy(selectedRoomId, e.target.value);
+                    }}
+                    className="w-full bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-1 py-0.5 text-xs"
+                  >
+                    <option value="">+ Add enemy…</option>
+                    {ENEMY_TYPES.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
-                <div className="text-xs text-crypt-muted mb-1">
-                  Enemies ({selectedRoom.enemies.length})
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-xs text-crypt-muted">{"\u{1F6AA}"} Cross-area exit</div>
+                  <label className="text-xs text-crypt-muted flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedRoom.exit}
+                      onChange={(e) => setExit(selectedRoomId, e.target.checked ? {} : null)}
+                    />
+                    enabled
+                  </label>
                 </div>
-                <div className="flex flex-wrap gap-1 mb-1">
-                  {selectedRoom.enemies.map((e, i) => (
-                    <button
-                      key={i}
-                      onClick={() => removeEnemyAt(selectedRoomId, i)}
-                      className="text-xs bg-[#2a1f15] border border-[#3a2f25] text-crypt-text px-1 py-0.5"
-                      title="Click to remove"
-                    >
-                      {e} ✕
-                    </button>
-                  ))}
+                {selectedRoom.exit &&
+                  (() => {
+                    const ex = selectedRoom.exit;
+                    const targetArea = AREAS.find((a) => a.id === ex.toAreaId);
+                    const targetOk = !!targetArea && !!targetArea.authored?.rooms[ex.toRoomGridId];
+                    return (
+                      <div className="border border-[#3a2f25] p-1 flex flex-col gap-1 bg-[#0c0a10]">
+                        <div className="flex gap-1 items-center">
+                          <select
+                            value={ex.toAreaId}
+                            onChange={(e) => setExit(selectedRoomId, { toAreaId: e.target.value })}
+                            className="flex-1 bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-1 py-0.5 text-xs"
+                          >
+                            <option value="">— area —</option>
+                            {AREAS.filter((a) => a.id !== def.id).map((a) => (
+                              <option key={a.id} value={a.id}>
+                                {a.name}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            min={2}
+                            max={MAX_ROOM_ID}
+                            value={ex.toRoomGridId}
+                            onChange={(e) =>
+                              setExit(selectedRoomId, {
+                                toRoomGridId: Number(e.target.value),
+                              })
+                            }
+                            className="w-12 bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-1 py-0.5 text-xs"
+                          />
+                        </div>
+                        {ex.toAreaId && !targetOk && (
+                          <div className="text-xs text-yellow-400">
+                            ⚠ target area or grid room not found
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                <div className="text-xs text-crypt-dim mt-1">
+                  Walking into this room will transport the player to the target area. The return
+                  trip must be authored on a room in the target area.
                 </div>
-                <select
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) addEnemy(selectedRoomId, e.target.value);
-                  }}
-                  className="w-full bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-1 py-0.5 text-xs"
-                >
-                  <option value="">+ Add enemy…</option>
-                  {ENEMY_TYPES.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.id})
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
           )}
