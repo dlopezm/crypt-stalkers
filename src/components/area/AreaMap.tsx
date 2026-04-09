@@ -49,6 +49,18 @@ export function AreaMap({
   const [scoutLevel, setScoutLevel] = useState(0);
   const [showWeaponPicker, setShowWeaponPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const cr = entries[0].contentRect;
+      setContainerSize({ w: cr.width, h: cr.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Track sound icons — cleared each new dungeon turn, only shows current turn's sounds
   const [soundIcons, setSoundIcons] = useState<{ roomId: string; texts: string[]; key: number }[]>(
@@ -137,6 +149,18 @@ export function AreaMap({
 
   const mapPxW = areaGrid.width * CELL_PX;
   const mapPxH = areaGrid.height * CELL_PX;
+  const ratio = mapPxW / mapPxH;
+  let fitW = 0,
+    fitH = 0;
+  if (containerSize.w > 0 && containerSize.h > 0) {
+    if (containerSize.w / containerSize.h > ratio) {
+      fitH = containerSize.h;
+      fitW = fitH * ratio;
+    } else {
+      fitW = containerSize.w;
+      fitH = fitW / ratio;
+    }
+  }
 
   return (
     <div
@@ -168,20 +192,23 @@ export function AreaMap({
 
       <div
         className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full flex-1 min-h-0
-                      lg:flex-nowrap"
+                      lg:flex-nowrap lg:items-stretch"
       >
-        {/* Map canvas */}
+        {/* Map canvas — fills available space, inner box keeps square cells */}
         <div
           ref={scrollRef}
-          className="relative shrink-0 rounded-md border border-crypt-border-dim
-                     w-[min(700px,55vw,calc(100vh-160px))] max-h-[calc(100vh-160px)]
-                     lg:w-auto lg:shrink lg:flex-1 lg:max-h-full lg:min-h-0"
-          style={{
-            aspectRatio: `${mapPxW} / ${mapPxH}`,
-            background: "#080610",
-          }}
+          className="relative flex-1 min-w-0 min-h-0 flex items-center justify-center
+                     w-full max-h-[calc(100vh-160px)]
+                     lg:max-h-full"
         >
-          <div style={{ position: "relative", width: "100%", height: "100%" }}>
+          <div
+            className="relative rounded-md border border-crypt-border-dim"
+            style={{
+              width: fitW ? `${fitW}px` : undefined,
+              height: fitH ? `${fitH}px` : undefined,
+              background: "#080610",
+            }}
+          >
             <GridCanvas
               grid={areaGrid}
               area={area}
