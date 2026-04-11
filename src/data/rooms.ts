@@ -6,6 +6,40 @@ import { SALT_BARRIER_SOUTH } from "./areas/salt_barrier_south";
 import { SALT_BARRIER_WEST } from "./areas/salt_barrier_west";
 import { BARRACKS } from "./areas/barracks";
 
+import { A1_MINE_MOUTH } from "./areas/a1_mine_mouth";
+import { A1_GATEHOUSE } from "./areas/a1_gatehouse";
+import { A1_UPPER_GALLERIES } from "./areas/a1_upper_galleries";
+import { A1_EXCURSION_WARRENS } from "./areas/a1_excursion_warrens";
+import { A1_BARONS_WING } from "./areas/a1_barons_wing";
+
+import { A2_CLOISTER } from "./areas/a2_cloister";
+import { A2_CHAPEL } from "./areas/a2_chapel";
+import { A2_LIBRARY } from "./areas/a2_library";
+import { A2_RESTRICTED } from "./areas/a2_restricted";
+import { A2_CHAPTER_HOUSE } from "./areas/a2_chapter_house";
+import { A2_MAINTENANCE } from "./areas/a2_maintenance";
+import { A2_ARMORY } from "./areas/a2_armory";
+
+import { A3_THRESHOLD } from "./areas/a3_threshold";
+import { A3_SORTING } from "./areas/a3_sorting";
+import { A3_REANIMATION } from "./areas/a3_reanimation";
+import { A3_BONE_STACKS } from "./areas/a3_bone_stacks";
+import { A3_DEEP_CRYPT } from "./areas/a3_deep_crypt";
+import { A3_VAMPIRE_PRISON } from "./areas/a3_vampire_prison";
+
+import { A4_DRAINED_TUNNELS } from "./areas/a4_drained_tunnels";
+import { A4_CRYSTAL_GALLERIES } from "./areas/a4_crystal_galleries";
+import { A4_ABANDONED_DIG } from "./areas/a4_abandoned_dig";
+import { A4_ANCESTORS_TRAIL } from "./areas/a4_ancestors_trail";
+import { A4_SHADOW_DEPTHS } from "./areas/a4_shadow_depths";
+import { A4_SEALED_CHAMBER } from "./areas/a4_sealed_chamber";
+
+import { A5_OUTER_WARD } from "./areas/a5_outer_ward";
+import { A5_COLONNADE } from "./areas/a5_colonnade";
+import { A5_SANCTUM } from "./areas/a5_sanctum";
+import { A5_CRYSTAL_THRONE } from "./areas/a5_crystal_throne";
+import { A5_MORTAL_QUARTERS } from "./areas/a5_mortal_quarters";
+
 /* ── Room Templates ── */
 
 const EASY_COMBAT: RoomTemplate[] = [
@@ -160,6 +194,41 @@ export const AREAS: AreaDef[] = [
   SALT_BARRIER_SOUTH,
   SALT_BARRIER_WEST,
   BARRACKS,
+
+  A1_MINE_MOUTH,
+  A1_GATEHOUSE,
+  A1_UPPER_GALLERIES,
+  A1_EXCURSION_WARRENS,
+  A1_BARONS_WING,
+
+  A2_CLOISTER,
+  A2_CHAPEL,
+  A2_LIBRARY,
+  A2_RESTRICTED,
+  A2_CHAPTER_HOUSE,
+  A2_MAINTENANCE,
+  A2_ARMORY,
+
+  A3_THRESHOLD,
+  A3_SORTING,
+  A3_REANIMATION,
+  A3_BONE_STACKS,
+  A3_DEEP_CRYPT,
+  A3_VAMPIRE_PRISON,
+
+  A4_DRAINED_TUNNELS,
+  A4_CRYSTAL_GALLERIES,
+  A4_ABANDONED_DIG,
+  A4_ANCESTORS_TRAIL,
+  A4_SHADOW_DEPTHS,
+  A4_SEALED_CHAMBER,
+
+  A5_OUTER_WARD,
+  A5_COLONNADE,
+  A5_SANCTUM,
+  A5_CRYSTAL_THRONE,
+  A5_MORTAL_QUARTERS,
+
   {
     id: "shallow_graves",
     name: "Shallow Graves",
