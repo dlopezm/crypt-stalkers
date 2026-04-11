@@ -42,6 +42,15 @@ function cloneRooms(r: RoomsMeta): RoomsMeta {
   return out;
 }
 
+/** Serialize a notes string as a multi-line template literal, or omit the field
+ * entirely when empty so round-tripped files stay clean. */
+function serializeNotesField(indent: string, notes: string | undefined): string {
+  if (!notes) return "";
+  // Preserve newlines; escape only backticks and ${ so the template literal parses.
+  const escaped = notes.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
+  return `\n${indent}notes: \`${escaped}\`,`;
+}
+
 /* ── Cell colors (must read clearly without hatching) ── */
 const MAX_ROOM_ID = 20;
 const ROOM_COLORS: Record<number, string> = {
@@ -116,7 +125,12 @@ function extractConnections(grid: Grid): {
 }
 
 /* ── TS source serialization ── */
-function serializeAreaFile(def: AreaDef, grid: Grid, rooms: RoomsMeta): string {
+function serializeAreaFile(
+  def: AreaDef,
+  grid: Grid,
+  rooms: RoomsMeta,
+  areaNotes: string | undefined,
+): string {
   const w = grid[0]?.length ?? 0;
   const colHeader =
     "  // " + Array.from({ length: w }, (_, i) => i.toString().padStart(2, " ")).join(", ") + "\n";
@@ -142,10 +156,11 @@ function serializeAreaFile(def: AreaDef, grid: Grid, rooms: RoomsMeta): string {
       }
       const enemies =
         r.enemies.length > 0 ? `[${r.enemies.map((e) => JSON.stringify(e)).join(", ")}]` : "[]";
+      const notesField = serializeNotesField("    ", r.notes);
       return `  ${id}: {
     label: ${JSON.stringify(r.label)},
     hint: ${JSON.stringify(r.hint)},
-    enemies: ${enemies},${flags.length ? "\n" + flags.join("\n") : ""}
+    enemies: ${enemies},${flags.length ? "\n" + flags.join("\n") : ""}${notesField}
   },`;
     })
     .join("\n");
@@ -164,6 +179,8 @@ function serializeAreaFile(def: AreaDef, grid: Grid, rooms: RoomsMeta): string {
   const gridConst = `${upperId}_GRID`;
   const roomsConst = `${upperId}_ROOMS`;
   const defConst = upperId;
+
+  const areaNotesField = serializeNotesField("  ", areaNotes);
 
   return `import type { AuthoredRoom, AreaDef } from "../../types";
 
@@ -193,7 +210,7 @@ export const ${defConst}: AreaDef = {
     grid: ${gridConst},
     rooms: ${roomsConst},
   },
-  combatRooms: [],${bossRoomBlock}
+  combatRooms: [],${bossRoomBlock}${areaNotesField}
 };
 `;
 }
@@ -214,6 +231,7 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
   // before these states are ever read. Initialize with empty defaults.
   const [grid, setGrid] = useState<Grid>(() => (def ? cloneGrid(def.authored!.grid) : []));
   const [rooms, setRooms] = useState<RoomsMeta>(() => (def ? cloneRooms(def.authored!.rooms) : {}));
+  const [areaNotes, setAreaNotes] = useState<string>(() => def?.notes ?? "");
   const [paint, setPaint] = useState<Cell>(1);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -226,6 +244,7 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
     if (!def) return;
     setGrid(cloneGrid(def.authored!.grid));
     setRooms(cloneRooms(def.authored!.rooms));
+    setAreaNotes(def.notes ?? "");
     setSelectedRoomId(null);
   }, [def]);
 
@@ -352,7 +371,7 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
 
   function copyToClipboard() {
     if (!def) return;
-    const src = serializeAreaFile(def, grid, rooms);
+    const src = serializeAreaFile(def, grid, rooms, areaNotes);
     navigator.clipboard.writeText(src).then(
       () => {
         setCopied(true);
@@ -369,6 +388,7 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
     if (!def) return;
     setGrid(cloneGrid(def.authored!.grid));
     setRooms(cloneRooms(def.authored!.rooms));
+    setAreaNotes(def.notes ?? "");
     setSelectedRoomId(null);
   }
 
@@ -570,6 +590,22 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
         <div className="w-[320px] shrink-0 border-l border-[#2a1f15] p-3 overflow-y-auto flex flex-col gap-3">
           <div>
             <div className="text-xs text-crypt-dim uppercase tracking-wider mb-1">
+              Area notes{" "}
+              <span className="text-crypt-dim normal-case">
+                (author-only: things this area still needs)
+              </span>
+            </div>
+            <textarea
+              value={areaNotes}
+              onChange={(e) => setAreaNotes(e.target.value)}
+              rows={4}
+              placeholder="overarching clues, set pieces, cross-room hook-ups…"
+              className="w-full bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-1 py-0.5"
+            />
+          </div>
+
+          <div>
+            <div className="text-xs text-crypt-dim uppercase tracking-wider mb-1">
               Rooms in grid
             </div>
             <div className="flex flex-wrap gap-1">
@@ -614,6 +650,23 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
                   value={selectedRoom.hint}
                   onChange={(e) => updateRoom(selectedRoomId, { hint: e.target.value })}
                   rows={2}
+                  className="w-full bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-1 py-0.5 mt-0.5"
+                />
+              </label>
+              <label className="text-xs text-crypt-muted">
+                Notes{" "}
+                <span className="text-crypt-dim normal-case">
+                  (author-only: things this room still needs)
+                </span>
+                <textarea
+                  value={selectedRoom.notes ?? ""}
+                  onChange={(e) =>
+                    updateRoom(selectedRoomId, {
+                      notes: e.target.value === "" ? undefined : e.target.value,
+                    })
+                  }
+                  rows={4}
+                  placeholder="clues, items, environment, hook-ups…"
                   className="w-full bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-1 py-0.5 mt-0.5"
                 />
               </label>

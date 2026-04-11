@@ -288,6 +288,12 @@ export interface AuthoredRoom {
   isStart?: boolean;
   isBoss?: boolean;
   /**
+   * Author-only notes. A scratchpad for things that should live in this room
+   * (clues, items, environmental beats, etc.) but aren't yet implemented.
+   * Not shown to the player — only surfaced in the in-game editor.
+   */
+  notes?: string;
+  /**
    * If set, this room is a cross-area transition room. Entering it triggers
    * `switchArea` to the target area + room. The room can still be authored
    * normally (label, hint, grid position); it just behaves as a one-way door
@@ -318,6 +324,12 @@ export interface AreaDef {
    * an entry area represents a larger multi-area dungeon in the UI.
    */
   townName?: string;
+  /**
+   * Author-only notes for the area as a whole. Scratchpad for things that
+   * should exist somewhere in this area (clues, set pieces, hook-ups, etc.)
+   * but aren't yet implemented. Only surfaced in the in-game editor.
+   */
+  notes?: string;
 }
 
 export interface RoomBBox {
