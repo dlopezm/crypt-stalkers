@@ -1,6 +1,7 @@
 import { btnStyle } from "../../styles";
 import { TRAP_INFO } from "../../data/rooms";
 import { BLOCK_DOOR_COST } from "../../data/constants";
+import { getActiveProps } from "../../utils/props";
 import type { AreaNode, Player } from "../../types";
 
 export function RoomPanel({
@@ -15,6 +16,7 @@ export function RoomPanel({
   onScout,
   onSetTrap,
   onBlockDoor,
+  onExamineProp,
 }: {
   node: AreaNode | null;
   currentRoomId: string;
@@ -27,6 +29,7 @@ export function RoomPanel({
   onScout: (level: number) => void;
   onSetTrap: (id: string, trap: string) => void;
   onBlockDoor: (id: string) => void;
+  onExamineProp: (roomId: string, propId: string) => void;
 }) {
   if (!node) {
     return (
@@ -84,6 +87,37 @@ export function RoomPanel({
           {"\u{1F6AA}"} A way through to another part of the dungeon.
         </p>
       )}
+
+      {node.id === currentRoomId &&
+        (() => {
+          const activeProps = getActiveProps(node.props, player.flags, node.propStates);
+          if (activeProps.length === 0) return null;
+          return (
+            <div className="mb-2 pt-2" style={{ borderTop: "1px solid #2a2015" }}>
+              <div className="text-xs text-crypt-dim mb-1 tracking-wider uppercase">
+                In this room
+              </div>
+              <div className="flex flex-col gap-1">
+                {activeProps.map((p) => {
+                  const state = node.propStates?.[p.id];
+                  const examined = state?.examined ?? false;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => onExamineProp(node.id, p.id)}
+                      style={btnStyle(examined ? "#3a3020" : "#6a3a1a")}
+                      className="text-xs! px-2! py-1! text-left! flex! items-center! gap-2!"
+                    >
+                      <span style={{ fontSize: "1rem" }}>{p.icon}</span>
+                      <span className="flex-1">{p.label}</span>
+                      {examined && <span style={{ color: "#8a7a5a" }}>{"\u2713"}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
       <div className="flex flex-col gap-1.5">
         {(adjacentIds.has(node.id) || debugMode) && !node.blocked && node.id !== currentRoomId && (

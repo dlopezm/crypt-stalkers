@@ -44,6 +44,22 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
       "Motto survives in fragments: 'From the earth, prosperity' (gate hint for R24). " +
       "Iron cart tracks run inward. Era layering visible: raw stone → plaster → neglect. " +
       "Thematic beat: you stand where a fortune was dug from stone — and where the bill was charged to people who did not keep the books.",
+    props: [
+      {
+        id: "ashvere_crest",
+        label: "Defaced Crest",
+        icon: "\u{1F6E1}\uFE0F",
+        desc: "An iron shield above the arch. Chisel marks where the order tried to erase it, but the relief survives: pickaxe, crystal, mountain. Your family's mark. Beneath it, letters scored deep enough to outlast vandalism: 'From the earth, prosperity.'",
+        gridPosition: { row: 5, col: 2 },
+        onExamine: [
+          { type: "set_flag", flag: "knows_ashvere_motto" },
+          {
+            type: "log",
+            message: "The Ashvere motto. You remember it differently from the stories.",
+          },
+        ],
+      },
+    ],
   },
   3: {
     label: "Weighing Station",
@@ -55,6 +71,40 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
       "Log names player's SURNAME as shift supervisor — proof this place was theirs, and that their name sat above crews whose terms you have not yet read. " +
       "5 gold in scattered coins. " +
       "Teaching: documents reward thorough search; rats introduce breeding / door-squeeze mechanics.",
+    props: [
+      {
+        id: "foreman_log",
+        label: "Foreman's Log",
+        icon: "\u{1F4D6}",
+        desc: "A water-stained ledger on a rotting shelf. The ink has bled, but the shift header still reads clearly: SUPERVISOR — ASHVERE. Your surname sat above crews whose terms you have not yet read.",
+        gridPosition: { row: 6, col: 5 },
+        onExamine: [
+          { type: "set_flag", flag: "read_foreman_log" },
+          {
+            type: "log",
+            message: "Your family name, printed above other people's labor.",
+          },
+        ],
+      },
+      {
+        id: "scattered_coins",
+        label: "Scattered Coins",
+        icon: "\u{1FA99}",
+        desc: "Five silver-worn coins between the scales and the wall, missed by scavengers. Old mint, still heavy.",
+        gridPosition: { row: 7, col: 6 },
+        actions: [
+          {
+            id: "take",
+            label: "Pocket the coins",
+            effects: [
+              { type: "grant_gold", amount: 5 },
+              { type: "consume_prop" },
+              { type: "log", message: "5 gold." },
+            ],
+          },
+        ],
+      },
+    ],
   },
   4: {
     label: "Cart Depot",
@@ -78,6 +128,55 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
       "MINE MAPS (hint deep layout / connections). " +
       "12 gold in LOCKED DRAWER (key elsewhere or lockpick). " +
       "First proof the heir's prosperity had a line item paid in someone else's life.",
+    props: [
+      {
+        id: "baron_portrait",
+        label: "Baron's Portrait",
+        icon: "\u{1F5BC}\uFE0F",
+        desc: "The baron's portrait hangs crooked: eyes scratched out, GREED carved across the chest. Order judgment, frozen in paint and knife.",
+        gridPosition: { row: 1, col: 9 },
+      },
+      {
+        id: "indenture_contracts",
+        label: "Labor Contracts",
+        icon: "\u{1F4DC}",
+        desc: "Indentured labor contracts fill the filing niche. Workers charged for housing, tools, food — interest and fees structured so the principal never shrank. The same surnames appear for years. Pinned beneath: safety petitions from the miners' guild. Each stamped REVIEWED, filed, no answer.",
+        gridPosition: { row: 1, col: 10 },
+        onExamine: [
+          { type: "set_flag", flag: "read_indentures" },
+          {
+            type: "log",
+            message: "Your ancestor's arithmetic. The debt was designed to grow.",
+          },
+        ],
+      },
+      {
+        id: "mine_maps",
+        label: "Mine Maps",
+        icon: "\u{1F5FA}\uFE0F",
+        desc: "Survey maps of the upper and deep galleries. Pencil marks show planned expansions that never happened — or weren't supposed to happen yet.",
+        gridPosition: { row: 1, col: 11 },
+        onExamine: [{ type: "set_flag", flag: "has_mine_maps" }],
+      },
+      {
+        id: "locked_drawer_gold",
+        label: "Locked Drawer",
+        icon: "\u{1F512}",
+        desc: "The bottom drawer is locked but the wood is rotten. A sharp pull breaks it open. Inside: 12 gold coins and a stamped receipt for 'emergency ventilation repair' — funds allocated, never spent.",
+        gridPosition: { row: 2, col: 10 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the gold",
+            effects: [
+              { type: "grant_gold", amount: 12 },
+              { type: "consume_prop" },
+              { type: "log", message: "12 gold. The ventilation was never repaired." },
+            ],
+          },
+        ],
+      },
+    ],
   },
   6: {
     label: "Ventilation Shaft Base",
@@ -88,6 +187,44 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
       "Vertical shaft; too narrow to climb. " +
       "ERA 2 BRAZIER — extinguished, one of the first sacred fire fixtures the player sees. Relightable after Area 2 ritual. " +
       "When lit: true-light zone here.",
+    props: [
+      {
+        id: "extinguished_brazier",
+        label: "Cold Brazier",
+        icon: "\u{1F56F}\uFE0F",
+        desc: "A wrought-iron brazier at the base of the shaft. The bowl is full of grey ash and a single black wick-end. The metal is cold to the touch. Sunlight washes down from above — it keeps the dark honest, but it does not warm the iron.",
+        gridPosition: { row: 5, col: 14 },
+        actions: [
+          {
+            id: "relight",
+            label: "Relight the brazier",
+            desc: "Requires the consecrated rite from the chapel",
+            requires: { flags: ["has_consecration"] },
+            effects: [
+              { type: "set_flag", flag: "mine_brazier_lit" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "The rite takes. Flame climbs the wick, steady and true. The shaft stops feeling like a throat.",
+              },
+            ],
+          },
+          {
+            id: "leave_dark",
+            label: "Leave it dark",
+            desc: "You could come back.",
+            effects: [
+              { type: "set_flag", flag: "mine_brazier_noted" },
+              {
+                type: "log",
+                message: "You note the brazier's place and move on.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   7: {
     label: "Gallery Threshold",

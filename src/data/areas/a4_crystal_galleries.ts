@@ -34,7 +34,7 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
       "R117. DARK. Era 1. Tunnel widens; crystals multiply. " +
       "First regrowth teaching: old tool marks and abandoned cracks show small new facets — glassy, younger than scored stone; fresh growth in seams picks never finished. " +
       "Player light refracts — prismatic wash; air dry and clean. " +
-      "Miner wall scratch (exact): \"Beautiful down here. Wish Maren could see it.\" " +
+      'Miner wall scratch (exact): "Beautiful down here. Wish Maren could see it." ' +
       "Connects R116 (via drained tunnels exit), R118 geode, R119 reflector alpha; exits to drained / dig.",
   },
   3: {
@@ -47,7 +47,7 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
       "Teaching: the thing worth selling is what the wall holds back; presence refines what it touches. " +
       "MISSING enemy: bats ×4 (see in dark; blocked by doors). " +
       "Loot: raw salt crystal ×2 (lantern crafting); ~15 gold crystal fragments. " +
-      "Miner note quote: \"Foreman says keep digging. Could sell the walls. But it's warm down here and the walls hum.\" " +
+      'Miner note quote: "Foreman says keep digging. Could sell the walls. But it\'s warm down here and the walls hum." ' +
       "Dead end off R117.",
   },
   4: {
@@ -78,7 +78,7 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
       "R121. DARK → LIT if reflectors from R120 reach here. Era 1. Largest natural crystal cavern; ceiling lost in dark. " +
       "Unmined upper alcoves run thick with columnar salt — lush, actively encroaching on old voids. Baron headings that did reach: walls thin, picked clean, spiritually hungry by contrast. " +
       "Shadows ×2 in depth; when lit, refracted cascade kills both — contrast undeniable: more crystal where nobody took. " +
-      "REGROWING SALT proof: chisel mark + faded ink on pillar — \"FACE — 4th span — Year of the Red Frost\" (~400 years); crystal surface now protrudes a handspan past the line. " +
+      'REGROWING SALT proof: chisel mark + faded ink on pillar — "FACE — 4th span — Year of the Red Frost" (~400 years); crystal surface now protrudes a handspan past the line. ' +
       "Alt read: narrow unmined crawl visible from mined gallery — one side stripped, other choked with new growth. " +
       "Loot when lit: ancient mine inscriptions; 25 gold crystal fragments; awe/scale read. " +
       "Passage to R123 revealed only when this room is lit. Cross-ref: Ending 4 (Release) evidence — salt heals when taking stops.",

@@ -9,10 +9,10 @@ import { AuthoredAreaEditor } from "./components/editor/AuthoredAreaEditor";
 import { AreaMap } from "./components/area/AreaMap";
 import { CombatScreen } from "./components/CombatScreen";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
-import type { AreaNode, AreaDef, AreaLogEntry, Player } from "./types";
+import type { AreaNode, AreaDef, AreaLogEntry, Player, PropEffect } from "./types";
 import { useAppDispatch, useAppSelector } from "./store";
 import { setScreen } from "./store/screenSlice";
-import { setPlayer } from "./store/playerSlice";
+import { setPlayer, setFlag } from "./store/playerSlice";
 import {
   setAreaFull,
   updateArea,
@@ -20,7 +20,9 @@ import {
   addLogEntries,
   clearArea,
   switchArea,
+  updatePropState,
 } from "./store/areaSlice";
+import { canPerformAction, evaluateEffects } from "./utils/props";
 import { startCombat, clearCombat } from "./store/combatSlice";
 import { toggleDebugMode, toggleShowDebug, setShowDebug } from "./store/debugSlice";
 import { tickAI as tickAIThunk } from "./store/thunks";
@@ -257,6 +259,66 @@ export default function App() {
     );
   }
 
+  /* ── Prop interactions ──
+   * applyEffects dispatches each outcome separately so flag sets go through
+   * setFlag (which reads current state) rather than being folded into a
+   * single setPlayer that could clobber a concurrent update. */
+  function applyEffects(effects: PropEffect[], roomId: string, propId: string) {
+    if (!player) return;
+    const outcome = evaluateEffects(effects);
+    if (outcome.goldDelta !== 0 || outcome.hpDelta !== 0) {
+      dispatch(
+        setPlayer({
+          ...player,
+          gold: Math.max(0, player.gold + outcome.goldDelta),
+          hp: Math.max(0, Math.min(player.maxHp, player.hp + outcome.hpDelta)),
+        }),
+      );
+    }
+    for (const f of outcome.flagSets) {
+      dispatch(setFlag({ flag: f.flag, value: f.value }));
+    }
+    if (outcome.logMessages.length > 0) {
+      addLog(
+        outcome.logMessages.map((text) => ({ text, roomId })),
+        "player",
+      );
+    }
+    if (outcome.consumed) {
+      dispatch(updatePropState({ roomId, propId, patch: { consumed: true } }));
+    }
+  }
+
+  function onExamineProp(roomId: string, propId: string) {
+    if (!area) return;
+    const room = area.find((n) => n.id === roomId);
+    const prop = room?.props?.find((p) => p.id === propId);
+    if (!prop) return;
+    const state = room?.propStates?.[propId];
+    // Examine effects fire exactly once. Re-opening an examined prop just
+    // shows the dialog again without re-triggering flags/logs/etc.
+    if (!state?.examined) {
+      dispatch(updatePropState({ roomId, propId, patch: { examined: true } }));
+      if (prop.onExamine && prop.onExamine.length > 0) {
+        applyEffects(prop.onExamine, roomId, propId);
+      }
+    }
+  }
+
+  function onPropAction(roomId: string, propId: string, actionId: string) {
+    if (!area || !player) return;
+    const room = area.find((n) => n.id === roomId);
+    const prop = room?.props?.find((p) => p.id === propId);
+    const action = prop?.actions?.find((a) => a.id === actionId);
+    if (!prop || !action) return;
+    const state = room?.propStates?.[propId];
+    const check = canPerformAction(action, player.flags, player.gold, state);
+    if (!check.ok) return;
+    const nextUsed = [...(state?.actionsUsed ?? []), actionId];
+    dispatch(updatePropState({ roomId, propId, patch: { actionsUsed: nextUsed } }));
+    applyEffects(action.effects, roomId, propId);
+  }
+
   function onScout(roomId: string, _scoutLevel: number) {
     if (!area || !currentRoomId) return;
     const { newArea: afterAI } = tickAI(area, currentRoomId, "scout");
@@ -398,6 +460,8 @@ export default function App() {
           onBlockDoor={onBlockDoor}
           onRest={onRestOnMap}
           onSwitchWeapon={onSwitchWeaponOnMap}
+          onExamineProp={onExamineProp}
+          onPropAction={onPropAction}
           onToggleDebug={() => dispatch(toggleDebugMode())}
           onReturnToTown={() => returnToTown()}
         />

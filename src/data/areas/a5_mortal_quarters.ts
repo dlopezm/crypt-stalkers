@@ -29,7 +29,7 @@ export const A5_MORTAL_QUARTERS_ROOMS: Record<number, AuthoredRoom> = {
     isStart: true,
     notes:
       "R168. Always. Dark. No enemies. Dusty service corridor; skeletal footprints (recent) — lich visits rarely with no operational purpose. " +
-      "Tone: efficiency expert in a wing with no line item; neglect filed as \"no action required\" — worse than sentimentality. " +
+      'Tone: efficiency expert in a wing with no line item; neglect filed as "no action required" — worse than sentimentality. ' +
       "Exits: hidden passage to R162 (room 6 → a5_sanctum grid 8); loose panel to R146 (room 7 → a5_outer_ward grid 2, HIDDEN). " +
       "Cross-ref: R146, R157, R162, R169 desk beat.",
   },
@@ -50,7 +50,7 @@ export const A5_MORTAL_QUARTERS_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R170. Always. Dark. No enemies. Philosophy shelves emphasize duty, sacrifice, competence — not soft-loss poetry as primary key. " +
-      "Margin quotes in Serevic's hand (justifications in progress): \"Is it greed to refuse to let something die? Is it duty to make yourself the only solution? What if no one else will do it?\" — ethical engine: competence as virtue → monstrosity. " +
+      'Margin quotes in Serevic\'s hand (justifications in progress): "Is it greed to refuse to let something die? Is it duty to make yourself the only solution? What if no one else will do it?" — ethical engine: competence as virtue → monstrosity. ' +
       "Ashvere / barony history present as operational context (how the machine worked), not apology. " +
       "Teaching: complicates easy judgment without demanding forgiveness. Cross-ref: R165 dialogue, Baron's ring trigger.",
   },
@@ -59,11 +59,11 @@ export const A5_MORTAL_QUARTERS_ROOMS: Record<number, AuthoredRoom> = {
     hint: "cloth over glass; a locket on the shelf asks nothing and stays.",
     enemies: [],
     notes:
-      "R171. Always. Dark. No enemies. Dead end. Full-length mirror covered — efficiency, not grief trope: \"This serves no function.\" " +
+      'R171. Always. Dark. No enemies. Dead end. Full-length mirror covered — efficiency, not grief trope: "This serves no function." ' +
       "Shelf: comb and razor as artifacts of discontinued process (no work order to clear — same motif as bedroom). " +
       "Silver locket: someone they loved; room does not sentimentalize — object simply still there. " +
       "If player removes cloth: living reflection (warm, breathing) in a place built for the dead — no mechanical reward; evidence / dungeon's last question: what does a living person do here — take, hold, break, or walk away? " +
-      "Cross-ref: Ending 4 emotional credibility, R165 \"high consecration\" line.",
+      'Cross-ref: Ending 4 emotional credibility, R165 "high consecration" line.',
   },
   6: {
     label: "Through the Hidden Passage",

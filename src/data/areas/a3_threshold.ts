@@ -33,7 +33,7 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R75. Era 2+3. COLDFIRE fading to dark — strips thin quickly; darkness follows in a few rooms. " +
       "First room past Lower Gate East (Area 2 R73); reliable light soft gate at that gate. " +
-      "Order inscription on arch: \"From service in life to service in death.\" Below, it reads as license to claim. " +
+      'Order inscription on arch: "From service in life to service in death." Below, it reads as license to claim. ' +
       "Skeletons ×2 on patrol — already the lich's shift, not the order's rest. " +
       "Teaching: true flame vs coldfire; shuttered lantern rhythm for Area 3 gauntlet.",
   },
@@ -91,7 +91,8 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
     hint: "the industrial dark breathes; conveyors hum in the distance.",
     enemies: [],
     exit: { toAreaId: "a3_sorting", toRoomGridId: 2 },
-    notes: "Exit to R80 Sorting Gallery. Pair: sorting \"To Funerary Threshold\" returns threshold grid 5 (R79).",
+    notes:
+      'Exit to R80 Sorting Gallery. Pair: sorting "To Funerary Threshold" returns threshold grid 5 (R79).',
   },
 };
 

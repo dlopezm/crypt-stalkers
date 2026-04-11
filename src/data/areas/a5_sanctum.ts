@@ -46,7 +46,7 @@ export const A5_SANCTUM_ROOMS: Record<number, AuthoredRoom> = {
       "R158. Coldfire. No enemies. Massive salt-crystal altar; cracked; stained with centuries of rite residue. Era 2: Vigil Hymn notation. Era 3: necromantic reroute into lich power grid. Sacred brazier stand (extinguished). " +
       "Loot/read: altar inscriptions (hymn importance). " +
       "World-state — optional brazier: relight with hymn ritual → true light floods altar + adjacent spaces → weakens lich light suppression in Crystal Throne subarea. " +
-      "If player consecrates altar: during R165 encounter Serevic may quip (impatient): \"You restored a ritual that maintains nothing. Efficient.\" " +
+      'If player consecrates altar: during R165 encounter Serevic may quip (impatient): "You restored a ritual that maintains nothing. Efficient." ' +
       "Brazier flood is a teaching beat tying consecration / hymn mastery to boss-phase economy. " +
       "Cross-ref: R159, R165, Area 2 hymn sources.",
   },
@@ -100,7 +100,7 @@ export const A5_SANCTUM_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     exit: { toAreaId: "a5_crystal_throne", toRoomGridId: 2 },
     notes:
-      "Exit to a5_crystal_throne R163 (grid 2). Pair: Crystal Throne \"Back to the Sanctum\" → sanctum grid 7 (R161). Cross-ref: R163.",
+      'Exit to a5_crystal_throne R163 (grid 2). Pair: Crystal Throne "Back to the Sanctum" → sanctum grid 7 (R161). Cross-ref: R163.',
   },
 };
 

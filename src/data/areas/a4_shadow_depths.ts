@@ -62,7 +62,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R137. DARK — crystal faint internal glow (not Shadow-food). Era 1. Exposed deep salt vein; self-luminous crystals resist Shadow consumption — " +
       "glow reads as containment working; same formation that drew presence also armors against its echo. Treasure and barrier, one material. " +
-      "Note quote: \"These crystals don't go dark. The lamps die but the crystals keep glowing. Something in the salt itself.\" " +
+      'Note quote: "These crystals don\'t go dark. The lamps die but the crystals keep glowing. Something in the salt itself." ' +
       "Loot: self-luminous salt crystal ×2; knowledge for crystal lantern recipe. Shadow ×1. Connects R136 ↔ R138.",
   },
   5: {

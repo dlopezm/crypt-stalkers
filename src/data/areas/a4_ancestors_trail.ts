@@ -27,7 +27,7 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
     isStart: true,
     notes:
       "R130. DARK. Era 1. Wall of tallies; ancestor's name visible. " +
-      "Graffito quote: \"Day 291. The foreman says one more week. He's said that for a month.\" " +
+      'Graffito quote: "Day 291. The foreman says one more week. He\'s said that for a month." ' +
       "Teaching: clock of extraction vs human lifespan. Connects R128 (abandoned dig) ↔ R131.",
   },
   3: {
@@ -55,7 +55,7 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
     hint: "a scratched house, a garden, a child. one word underneath: Home.",
     enemies: [],
     notes:
-      "R133. DARK. Era 1. Dominant wall: scratched house and garden; adult and child; caption \"Home.\" " +
+      'R133. DARK. Era 1. Dominant wall: scratched house and garden; adult and child; caption "Home." ' +
       "Player recognizes baron stories / letters. Pure human beat — no fight, no loot required. " +
       "Connects R132 ↔ R134.",
   },
@@ -66,8 +66,8 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R134. DARK. Dead end; emotional climax of Area 4 — quiet, no combat. Era 1. " +
       "Collapsed side into small alcove. Skeleton with family name on belt. " +
-      "Unsent letter opening: \"If I don't make it out—\" Body warns: collapse ignored, foreman refused stop, plea that no one follow for silver or pride. " +
-      "Closing line (exact): \"Don't come looking for what we left here. The salt keeps its own.\" " +
+      'Unsent letter opening: "If I don\'t make it out—" Body warns: collapse ignored, foreman refused stop, plea that no one follow for silver or pride. ' +
+      'Closing line (exact): "Don\'t come looking for what we left here. The salt keeps its own." ' +
       "After Crystal Galleries, lands as doctrine: ancestor knew — instinct, not textbook — mine better left; baron took, order taxed, lich calculated; simplest voice understood stop taking. " +
       "BONUS — Ancestor's Rest contents: letter unlocks lich line \"You're sitting on my family's bones\"; Ending 4 evidence chain; carved toy for child who never got it (memento / small passive); tally book (full record). " +
       "Cross-ref: regrowing salt proof R121; seal Study R143; Ending 4 (Release).",
@@ -93,6 +93,6 @@ export const A4_ANCESTORS_TRAIL: AreaDef = {
   combatRooms: [],
   hiddenFromTown: true,
   notes:
-    "Area 4 Subarea 4 — linear intimate arc; R134 letter is thematic keystone with \"The salt keeps its own.\" " +
+    'Area 4 Subarea 4 — linear intimate arc; R134 letter is thematic keystone with "The salt keeps its own." ' +
     "Pairs with Crystal Galleries revelation and Sealed Chamber observation log.",
 };

@@ -482,6 +482,7 @@ export function GridCanvas({
   selectedRoomId,
   visible,
   debugMode,
+  propHighlightTiles,
   onClickRoom,
 }: {
   grid: AreaGrid;
@@ -490,6 +491,7 @@ export function GridCanvas({
   selectedRoomId: string | null;
   visible: Set<string>;
   debugMode: boolean;
+  propHighlightTiles: readonly { row: number; col: number }[];
   onClickRoom: (nodeId: string) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -807,7 +809,24 @@ export function GridCanvas({
       ctx.strokeText("\u{1F6AA}", cx, cy);
       ctx.fillText("\u{1F6AA}", cx, cy);
     }
-  }, [grid, area, currentRoomId, selectedRoomId, visible, debugMode]);
+
+    // ── Pass 8: Prop tile highlights (current room only) ──
+    for (const tile of propHighlightTiles) {
+      const x = tile.col * R_CELL;
+      const y = tile.row * R_CELL;
+      const cx = x + R_CELL / 2;
+      const cy = y + R_CELL / 2;
+      const radius = R_CELL * 0.55;
+      const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+      gradient.addColorStop(0, "rgba(255,220,120,0.55)");
+      gradient.addColorStop(0.6, "rgba(255,200,80,0.22)");
+      gradient.addColorStop(1, "rgba(255,180,40,0)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }, [grid, area, currentRoomId, selectedRoomId, visible, debugMode, propHighlightTiles]);
 
   useEffect(() => {
     draw();

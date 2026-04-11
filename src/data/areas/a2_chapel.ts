@@ -53,6 +53,40 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
       "Stalactites as singing saints, mouths open forever. " +
       "Contains: offering bowls 18 gold total; damaged hymnals — one legible notation (hymn fragment clue). " +
       "Connects: R37, R39 choir loft, R40 cantor's stand, R41 great brazier, R42 side chapel.",
+    props: [
+      {
+        id: "offering_bowls",
+        label: "Offering Bowls",
+        icon: "\u{1F963}",
+        desc: "Stone bowls arranged along the nave aisle, holding coins pressed between scraps of salt. The cult accepts tribute; the saints, perhaps, do not.",
+        gridPosition: { row: 6, col: 10 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the offerings",
+            effects: [
+              { type: "grant_gold", amount: 18 },
+              { type: "consume_prop" },
+              { type: "log", message: "18 gold lifted from the bowls." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "hymn_fragment",
+        label: "Damaged Hymnal",
+        icon: "\u{1F3BC}",
+        desc: "Most of the hymnals on the pews are rotted to pulp, but one has survived in a pew crevice. A single page remains legible: a notation in a lost hand, naming the cadence that 'strikes the brazier's heart.' A fragment of the Vigil Hymn.",
+        gridPosition: { row: 7, col: 12 },
+        onExamine: [
+          { type: "set_flag", flag: "knows_hymn_fragment" },
+          {
+            type: "log",
+            message: "You commit the cadence to memory. It tastes like a note you've always known.",
+          },
+        ],
+      },
+    ],
   },
   4: {
     label: "Choir Loft",
@@ -84,6 +118,43 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
       "Central dais. Great Brazier: cart-scale salt-crystal basin, flame-and-voice relief. Witch ×1 not in enemy list — environmental boss when witch exists. Coldfire orbits her, not the bowl. " +
       "Great Brazier milestone: defeat Witch; relight (hymn + R40/R53 + performed melody) → Chapel Cavern true light: Skullflower suppressed; Ghouls/Larvae flee; Shadows blocked; Area 1 skeleton patrols add chapel route. " +
       "Connects: R38, exit grid 9 (R61 upper passage / chapter house). Cross-ref R61, Mira trade R61→R41 shortcut.",
+    props: [
+      {
+        id: "great_brazier",
+        label: "The Great Brazier",
+        icon: "\u{1F525}",
+        desc: "A cart-scale salt-crystal basin set into a central dais. The flame-and-voice relief around its rim is chipped but unmistakable. Where fire should be, only cold air, orbiting nothing. The stone beneath your boots remembers heat.",
+        gridPosition: { row: 13, col: 14 },
+        actions: [
+          {
+            id: "relight",
+            label: "Sing the Vigil Hymn and relight",
+            desc: "Requires the hymn fragment",
+            requires: { flags: ["knows_hymn_fragment"] },
+            effects: [
+              { type: "set_flag", flag: "has_consecration" },
+              { type: "set_flag", flag: "great_brazier_lit" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "The cadence takes. The basin answers — true flame, rising. The chapel stops holding its breath.",
+              },
+            ],
+          },
+          {
+            id: "leave_dark",
+            label: "Leave the basin cold",
+            effects: [
+              {
+                type: "log",
+                message: "The cold air keeps orbiting where fire should be.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   7: {
     label: "Side Chapel",

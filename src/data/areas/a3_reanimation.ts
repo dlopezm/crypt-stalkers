@@ -85,7 +85,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     exit: { toAreaId: "a3_sorting", toRoomGridId: 5 },
     notes:
-      "Return to R83 Conveyor Hall (sorting grid 5). Pair: sorting \"To Reanimation Wing\" lands grid 2 (R87).",
+      'Return to R83 Conveyor Hall (sorting grid 5). Pair: sorting "To Reanimation Wing" lands grid 2 (R87).',
   },
 };
 

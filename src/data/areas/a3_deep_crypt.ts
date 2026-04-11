@@ -53,7 +53,7 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R102. Era 2. DARK. Single sarcophagus; founding symbol. Remains of first knight-commander; preservation cloth. " +
       "HOLY RELIC — blessed salt-crystal pendant (CONSECRATION physical part). Pair with Area 2 R53 ritual text; activate at R105. " +
-      "Honor guard does not pursue into this room. Plaque: \"First to serve. Last to rest.\"",
+      'Honor guard does not pursue into this room. Plaque: "First to serve. Last to rest."',
   },
   5: {
     label: "Epitaph Gallery",
@@ -87,7 +87,7 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     exit: { toAreaId: "a3_bone_stacks", toRoomGridId: 6 },
     notes:
-      "Return to R98 (bone stacks grid 6). Pair: bone stacks \"To Deep Crypt\" lands grid 2 (R100).",
+      'Return to R98 (bone stacks grid 6). Pair: bone stacks "To Deep Crypt" lands grid 2 (R100).',
   },
 };
 

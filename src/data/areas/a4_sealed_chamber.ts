@@ -36,7 +36,7 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R141. DARK. Era 1 + 2. Salt grows asymmetric / organic — wrong geometry. Heavy air. " +
       "Light flickers oddly (not Shadow drain). Edge whispers as impressions: warmth, pull, weight — not a voice negotiating. " +
-      "Era 2 carved line: \"BEYOND THIS POINT, THE VIGIL KEEPS.\" Ambient demon pressure only. " +
+      'Era 2 carved line: "BEYOND THIS POINT, THE VIGIL KEEPS." Ambient demon pressure only. ' +
       "Connects R140 (shadow exit) ↔ R142 ward hall.",
   },
   3: {
@@ -78,9 +78,9 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R145. DARK. Era 2 + lich annotations. Slit view toward R143. Observation log structure: " +
-      "Order early: \"No change.\" — barrier stable; geology doing most work. " +
-      "As mining resumes/deepens: \"Slight thinning, NE quadrant\" — correlates with extraction bearing. " +
-      "Lich era: \"Barrier stabilized. Wards reinforced.\" then \"Cracks. Expanding.\" — correlates with necromantic activity; new stress atop old thinning. " +
+      'Order early: "No change." — barrier stable; geology doing most work. ' +
+      'As mining resumes/deepens: "Slight thinning, NE quadrant" — correlates with extraction bearing. ' +
+      'Lich era: "Barrier stabilized. Wards reinforced." then "Cracks. Expanding." — correlates with necromantic activity; new stress atop old thinning. ' +
       "Player synthesis (esp. after seal Study + Crystal Galleries): barrier thins when mine eaten, eases when taking stops; lich maintenance buys time while undeath frays seal; R143 cracks rhyme with log. " +
       "Loot: 10 gold. Dead end.",
   },

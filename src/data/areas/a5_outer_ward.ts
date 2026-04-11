@@ -87,7 +87,7 @@ export const A5_OUTER_WARD_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R151. Coldfire. No enemies. Ceremonial boundary; R99 was the real lock. Finest Era 2 salt-work; architecture turns more ornate inward. " +
-      "Gate text: \"The Vigil endures. The Vigil provides. The Vigil consumes.\" — third line added later in different handwriting (lich's addendum to order motto). " +
+      'Gate text: "The Vigil endures. The Vigil provides. The Vigil consumes." — third line added later in different handwriting (lich\'s addendum to order motto). ' +
       "Exit forward: Prayer Colonnade R152 via grid link to a5_colonnade (room 11). " +
       "Cross-ref: R150, R152.",
   },

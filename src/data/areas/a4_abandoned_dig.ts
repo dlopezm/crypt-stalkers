@@ -35,7 +35,7 @@ export const A4_ABANDONED_DIG_ROOMS: Record<number, AuthoredRoom> = {
     isStart: true,
     notes:
       "R124. COLDFIRE (dying strips) + DARK pockets. Era 3. Equipment tents; fading coldfire posts. " +
-      "Skeletons ×2 still \"working\" on last orders — chips salt forever. " +
+      'Skeletons ×2 still "working" on last orders — chips salt forever. ' +
       "Connects R116 (crystal exit), R125 equipment, R127 trapped passage. " +
       "Theme: Era 3 dig stopped mid-work; lich withdrew after crews vanished.",
   },
@@ -45,7 +45,7 @@ export const A4_ABANDONED_DIG_ROOMS: Record<number, AuthoredRoom> = {
     enemies: ["rat", "rat", "rat", "rat"],
     notes:
       "R125. DARK. Era 3. Picks, carts, rope, last coldfire strips — supply ends here. " +
-      "Rats in organics. Hasty exit: dropped gear; log quote — \"Crew 7 — no report. Crew 9 — no report. Halting deep operations. —S.\" (Serevic halt order; necromancer withdrew). " +
+      'Rats in organics. Hasty exit: dropped gear; log quote — "Crew 7 — no report. Crew 9 — no report. Halting deep operations. —S." (Serevic halt order; necromancer withdrew). ' +
       "Loot: mining tools; rope (Area 5 descent / traversal gate with R144). " +
       "Connects R124 ↔ R126.",
   },
@@ -88,10 +88,10 @@ export const A4_ABANDONED_DIG_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R129. DARK. Era 1. Rotting benches, tin cups. Multi-era graffiti anthology of greed's voice — " +
-      "PRIDE (early miners): names in wreaths, \"deepest crew,\" boasts of loads. " +
-      "BITTERNESS (later): \"still not enough for him\" — foreman, baron, faceless him. " +
-      "RESIGNATION (indentured): tallies without comment; \"owed 14 years, year 9.\" " +
-      "Anonymous line: \"From down here the walls look like stars. Nobody owns stars.\" — beauty without ownership, view greed cannot deed. " +
+      'PRIDE (early miners): names in wreaths, "deepest crew," boasts of loads. ' +
+      'BITTERNESS (later): "still not enough for him" — foreman, baron, faceless him. ' +
+      'RESIGNATION (indentured): tallies without comment; "owed 14 years, year 9." ' +
+      'Anonymous line: "From down here the walls look like stars. Nobody owns stars." — beauty without ownership, view greed cannot deed. ' +
       "Ancestor handwriting among marks (matches baron journals Area 1) — first explicit ancestor trace this branch. Dead end.",
   },
   8: {

@@ -1,4 +1,5 @@
-import type { AreaNode } from "../../types";
+import { getActiveProps } from "../../utils/props";
+import type { AreaNode, RoomProp, Player } from "../../types";
 
 /* ── Individual sound icon ── */
 function SoundIcon({
@@ -54,6 +55,48 @@ function SoundIcon({
   );
 }
 
+/* ── Resolve a prop's tile coordinate in the grid.
+ * Uses gridPosition if set, otherwise auto-distributes along the room's edge cells. */
+export function resolvePropTiles(
+  props: RoomProp[],
+  bbox: { minRow: number; maxRow: number; minCol: number; maxCol: number },
+): Map<string, { row: number; col: number }> {
+  const map = new Map<string, { row: number; col: number }>();
+  const without: RoomProp[] = [];
+  for (const p of props) {
+    if (p.gridPosition) {
+      map.set(p.id, { row: p.gridPosition.row, col: p.gridPosition.col });
+    } else {
+      without.push(p);
+    }
+  }
+  if (without.length > 0) {
+    // Distribute along top+bottom edges of the bbox, skipping the center where
+    // single-cell rooms would collide with the default label slot.
+    const slots: { row: number; col: number }[] = [];
+    for (let c = bbox.minCol; c <= bbox.maxCol; c++) {
+      slots.push({ row: bbox.minRow, col: c });
+    }
+    if (bbox.maxRow > bbox.minRow) {
+      for (let c = bbox.minCol; c <= bbox.maxCol; c++) {
+        slots.push({ row: bbox.maxRow, col: c });
+      }
+    }
+    if (slots.length === 0) {
+      slots.push({
+        row: Math.floor((bbox.minRow + bbox.maxRow) / 2),
+        col: Math.floor((bbox.minCol + bbox.maxCol) / 2),
+      });
+    }
+    for (let i = 0; i < without.length; i++) {
+      const step = slots.length / without.length;
+      const idx = Math.floor(i * step + step / 2) % slots.length;
+      map.set(without[i].id, slots[idx]);
+    }
+  }
+  return map;
+}
+
 /* ── Room labels overlay ── */
 export function RoomLabels({
   area,
@@ -62,7 +105,9 @@ export function RoomLabels({
   soundIcons,
   gridWidth,
   gridHeight,
+  player,
   onSelectRoom,
+  onExaminePropOnMap,
 }: {
   area: AreaNode[];
   currentRoomId: string;
@@ -70,7 +115,9 @@ export function RoomLabels({
   soundIcons: { roomId: string; texts: string[]; key: number }[];
   gridWidth: number;
   gridHeight: number;
+  player: Player;
   onSelectRoom: (id: string) => void;
+  onExaminePropOnMap: (roomId: string, propId: string) => void;
 }) {
   return (
     <>
@@ -86,29 +133,70 @@ export function RoomLabels({
         const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
         const cyPct = ((minRow + maxRow + 1) / 2 / gridHeight) * 100;
 
+        const activeProps = isCurrent ? getActiveProps(n.props, player.flags, n.propStates) : [];
+        const showPropIcons = isCurrent && activeProps.length > 0;
+
         return (
-          <div
-            key={n.id + "-lbl"}
-            style={{
-              position: "absolute",
-              left: `${cxPct}%`,
-              top: `${cyPct}%`,
-              transform: "translate(-50%, -50%)",
-              fontSize: isCurrent ? "0.75rem" : "0.65rem",
-              color: isCurrent ? "#ece0c0" : visited ? "#000000" : "#5a4028",
-              whiteSpace: "nowrap",
-              textShadow: "0 1px 4px #000, 0 0 8px #000",
-              letterSpacing: "0.04em",
-              zIndex: 3,
-              pointerEvents: "none",
-              fontWeight: isCurrent ? "bold" : "normal",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              textAlign: "center",
-            }}
-          >
-            {isCurrent && <span style={{ marginRight: "3px" }}>{"\u2691"}</span>}
-            {n.label}
+          <div key={n.id + "-lbl"}>
+            {!showPropIcons && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${cxPct}%`,
+                  top: `${cyPct}%`,
+                  transform: "translate(-50%, -50%)",
+                  fontSize: isCurrent ? "0.75rem" : "0.65rem",
+                  color: isCurrent ? "#ece0c0" : visited ? "#000000" : "#5a4028",
+                  whiteSpace: "nowrap",
+                  textShadow: "0 1px 4px #000, 0 0 8px #000",
+                  letterSpacing: "0.04em",
+                  zIndex: 3,
+                  pointerEvents: "none",
+                  fontWeight: isCurrent ? "bold" : "normal",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  textAlign: "center",
+                }}
+              >
+                {isCurrent && <span style={{ marginRight: "3px" }}>{"\u2691"}</span>}
+                {n.label}
+              </div>
+            )}
+
+            {showPropIcons &&
+              (() => {
+                const tiles = resolvePropTiles(activeProps, n.bbox!);
+                return activeProps.map((p) => {
+                  const tile = tiles.get(p.id);
+                  if (!tile) return null;
+                  const leftPct = ((tile.col + 0.5) / gridWidth) * 100;
+                  const topPct = ((tile.row + 0.5) / gridHeight) * 100;
+                  return (
+                    <div
+                      key={`${n.id}-prop-${p.id}`}
+                      title={p.label}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onExaminePropOnMap(n.id, p.id);
+                      }}
+                      style={{
+                        position: "absolute",
+                        left: `${leftPct}%`,
+                        top: `${topPct}%`,
+                        transform: "translate(-50%, -50%)",
+                        fontSize: "1.1rem",
+                        zIndex: 5,
+                        pointerEvents: "auto",
+                        cursor: "pointer",
+                        textShadow: "0 0 6px #000, 0 0 10px #000",
+                        filter: "drop-shadow(0 0 3px rgba(255,220,120,0.5))",
+                      }}
+                    >
+                      {p.icon}
+                    </div>
+                  );
+                });
+              })()}
           </div>
         );
       })}

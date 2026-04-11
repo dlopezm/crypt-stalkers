@@ -281,6 +281,48 @@ export interface RoomExit {
   toRoomGridId: number;
 }
 
+/* ── Room Props ── */
+
+export interface PropRequirements {
+  flags?: string[];
+  notFlags?: string[];
+  gold?: number;
+}
+
+export type PropEffect =
+  | { type: "set_flag"; flag: string; value?: boolean | number }
+  | { type: "grant_gold"; amount: number }
+  | { type: "remove_gold"; amount: number }
+  | { type: "damage_player"; amount: number }
+  | { type: "heal_player"; amount: number }
+  | { type: "log"; message: string }
+  | { type: "consume_prop" };
+
+export interface PropAction {
+  id: string;
+  label: string;
+  desc?: string;
+  requires?: PropRequirements;
+  effects: PropEffect[];
+}
+
+export interface RoomProp {
+  id: string;
+  label: string;
+  icon: string;
+  desc: string;
+  gridPosition?: { row: number; col: number };
+  actions?: PropAction[];
+  onExamine?: PropEffect[];
+  condition?: PropRequirements;
+}
+
+export interface PropState {
+  examined: boolean;
+  actionsUsed: string[];
+  consumed: boolean;
+}
+
 export interface AuthoredRoom {
   label: string;
   hint: string;
@@ -300,6 +342,8 @@ export interface AuthoredRoom {
    * in addition to being a visitable room.
    */
   exit?: RoomExit;
+  /** Interactable props placed within this room. */
+  props?: RoomProp[];
 }
 
 export interface AuthoredLayout {
@@ -361,6 +405,10 @@ export interface AreaNode {
   bbox?: RoomBBox;
   /** If set, entering this room transitions to another area. Mirrors `AuthoredRoom.exit`. */
   exit?: RoomExit;
+  /** Interactable props carried from the authored room into the runtime node. */
+  props?: RoomProp[];
+  /** Runtime state per prop id (examined / actions used / consumed). */
+  propStates?: Record<string, PropState>;
 }
 
 /** The raw grid + metadata produced by area generation */
@@ -383,6 +431,8 @@ export interface Player {
   consumables: Consumable[];
   abilities: string[]; // building ability IDs the player has unlocked
   buildings: Record<string, BuildingState>;
+  /** Narrative flags set by room-prop interactions. Values are boolean or number. */
+  flags: Record<string, boolean | number>;
 }
 
 export interface CombatPlayer extends Player {

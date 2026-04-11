@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { AreaNode, AreaDef, AreaGrid, AreaLogEntry } from "../types";
+import type { AreaNode, AreaDef, AreaGrid, AreaLogEntry, PropState } from "../types";
 import { DUNGEON_LOG_MAX } from "../data/constants";
 
 /** Snapshot of an area that the player has stepped out of but may return to. */
@@ -141,6 +141,31 @@ const areaSlice = createSlice({
       // The newly active area is no longer a snapshot
       delete state.visitedAreas[toAreaId];
     },
+    updatePropState: (
+      state,
+      action: PayloadAction<{
+        roomId: string;
+        propId: string;
+        patch: Partial<PropState>;
+      }>,
+    ) => {
+      if (!state.area) return;
+      const { roomId, propId, patch } = action.payload;
+      state.area = state.area.map((n) => {
+        if (n.id !== roomId) return n;
+        const prev: PropState = n.propStates?.[propId] ?? {
+          examined: false,
+          actionsUsed: [],
+          consumed: false,
+        };
+        const next: PropState = {
+          examined: patch.examined ?? prev.examined,
+          actionsUsed: patch.actionsUsed ?? prev.actionsUsed,
+          consumed: patch.consumed ?? prev.consumed,
+        };
+        return { ...n, propStates: { ...(n.propStates ?? {}), [propId]: next } };
+      });
+    },
     clearArea: () => initialState,
   },
 });
@@ -152,6 +177,7 @@ export const {
   addLogEntries,
   incrementTurn,
   switchArea,
+  updatePropState,
   clearArea,
 } = areaSlice.actions;
 export default areaSlice.reducer;

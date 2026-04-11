@@ -4,8 +4,10 @@ import { REST_HEAL_FRACTION } from "../../data/constants";
 import { getScoutIntel } from "../../utils/area";
 import { StatusBadges, HpBar } from "../shared";
 import { GridCanvas, visibleRooms, CELL_PX } from "./GridCanvas";
-import { RoomLabels } from "./RoomLabels";
+import { RoomLabels, resolvePropTiles } from "./RoomLabels";
 import { RoomPanel } from "./RoomPanel";
+import { PropDialog } from "./PropDialog";
+import { getActiveProps } from "../../utils/props";
 import type { AreaNode, AreaGrid, Player, AreaLogEntry } from "../../types";
 
 /* ── Main DungeonMap Component ── */
@@ -24,6 +26,8 @@ export function AreaMap({
   onBlockDoor,
   onRest,
   onSwitchWeapon,
+  onExamineProp,
+  onPropAction,
   onToggleDebug,
   onReturnToTown,
 }: {
@@ -41,6 +45,8 @@ export function AreaMap({
   onBlockDoor: (id: string) => void;
   onRest: () => void;
   onSwitchWeapon: (weaponId: string) => void;
+  onExamineProp: (roomId: string, propId: string) => void;
+  onPropAction: (roomId: string, propId: string, actionId: string) => void;
   onToggleDebug: () => void;
   onReturnToTown: () => void;
 }) {
@@ -48,6 +54,7 @@ export function AreaMap({
   const [scoutResult, setScoutResult] = useState<string | null>(null);
   const [scoutLevel, setScoutLevel] = useState(0);
   const [showWeaponPicker, setShowWeaponPicker] = useState(false);
+  const [openProp, setOpenProp] = useState<{ roomId: string; propId: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
@@ -110,6 +117,36 @@ export function AreaMap({
   const adjacentIds = new Set(currentRoom?.connections || []);
 
   const visible = useMemo(() => visibleRooms(area, debugMode), [area, debugMode]);
+
+  // Prop tile highlights for the current room's active props
+  const propHighlightTiles = useMemo(() => {
+    if (!currentRoom?.bbox) return [];
+    const active = getActiveProps(currentRoom.props, player.flags, currentRoom.propStates);
+    if (active.length === 0) return [];
+    const tiles = resolvePropTiles(active, currentRoom.bbox);
+    return [...tiles.values()];
+  }, [currentRoom, player.flags]);
+
+  // Resolve the open prop for the dialog.
+  const openPropResolved = useMemo(() => {
+    if (!openProp) return null;
+    const room = area.find((n) => n.id === openProp.roomId);
+    const prop = room?.props?.find((p) => p.id === openProp.propId);
+    if (!room || !prop) return null;
+    const state = room.propStates?.[prop.id];
+    if (state?.consumed) return null;
+    return { room, prop, state };
+  }, [openProp, area]);
+
+  function handleExamineProp(roomId: string, propId: string) {
+    setOpenProp({ roomId, propId });
+    onExamineProp(roomId, propId);
+  }
+
+  function handlePropAction(actionId: string) {
+    if (!openProp) return;
+    onPropAction(openProp.roomId, openProp.propId, actionId);
+  }
 
   function handleClickRoom(nodeId: string) {
     const n = area.find((nd) => nd.id === nodeId);
@@ -216,6 +253,7 @@ export function AreaMap({
               selectedRoomId={selected}
               visible={visible}
               debugMode={debugMode}
+              propHighlightTiles={propHighlightTiles}
               onClickRoom={handleClickRoom}
             />
             <RoomLabels
@@ -225,7 +263,9 @@ export function AreaMap({
               soundIcons={soundIcons}
               gridWidth={areaGrid.width}
               gridHeight={areaGrid.height}
+              player={player}
               onSelectRoom={setSelected}
+              onExaminePropOnMap={handleExamineProp}
             />
           </div>
         </div>
@@ -244,6 +284,7 @@ export function AreaMap({
             onScout={handleScout}
             onSetTrap={handleSetTrap}
             onBlockDoor={handleBlockDoor}
+            onExamineProp={handleExamineProp}
           />
 
           {/* Player status */}
@@ -345,6 +386,16 @@ export function AreaMap({
           </button>
         </div>
       </div>
+
+      {openPropResolved && !openPropResolved.state?.consumed && (
+        <PropDialog
+          prop={openPropResolved.prop}
+          propState={openPropResolved.state}
+          player={player}
+          onAction={handlePropAction}
+          onClose={() => setOpenProp(null)}
+        />
+      )}
 
       <style>{`
         @keyframes soundPulse {

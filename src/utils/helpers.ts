@@ -84,6 +84,7 @@ export function makeStarterPlayer(): Player {
     consumables: starterConsumables,
     abilities: [],
     buildings,
+    flags: {},
   };
 }
 

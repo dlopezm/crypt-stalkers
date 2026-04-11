@@ -42,7 +42,7 @@ export const A3_VAMPIRE_PRISON_ROOMS: Record<number, AuthoredRoom> = {
     enemies: ["ghoul"],
     notes:
       "R107. Era 2+3. DARK. Abandoned post; Ghoul ×1 (may have fled from R106). " +
-      "Loot: HOLY WATER VIAL (vs undead / optional vs Castellane if destroying); warden's log: \"Subject continues to bargain. Do not engage.\" Warning: do not disturb binding.",
+      'Loot: HOLY WATER VIAL (vs undead / optional vs Castellane if destroying); warden\'s log: "Subject continues to bargain. Do not engage." Warning: do not disturb binding.',
   },
   4: {
     label: "Binding Hall",
@@ -59,12 +59,12 @@ export const A3_VAMPIRE_PRISON_ROOMS: Record<number, AuthoredRoom> = {
     isBoss: true,
     notes:
       "R109. Era 2+3. DARK. Salt-crystal bars, iron, necromantic seals. Lord Castellane (Vampire) — NPC/boss_vampire_lord: ancient, gaunt, magnetic. " +
-      "Opening line: \"A living heart. I can hear it from here.\" Predation without ledger column for virtue. " +
-      "Key lines: \"Your great-grandfather tried to deal with me. I said no. He died in the collapse. I wonder if you'll make better deals.\" / " +
-      "\"This mine runs on greed. Always has. The salt's just the medium.\" / " +
-      "\"Your baron mined salt until people died. Your order taxed farmers until they starved. Your lich raises the dead until they forget they were alive. I drain a body in under a minute. Tell me — which of us has the higher count?\" " +
+      'Opening line: "A living heart. I can hear it from here." Predation without ledger column for virtue. ' +
+      'Key lines: "Your great-grandfather tried to deal with me. I said no. He died in the collapse. I wonder if you\'ll make better deals." / ' +
+      '"This mine runs on greed. Always has. The salt\'s just the medium." / ' +
+      '"Your baron mined salt until people died. Your order taxed farmers until they starved. Your lich raises the dead until they forget they were alive. I drain a body in under a minute. Tell me — which of us has the higher count?" ' +
       "TALK: each conversation costs 2 HP, +1 HP per subsequent visit; feeds by proximity; information true, self-serving (lich weaknesses, early order, pre-order mine, deep presence). " +
-      "FREE: binding knowledge + counter-ritual → alliance vs lich; price after lich falls Castellane feeds on surface — \"Not your town. Someone else's.\" Same pattern as the mine. " +
+      'FREE: binding knowledge + counter-ritual → alliance vs lich; price after lich falls Castellane feeds on surface — "Not your town. Someone else\'s." Same pattern as the mine. ' +
       "BARGAIN: pay HP for targeted intel without freeing — no lich-alliance unlock; remains bound. " +
       "DESTROY: CONSECRATION + fire + holy water (R107) → Castellane's signet ring (strong accessory); no ally, no surface predator from this source. " +
       "IGNORE: never free, never destroy, minimal contact — no ally, no ring, remains bound. " +
@@ -83,7 +83,8 @@ export const A3_VAMPIRE_PRISON_ROOMS: Record<number, AuthoredRoom> = {
     hint: "back toward the bone mountains and the necromancer's inventory.",
     enemies: [],
     exit: { toAreaId: "a3_bone_stacks", toRoomGridId: 4 },
-    notes: "Return to R96 Stack Core (bone stacks grid 4). Pair: bone stacks \"To Vampire's Prison\" lands grid 2 (R106).",
+    notes:
+      'Return to R96 Stack Core (bone stacks grid 4). Pair: bone stacks "To Vampire\'s Prison" lands grid 2 (R106).',
   },
 };
 

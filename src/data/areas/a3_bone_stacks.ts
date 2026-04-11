@@ -94,7 +94,7 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     hint: "coldfire on bone columns before the curtain; the door is not the whole threshold.",
     enemies: [],
     notes:
-      "Staging before R99 proper. COLDFIRE implied from ward nearby. No combat here — return from Area 5 Outer Ward lands grid 8 (pair: a5_outer_ward \"To Lich's Ward\"). " +
+      'Staging before R99 proper. COLDFIRE implied from ward nearby. No combat here — return from Area 5 Outer Ward lands grid 8 (pair: a5_outer_ward "To Lich\'s Ward"). ' +
       "Connects stack core to R99 Lich's Ward Door. Beyond R99 → Area 5 R146 uses separate exit room (grid 12).",
   },
   14: {
@@ -115,7 +115,7 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     hint: "industrial noise leaks back through the threshold.",
     enemies: [],
     exit: { toAreaId: "a3_sorting", toRoomGridId: 5 },
-    notes: "Return to R83. Pair: sorting \"To Bone Stacks\" lands grid 2 (R93).",
+    notes: 'Return to R83. Pair: sorting "To Bone Stacks" lands grid 2 (R93).',
   },
   10: {
     label: "To Deep Crypt",

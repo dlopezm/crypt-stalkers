@@ -35,7 +35,7 @@ export const A5_COLONNADE_ROOMS: Record<number, AuthoredRoom> = {
     enemies: ["banshee"],
     notes:
       "R153. Coldfire. Banshee ×1 bound to third column; distorted hymn wail. " +
-      "Inscription: \"the first duty: to hold what must not be released.\" Ward circle on floor — pass wrong geometry: 3 damage + brief stun (soft knowledge gate). " +
+      'Inscription: "the first duty: to hold what must not be released." Ward circle on floor — pass wrong geometry: 3 damage + brief stun (soft knowledge gate). ' +
       "Area 2 R53 ritual geometry = safe path (cross-ref). " +
       "Combat alert: wail echoes through crystal — fight here can alert R154–R156 (audio propagation). " +
       "Teaching: ranged positioning; ward literacy rewards archive study.",
@@ -56,8 +56,8 @@ export const A5_COLONNADE_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R155. Coldfire. No enemies. Era 2 prayers + Era 3 necromantic overlay; lich handwriting beside order scribes. " +
-      "Primary inscription (clinical): \"The vigil does not end. The keeper does not rest. The salt remembers.\" " +
-      "Below, maintenance note (smaller, less precise): \"Ward 7-NE recalibrated. Ahead of schedule. The silence is very complete tonight.\" " +
+      'Primary inscription (clinical): "The vigil does not end. The keeper does not rest. The salt remembers." ' +
+      'Below, maintenance note (smaller, less precise): "Ward 7-NE recalibrated. Ahead of schedule. The silence is very complete tonight." ' +
       "Read: Serevic still runs schedules; loneliness leaks through logistics. Cross-ref: R156, R165 voice.",
   },
   7: {
@@ -82,7 +82,7 @@ export const A5_COLONNADE_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     exit: { toAreaId: "a5_sanctum", toRoomGridId: 2 },
     notes:
-      "Exit to a5_sanctum R157 (grid 2). Pair: sanctum \"Back to Colonnade\" → this area grid 7 (R156).",
+      'Exit to a5_sanctum R157 (grid 2). Pair: sanctum "Back to Colonnade" → this area grid 7 (R156).',
   },
 };
 
