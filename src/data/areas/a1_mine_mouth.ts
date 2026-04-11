@@ -35,27 +35,26 @@ export const A1_MINE_MOUTH_GRID: number[][] = [
 export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Entrance Arch",
-    hint: "iron cart tracks bite the floor. a defaced crest still reads as yours.",
+    hint: "iron cart tracks bite the floor. chisel scars on the shield over the arch — your crest, still there if you squint.",
     enemies: [],
     isStart: true,
     notes:
       "R1. Era 1 + Era 2 plaster. SUNLIT — safe, no combat. " +
-      "Defaced Ashvere crest: chisel marks from the order but pickaxe, crystal, mountain still read as family. " +
-      "Motto survives in fragments: 'From the earth, prosperity' (gate hint for R24). " +
-      "Iron cart tracks run inward. Era layering visible: raw stone → plaster → neglect. " +
+      "Era layering visible: raw stone → plaster → neglect. " +
       "Thematic beat: you stand where a fortune was dug from stone — and where the bill was charged to people who did not keep the books.",
     props: [
       {
         id: "ashvere_crest",
-        label: "Defaced Crest",
+        label: "Scarred Shield Above the Arch",
         icon: "\u{1F6E1}\uFE0F",
-        desc: "An iron shield above the arch. Chisel marks where the order tried to erase it, but the relief survives: pickaxe, crystal, mountain. Your family's mark. Beneath it, letters scored deep enough to outlast vandalism: 'From the earth, prosperity.'",
+        desc: "Iron above your head, cold when you touch it. Someone hacked at the relief until their arm tired — they couldn't grind it flat. Pickaxe, crystal, mountain: yours, whether they liked it or not. Deeper cuts spell words you heard at kitchen tables when there was still meat: From the earth, prosperity.",
         gridPosition: { row: 5, col: 2 },
         onExamine: [
           { type: "set_flag", flag: "knows_ashvere_motto" },
           {
             type: "log",
-            message: "The Ashvere motto. You remember it differently from the stories.",
+            message:
+              "The same phrase the stories mumbled. Standing under it feels different — heavier, and not entirely good.",
           },
         ],
       },
@@ -63,43 +62,44 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
   },
   3: {
     label: "Weighing Station",
-    hint: "rusted scales and chains on a low platform. something scurries in the dim.",
+    hint: "rusted scales and chains on a low platform. paper curls; something small scratches in the corners.",
     enemies: ["rat", "rat"],
     notes:
       "R2. Era 1. DIM (some daylight). " +
-      "Low stone platform; rusted scales and chains; water-stained FOREMAN'S LOG on shelf. " +
-      "Log names player's SURNAME as shift supervisor — proof this place was theirs, and that their name sat above crews whose terms you have not yet read. " +
-      "5 gold in scattered coins. " +
       "Teaching: documents reward thorough search; rats introduce breeding / door-squeeze mechanics.",
     props: [
       {
         id: "foreman_log",
-        label: "Foreman's Log",
+        label: "Sodden Ledger",
         icon: "\u{1F4D6}",
-        desc: "A water-stained ledger on a rotting shelf. The ink has bled, but the shift header still reads clearly: SUPERVISOR — ASHVERE. Your surname sat above crews whose terms you have not yet read.",
+        desc: "Pages stuck together with damp; the shelf beneath is soft with rot. One header stayed legible when the rest ran: SUPERVISOR — ASHVERE. Your name, typed neat as a tax, sitting over rows of shifts and bodies you don't know yet.",
         gridPosition: { row: 6, col: 5 },
         onExamine: [
           { type: "set_flag", flag: "read_foreman_log" },
           {
             type: "log",
-            message: "Your family name, printed above other people's labor.",
+            message:
+              "They put our name at the top of the page like we swung the pick. Your stomach turns; you keep reading anyway.",
           },
         ],
       },
       {
         id: "scattered_coins",
-        label: "Scattered Coins",
+        label: "Coins in the Grit",
         icon: "\u{1FA99}",
-        desc: "Five silver-worn coins between the scales and the wall, missed by scavengers. Old mint, still heavy.",
+        desc: "Five pieces kicked into the corner, dull silver, thick enough to feel real in the palm.",
         gridPosition: { row: 7, col: 6 },
         actions: [
           {
             id: "take",
-            label: "Pocket the coins",
+            label: "Gather them",
             effects: [
               { type: "grant_gold", amount: 5 },
               { type: "consume_prop" },
-              { type: "log", message: "5 gold." },
+              {
+                type: "log",
+                message: "Five coins. Small luck — unless someone meant to come back for them.",
+              },
             ],
           },
         ],
@@ -108,70 +108,100 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
   },
   4: {
     label: "Cart Depot",
-    hint: "salt carts, warm raw heaps. tracks fork deeper into stone.",
+    hint: "salt carts, heaps that catch the dim light wrong — almost warm. tracks fork into the dark.",
     enemies: ["rat", "rat", "rat"],
     notes:
-      "R3. Era 1. DIM. HUB room — branches to office, safe shaft, and darker threshold. " +
-      "Wide chamber for storage and cart repair. Several carts; one heaped with raw salt as if recently moved — Era 3 logistics still touch the mouth. " +
-      "Deepest salt chunks catch dim light oddly; wall-facing cartloads feel a trace WARM, as if the stone remembered a pulse from below. " +
-      "Salt blocks (crafting/quest later); 8 gold.",
+      "R3. Era 1. DIM. HUB room. " +
+      "Deepest salt chunks catch dim light oddly; wall-facing cartloads feel a trace WARM — What Lies Below seed. " +
+      "Salt blocks (crafting/quest later — no crafting system yet).",
+    props: [
+      {
+        id: "salt_cart",
+        label: "Heaped Salt Cart",
+        icon: "\u{1F9C2}",
+        desc: "Timber groans under a load that looks fresh — scrape marks on the floor, grit still falling. Whoever fills these carts doesn't rest like you do. When you dig your hand to the bottom, the biggest crystals feel wrong: not cold enough, almost like skin under a fever.",
+        gridPosition: { row: 6, col: 9 },
+      },
+      {
+        id: "cart_depot_gold",
+        label: "Spill from a Split Box",
+        icon: "\u{1FA99}",
+        desc: "Splinters of paymaster's wood and eight coins rolled between the wheels. Someone's accounting ended in a hurry.",
+        gridPosition: { row: 7, col: 10 },
+        actions: [
+          {
+            id: "take",
+            label: "Collect the coins",
+            effects: [
+              { type: "grant_gold", amount: 8 },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Eight pieces. Enough to eat for a while — or to remind you what this place used to pay.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   5: {
     label: "Foreman's Office",
-    hint: "a crooked portrait, scratched eyes, GREED carved across the chest. papers crowd every surface.",
+    hint: "a crooked portrait — eyes gouged, GREED hacked across the coat. paper stacks choke the desk like snowfall.",
     enemies: [],
     notes:
-      "R4. Era 1 + Era 2 vandalism. DIM. Pocket office carved into wall. " +
-      "BARON'S PORTRAIT hangs crooked: eyes scratched, 'GREED' carved across chest — order judgment frozen in paint and knife. " +
-      "INDENTURED LABOR CONTRACTS: workers charged for housing, tools, food; interest and fees structured so the principal never shrank. Same surnames appear for years. " +
-      "SAFETY PETITIONS from miners' guild — ventilation, bracing, pace in the deep — each stamped REVIEWED and filed, no amendment, no repair date, no answer. " +
-      "MINE MAPS (hint deep layout / connections). " +
-      "12 gold in LOCKED DRAWER (key elsewhere or lockpick). " +
+      "R4. Era 1 + Era 2 vandalism. DIM. " +
       "First proof the heir's prosperity had a line item paid in someone else's life.",
     props: [
       {
         id: "baron_portrait",
-        label: "Baron's Portrait",
+        label: "Ruined Portrait",
         icon: "\u{1F5BC}\uFE0F",
-        desc: "The baron's portrait hangs crooked: eyes scratched out, GREED carved across the chest. Order judgment, frozen in paint and knife.",
+        desc: "Oil and varnish, someone's careful work — then knife-work after. The eyes are pale gouges; across the breastplate they carved GREED deep enough to show wood. Whoever did it wanted the next clerk to feel righteous.",
         gridPosition: { row: 1, col: 9 },
       },
       {
         id: "indenture_contracts",
-        label: "Labor Contracts",
+        label: "Stack of Indentures",
         icon: "\u{1F4DC}",
-        desc: "Indentured labor contracts fill the filing niche. Workers charged for housing, tools, food — interest and fees structured so the principal never shrank. The same surnames appear for years. Pinned beneath: safety petitions from the miners' guild. Each stamped REVIEWED, filed, no answer.",
+        desc: "Paper that smells of ink and old sweat. Each line item nickels and dimes a life: bunk, lamp oil, shovel edge, bread — billed back to the signer so the tally never shrinks. The same names repeat until the handwriting changes generation to generation. Under the stack, petitions for timbering and air, corners bent, each stamped REVIEWED and filed beside silence.",
         gridPosition: { row: 1, col: 10 },
         onExamine: [
           { type: "set_flag", flag: "read_indentures" },
           {
             type: "log",
-            message: "Your ancestor's arithmetic. The debt was designed to grow.",
+            message:
+              "They didn't chain men in iron. They chained them in numbers. Your family signed the top of the page; other people's blood paid the margin.",
           },
         ],
       },
       {
         id: "mine_maps",
-        label: "Mine Maps",
+        label: "Tacked Survey Maps",
         icon: "\u{1F5FA}\uFE0F",
-        desc: "Survey maps of the upper and deep galleries. Pencil marks show planned expansions that never happened — or weren't supposed to happen yet.",
+        desc: "Vellum curling at the pins: drifts, pillars, galleries you haven't walked yet. Pencil ghosts another cut into the deep — started, crossed out, started again. Someone was in a hurry to reach something below.",
         gridPosition: { row: 1, col: 11 },
         onExamine: [{ type: "set_flag", flag: "has_mine_maps" }],
       },
       {
         id: "locked_drawer_gold",
-        label: "Locked Drawer",
+        label: "Rotten Drawer",
         icon: "\u{1F512}",
-        desc: "The bottom drawer is locked but the wood is rotten. A sharp pull breaks it open. Inside: 12 gold coins and a stamped receipt for 'emergency ventilation repair' — funds allocated, never spent.",
+        desc: "Brass lock, swollen wood. It gives when you wrench — splinters bite your hand. Inside, twelve coins in a cloth bundle and a receipt stamped PAID for emergency timbering and airworks. The timber above your head is still wrong; the receipt is a lie you can weigh.",
         gridPosition: { row: 2, col: 10 },
         actions: [
           {
             id: "take",
-            label: "Take the gold",
+            label: "Take the coins",
             effects: [
               { type: "grant_gold", amount: 12 },
               { type: "consume_prop" },
-              { type: "log", message: "12 gold. The ventilation was never repaired." },
+              {
+                type: "log",
+                message:
+                  "Twelve pieces that were meant to buy breath for the tunnels. Someone pocketed the money and let the shafts cough.",
+              },
             ],
           },
         ],
@@ -180,25 +210,23 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
   },
   6: {
     label: "Ventilation Shaft Base",
-    hint: "pale daylight threads a narrow shaft. a cold brazier waits, unlit.",
+    hint: "a blade of sky far up the shaft. grey ash in the bowl; the iron never catches the sun's warmth.",
     enemies: [],
     notes:
       "R5. Era 1 + Era 2. SUNLIT — safe room (sunlight blocks most monster entry; rest/plan spot). " +
-      "Vertical shaft; too narrow to climb. " +
-      "ERA 2 BRAZIER — extinguished, one of the first sacred fire fixtures the player sees. Relightable after Area 2 ritual. " +
-      "When lit: true-light zone here.",
+      "Vertical shaft; too narrow to climb. When brazier lit: true-light zone here.",
     props: [
       {
         id: "extinguished_brazier",
-        label: "Cold Brazier",
+        label: "Dead Brazier",
         icon: "\u{1F56F}\uFE0F",
-        desc: "A wrought-iron brazier at the base of the shaft. The bowl is full of grey ash and a single black wick-end. The metal is cold to the touch. Sunlight washes down from above — it keeps the dark honest, but it does not warm the iron.",
+        desc: "Wrought iron at the shaft's foot, ash packed tight as wool, one charred wick stub. Your palm comes away cold. Daylight pours past your shoulder — bright enough to shame the corners — but the bowl stays dead until something blessed feeds it.",
         gridPosition: { row: 5, col: 14 },
         actions: [
           {
             id: "relight",
-            label: "Relight the brazier",
-            desc: "Requires the consecrated rite from the chapel",
+            label: "Kindle it with the chapel blessing",
+            desc: "You carry the words and the gesture they taught you in the sanctified place — the ones that make flame honest.",
             requires: { flags: ["has_consecration"] },
             effects: [
               { type: "set_flag", flag: "mine_brazier_lit" },
@@ -206,19 +234,19 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "The rite takes. Flame climbs the wick, steady and true. The shaft stops feeling like a throat.",
+                  "The wick catches. Fire stands straight, no flicker, no lie. The shaft feels less like it's swallowing you.",
               },
             ],
           },
           {
             id: "leave_dark",
-            label: "Leave it dark",
-            desc: "You could come back.",
+            label: "Leave it cold",
+            desc: "The sun is enough for now. You can remember where this sits.",
             effects: [
               { type: "set_flag", flag: "mine_brazier_noted" },
               {
                 type: "log",
-                message: "You note the brazier's place and move on.",
+                message: "You mark the brazier in your mind and let the ash sleep.",
               },
             ],
           },
@@ -228,7 +256,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
   },
   7: {
     label: "Gallery Threshold",
-    hint: "coldfire strips the walls wrong. bootfalls hum in the salt.",
+    hint: "sick green light runs the ribs of stone — bright, wrong, bloodless. when boots strike, the salt answers with a hum you feel in your teeth.",
     enemies: ["skeleton"],
     notes:
       "R6. Era 1 + first Era 3 coldfire. DIM → DARK. Ceiling drops; cart tracks continue. " +
@@ -239,13 +267,13 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
   },
   8: {
     label: "To the Gatehouse",
-    hint: "order stonework climbs toward open sky.",
+    hint: "cut stone replaces raw tunnel — their blocks, their mortar, sky not far above.",
     enemies: [],
     exit: { toAreaId: "a1_gatehouse", toRoomGridId: 2 },
   },
   9: {
     label: "To Upper Galleries",
-    hint: "tracks and coldfire lead into the wide dark.",
+    hint: "tracks run on under that green glare into a wider dark.",
     enemies: [],
     exit: { toAreaId: "a1_upper_galleries", toRoomGridId: 2 },
   },
@@ -254,7 +282,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
 export const A1_MINE_MOUTH: AreaDef = {
   id: "a1_mine_mouth",
   name: "Mine Mouth",
-  desc: "Where the fortune was dug from stone — and the bill charged to others.",
+  desc: "The first breath of your family's hole in the hill — stone they broke, wealth they pulled, names they put on other men's backs.",
   difficulty: 1,
   generator: "authored",
   authored: {

@@ -33,64 +33,107 @@ export const A1_EXCURSION_WARRENS_GRID: number[][] = [
 export const A1_EXCURSION_WARRENS_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Warren Entrance",
-    hint: "fresh timber props a rough mouth. something shuffles inward with salt sacks.",
+    hint: "new-cut props bite wet earth. something dead-heavy drags salt sacks deeper in, same gait, no rest.",
     enemies: ["zombie", "zombie"],
     isStart: true,
     notes:
       "R19. Era 3 excavation. DARK. " +
-      "Rough mouth off R14; new timber, fresh picks. " +
-      "ZOMBIES haul salt sacks inward from surface chain — instructions in motion — non-hostile unless struck. " +
-      "Supply chain reveal: undead economy visible; another face of cost kept off someone else's ledger. " +
-      "Connects to R20 (dig face), R21 (supply cache), long tunnel to R23 (surface breach).",
+      "Zombies haul salt sacks inward — non-hostile unless struck. " +
+      "Supply chain reveal: undead economy visible.",
   },
   3: {
     label: "Dig Face",
-    hint: "picks stuck mid-bore. wet earth holds skeletal prints going nowhere.",
+    hint: "iron heads jammed in clay like they were dropped mid-swing. prints of bone in the mud — circling, waiting.",
     enemies: [],
-    notes:
-      "R20. Era 3. DARK. Dead end off R19. " +
-      "Active end of the cut. Picks stuck in mud; tunnel stops mid-bore. " +
-      "SKELETAL FOOTPRINTS in wet earth — crew walked away or still works elsewhere. " +
-      "PICKAXES available (tools, poor weapons). " +
-      "Implies ongoing expansion elsewhere in the vault.",
+    notes: "R20. Era 3. DARK. Dead end. " + "Implies ongoing expansion elsewhere in the vault.",
+    props: [
+      {
+        id: "dig_face_picks",
+        label: "Pickaxes in the Clay",
+        icon: "\u{26CF}\uFE0F",
+        desc: "Handles slick with seepage; heads wedged where someone meant to swing again. Rings of bone-toe marks stamp the mud — tight, patient, as if the diggers stepped aside but never left.",
+        gridPosition: { row: 4, col: 6 },
+        actions: [
+          {
+            id: "take",
+            label: "Work one free",
+            effects: [
+              { type: "set_flag", flag: "has_pickaxe" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "The haft's coarse; the point's honest. Ugly for a fight, useful when stone or ribcage won't move.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   4: {
     label: "Supply Cache",
-    hint: "stolen plunder, candle stubs, salt — and a thief with a torch.",
+    hint: "heaped theft: wax, salt, someone's silver plate — and a living thief nursing real flame.",
     enemies: ["rat", "rat", "rat", "grave_robber"],
     notes:
       "R21. Era 3 widened chamber. DARK. " +
-      "Stolen goods pile: salt, HOUSEHOLD PLUNDER, CHURCH CANDLES. " +
-      "GRAVE ROBBER loots by TORCH (true light). Flees toward R22 if spotted. " +
-      "20 gold; CANDLES (portable light); VILLAGE SALT-CELLAR RECEIPT (raids for salt). " +
-      "Robber SURRENDERS if cornered in R22: " +
-      "'There's a sealed wing off the junction — old family stuff. The skeletons don't go in there.' (Points to R24.)",
+      "Grave Robber loots by torch (true light). Flees toward R22 if spotted. " +
+      "Robber surrenders if cornered in R22: 'There's a sealed wing off the junction — old family stuff. The skeletons don't go in there.' (Points to R24.)",
+    props: [
+      {
+        id: "stolen_goods",
+        label: "Heap of Taken Things",
+        icon: "\u{1F4E6}",
+        desc: "Rough salt crusted to altar wax, a bent spoon, a child's shoe — none of it sorted, all of it hurried. On top, a receipt for a cellar's winter salt, signed by a mayor whose hand shook. The surface raids aren't rumor; they're inventory.",
+        gridPosition: { row: 8, col: 2 },
+        actions: [
+          {
+            id: "search",
+            label: "Dig through it",
+            effects: [
+              { type: "grant_gold", amount: 20 },
+              { type: "set_flag", flag: "read_salt_cellar_receipt" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Twenty coins in mixed coin, stubs of tallow, the receipt folded like someone meant to burn it later. You pocket the money and keep the paper — evidence tastes like bile.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   5: {
     label: "Collapsed Tunnel",
-    hint: "splintered timbers; eyes glitter in the collapse.",
+    hint: "broken props knit a trap of splinters. wet eyes wink between the gaps.",
     enemies: ["rat", "rat", "rat", "rat", "rat"],
     notes:
-      "R22. Era 3 collapse. DARK. Dead end off R21. " +
-      "Side passage caved; shattered timbers; RAT COLONY. " +
-      "Collapse may tie to warren blasting. " +
-      "CLEARING NESTS reduces/stops breeding IN THIS ROOM. " +
-      "Flee target for R21 robber; nest-clearing gameplay hook.",
+      "R22. Era 3 collapse. DARK. Dead end. " +
+      "CLEARING NESTS reduces/stops breeding IN THIS ROOM (no clearing mechanic yet). " +
+      "Flee target for R21 robber.",
   },
   6: {
     label: "Surface Breach",
-    hint: "wind and distant fields through a hillside rip. tracks lead out.",
+    hint: "a tear in the hill lets wind and winter fields through. mud carries prints toward the light.",
     enemies: [],
     notes:
-      "R23. Era 3. LIT (daylight). Dead end — long tunnel from R19. " +
-      "Hillside rip; daylight and wind; distant fields visible. " +
-      "SKELETAL TRACKS lead out — undead use this daily. " +
-      "Player can exit to wilderness — NOT toward town; narrative beat: the plague road is real. " +
-      "SAFE ROOM (sun). Alternate exit; reinforces stakes of surface raids.",
+      "R23. Era 3. LIT (daylight). Dead end — long tunnel. " +
+      "SAFE ROOM (sun). Exit to wilderness — NOT toward town.",
+    props: [
+      {
+        id: "skeletal_tracks",
+        label: "Mud Prints Toward Daylight",
+        icon: "\u{1F43E}",
+        desc: "Toe-bone arcs pressed deep, going out more often than in. The clay at the lip is still wet — last night's rain caught fresh edges. Whatever uses this hole treats open air like a highway.",
+        gridPosition: { row: 12, col: 14 },
+      },
+    ],
   },
   7: {
     label: "To Upper Galleries",
-    hint: "salt-block gives way to older plaster and coldfire glare.",
+    hint: "timber ends at dressed salt and cracked plaster; that green glare waits beyond.",
     enemies: [],
     exit: { toAreaId: "a1_upper_galleries", toRoomGridId: 4 },
   },
@@ -99,7 +142,7 @@ export const A1_EXCURSION_WARRENS_ROOMS: Record<number, AuthoredRoom> = {
 export const A1_EXCURSION_WARRENS: AreaDef = {
   id: "a1_excursion_warrens",
   name: "Excursion Warrens",
-  desc: "Unauthorized cuts where the lich's supply chain meets open air.",
+  desc: "Rough new tunnels — not your family's neat cuts — where something drags salt toward a rip in the hillside and the world above.",
   difficulty: 1,
   generator: "authored",
   authored: {

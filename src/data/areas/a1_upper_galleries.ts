@@ -44,107 +44,272 @@ export const A1_UPPER_GALLERIES_GRID: number[][] = [
 export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Main Gallery",
-    hint: "coldfire runs the ceiling. iron tracks shine wrong in the green glow.",
+    hint: "green light tubes the ceiling like veins. iron shines slick and false; your shadow looks thin.",
     enemies: ["skeleton", "skeleton"],
     isStart: true,
     notes:
-      "R12. Era 1 + Era 2 plaster + Era 3 coldfire. COLDFIRE lit. " +
-      "Wide corridor; iron tracks; plaster flakes to raw stone. " +
-      "COLDFIRE runs ceiling — bright, wrong, NO PROTECTION vs true-light-sensitive threats (teaches rule for later). " +
-      "Patrol route: R12→R15→R17→R15→R12 (skeletons on perpetual loop). " +
-      "Core traffic; noise/light here pulls investigating skeletons from adjacent rooms. " +
-      "Deeper-facing walls carry that same wrong warmth and almost-tone in the salt when mine is quiet.",
+      "R12. Era 1 + Era 2 plaster + Era 3 coldfire. COLDFIRE lit — NO PROTECTION vs true-light-sensitive threats. " +
+      "Patrol route: R12→R15→R17→R15→R12 (perpetual loop). " +
+      "Core traffic; noise/light here pulls skeletons from adjacent rooms. " +
+      "Deeper-facing walls carry wrong warmth and almost-tone in the salt — What Lies Below seed.",
   },
   3: {
     label: "Side Gallery East",
-    hint: "narrow; rubble, tallies scratched in stone. a headless salt saint watches.",
+    hint: "shoulder-wide; rubble underfoot. names and marks gouged in the wall — a headless figure of carved salt stares from its niche.",
     enemies: ["rat", "rat", "rat", "rat"],
     notes:
-      "R13. Era 1. DARK. Dead end off R12. " +
-      "Narrow east branch; rat nests in rubble. " +
-      "MINER GRAFFITI: tallies, names, rat sketch with X. " +
-      "Folk SALT SAINT shrine — carved figure, headless. " +
-      "10 gold in miner's tin behind shrine. Salt figure (flavor item). " +
+      "R13. Era 1. DARK. Dead end. " +
       "Dark reward lane; clearing nests ties to rat breeding rules.",
+    props: [
+      {
+        id: "miner_graffiti",
+        label: "Scratched Tallies",
+        icon: "\u{270D}\uFE0F",
+        desc: "Chisel and knife work: strokes that might be days, or bodies, or both. Names worn smooth by palms. A rat scratched with a line through it — brag, warning, or grief. The letters look older than the clean salt blocks farther in.",
+        gridPosition: { row: 4, col: 9 },
+      },
+      {
+        id: "salt_saint_shrine",
+        label: "Broken Salt Figure",
+        icon: "\u{1F9CE}",
+        desc: "Someone's saint of the seam, carved from the same white stuff they died in — neck sheared ragged, offerings long stolen. The priests never blessed this corner; the miners did. Behind the stump of neck, tin winks: a box forced into the rock.",
+        gridPosition: { row: 5, col: 11 },
+        actions: [
+          {
+            id: "search",
+            label: "Reach behind the figure",
+            effects: [
+              { type: "grant_gold", amount: 10 },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Ten coins in a dented lunch tin, wrapped in oilcloth. Whoever left it believed more in hiding than in saints.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   4: {
     label: "Side Gallery West",
-    hint: "fresh pick marks. a plaque reads SEALED BY DECREE — ignored.",
+    hint: "new iron scratches on old stone. a plaque: SEALED BY DECREE — someone chipped around it anyway.",
     enemies: ["rat", "rat"],
     notes:
-      "R14. Era 1 + recent breach. DARK. " +
-      "Narrows toward Excursion Warrens. Fresh dirt, pick marks — Era 3 forced entry. " +
-      "Order plaque: 'SEALED BY DECREE' — ignored. " +
-      "MIRA ESCAPE VECTOR; risky exploration without flame. " +
-      "Links to surface supply story (warrens). Exit to warrens nearby.",
+      "R14. Era 1 + recent breach. DARK. " + "Mira escape vector; risky exploration without flame.",
+    props: [
+      {
+        id: "sealed_decree_plaque",
+        label: "Sealed-by-Decree Plaque",
+        icon: "\u{1F4CB}",
+        desc: "Letters cut deep, full of pomp: SEALED BY DECREE OF THE PALE VIGIL. Chips and pale dust say someone disagreed with parchment and chisel. The breach gapes beside it — rude, human, impatient.",
+        gridPosition: { row: 12, col: 2 },
+      },
+    ],
   },
   5: {
     label: "Junction Hall",
-    hint: "a high crossroads. a broken sign points deeper: Chapel, Library, Quarters.",
+    hint: "vaulted roof; four ways to regret. a splintered board still names Chapel, Library, Quarters — deeper in.",
     enemies: ["skeleton", "grave_robber"],
     notes:
       "R15. Era 2 signage + defacement. COLDFIRE. Central chokepoint/decision hub. " +
-      "High-ceiling crossroads; broken directional sign: 'Chapel / Library / Quarters' — all deeper. " +
-      "MIRA ENCOUNTER 1: crosses with sack; freezes on seeing player, sprints for R14. " +
-      "Drops HEALING POTION. Shouts: 'The green light doesn't keep them away!' Gone before dialogue. " +
-      "If R14 already clear, pursuit possible in fiction — she's faster, vanishes into warrens. " +
-      "Coldfire irony: her warning about green light while standing in coldfire. " +
-      "Connects to: R12(main), R14(west), R16(patrol), R17(gate), exit to Baron's Wing(R24).",
+      "Coldfire irony: Mira's warning about green light while standing in coldfire.",
+    props: [
+      {
+        id: "directional_sign",
+        label: "Cracked Direction Post",
+        icon: "\u{1F6A7}",
+        desc: "Oak split down the grain; iron letters cling. Chapel — Library — Quarters, each arm pointing into a different throat of dark. Over Quarters, some wit scratched a skull until the wood splintered. Ugly, honest, still readable.",
+        gridPosition: { row: 9, col: 6 },
+      },
+      {
+        id: "mira_encounter_1",
+        label: "Running Woman",
+        icon: "\u{1F3C3}",
+        desc: "Sack over her shoulder, boots sliding on grit — she checks mid-stride, sees you, goes paler than the salt. A glass vial spills from her pack and rings on stone. Her voice tears: 'That green glare doesn't fool them — it never did!' Then she's gone into the western cut, breath and panic echoing.",
+        gridPosition: { row: 10, col: 5 },
+        actions: [
+          {
+            id: "take_potion",
+            label: "Snatch the fallen vial",
+            effects: [
+              { type: "set_flag", flag: "mira_met" },
+              { type: "set_flag", flag: "has_healing_potion_mira" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Syrup thick as honey, label scuffed — the kind peddlers sell for knife wounds and fever. Her fear tasted true.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   6: {
     label: "Patrol Station",
-    hint: "skeletons rest between circuits that never end. a mace on the rack still has heft.",
+    hint: "bone sentries slump as if between rounds that never end. one mace on the rack forgot to rust through.",
     enemies: ["skeleton", "skeleton"],
     notes:
-      "R16. Era 3 + mine shell. COLDFIRE. Dead end off R15. " +
-      "Side chamber where patrol skeletons bunch between circuits — 'between shifts that never end.' " +
-      "RUSTY MACE — usable BLUNT (alternate if Baron's Wing skipped). " +
-      "Wall carving: PATROL SCHEDULE (explicit timing for R12–R15–R17 loop). " +
+      "R16. Era 3 + mine shell. COLDFIRE. Dead end. " +
       "Stealth entry vs two idle skeletons is viable.",
+    props: [
+      {
+        id: "rusty_mace",
+        label: "Patrol Mace",
+        icon: "\u{1F528}",
+        desc: "Rack iron flaked orange; this head stayed solid, dense as a butcher's block. The shaft fits your palm the way tools meant for breaking stone do. Whatever wore this uniform last didn't need an edge — they needed weight.",
+        gridPosition: { row: 9, col: 11 },
+        actions: [
+          {
+            id: "take",
+            label: "Lift it from the rack",
+            effects: [
+              { type: "set_flag", flag: "has_blunt" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "The heft settles in your wrist. When the next hollow thing stands up, you'll answer with something that doesn't leave room for argument.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "patrol_schedule",
+        label: "Carved Route",
+        icon: "\u{1F4CB}",
+        desc: "Lines chiseled into plaster: Main Gallery, Junction, Inner Gate, Junction, repeat. Little hatch marks count breaths between stops — four beats, pause, march. Someone turned nightmare into timetable.",
+        gridPosition: { row: 10, col: 10 },
+        onExamine: [
+          { type: "set_flag", flag: "read_patrol_schedule" },
+          {
+            type: "log",
+            message:
+              "You trace the groove with your thumb until your own pulse matches. If they're clockwork, you can steal the gaps.",
+          },
+        ],
+      },
+    ],
   },
   7: {
     label: "The Inner Gate",
-    hint: "salt-block mass, lever, handplate — and scratches that look almost like music.",
+    hint: "a slab of dressed salt big as a house front. lever, palm hollow, and gouges beside a slot — like someone tried to write a tune in stone.",
     enemies: ["skeleton", "skeleton"],
     notes:
       "R17. Era 2 salt-block door + Era 3 occupation. COLDFIRE. " +
-      "Massive door: flame carvings, salt blocks, working mechanism. " +
-      "THREE PARTS: obvious LEVER, carved HANDPLATE, RESONANCE LOCK (pitch/fork/voice). " +
       "Guards do NOT operate the gate — they only kill intruders. " +
-      "NOTATION SCRATCH near lock — links to R9 frescoes (singing motif). " +
-      "PROGRESSION GATE (soft) to Area 2 R30. Three solutions: " +
-      "(a) TUNING FORK from R27 — quiet, clean; " +
-      "(b) correct HUM from frescoes + scratches — skilled observation; " +
-      "(c) BASH — loud, damages lock, ALERTS Upper Gallery skeletons (costly pass). " +
-      "Skilled observation = quiet pass; brute force = costly pass.",
+      "PROGRESSION GATE (soft) to Area 2.",
+    props: [
+      {
+        id: "inner_gate",
+        label: "Salt Slab and Locks",
+        icon: "\u{1F6AA}",
+        desc: "The door is salt dressed like marble, flame reliefs shallow enough to catch green light. A lever rusted stiff; a handprint worn by palms; beside them a narrow slot and scrapes that rise and fall like notes someone couldn't quite remember. The whole slab hums faintly when you lean close — waiting.",
+        gridPosition: { row: 12, col: 11 },
+        actions: [
+          {
+            id: "use_fork",
+            label: "Touch the fork to the slot",
+            desc: "Steel and crystal sing; the stone listens. No need to shout.",
+            requires: { flags: ["has_tuning_fork"] },
+            effects: [
+              { type: "set_flag", flag: "inner_gate_opened" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "One clear tone. The slab shivers; dust spills in sheets. The way open is almost gentle — as if the gate prefers music to muscle.",
+              },
+            ],
+          },
+          {
+            id: "hum",
+            label: "Hum what the painted hall taught",
+            desc: "You carry the vigil's song in your head from the receiving hall; the scratches want that shape.",
+            requires: { flags: ["seen_singing_frescoes"] },
+            effects: [
+              { type: "set_flag", flag: "inner_gate_opened" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Your throat goes dry. When the note lands true, salt clicks deep inside — a swallow, a giving way — and cold air rolls through.",
+              },
+            ],
+          },
+          {
+            id: "bash",
+            label: "Drive the lock apart",
+            desc: "Every ear in the tunnels will hear. So will every thing that patrols them.",
+            requires: { flags: ["has_blunt"] },
+            effects: [
+              { type: "set_flag", flag: "inner_gate_opened" },
+              { type: "set_flag", flag: "inner_gate_bashed" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Metal shrieks; salt rains. Footfalls that were distant snap toward you — disciplined, eager, many.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   8: {
     label: "Brazier Alcove",
-    hint: "a niche brazier, ornate, cold. salt crystals catch any light you carry.",
+    hint: "carved pocket in the wall; brasswork black with cold. faceted salt winks back at torch or tinder.",
     enemies: [],
     notes:
-      "R18. Era 2. DARK. Dead end off R17. " +
-      "Small recess. ORNATE SACRED BRAZIER, out; salt-crystal inlays catch any light the player carries. " +
-      "Last true flame before the order's deep domain. " +
-      "Relightable after Area 2 ritual. " +
-      "When LIT: creates TRUE-LIGHT SAFE ZONE spanning R17–R18; " +
-      "skeleton patrols REDIRECT to investigate — changes gallery traffic. Tactical map shift.",
+      "R18. Era 2. DARK. Dead end. " +
+      "When LIT: true-light safe zone R17–R18; skeleton patrols redirect — tactical map shift.",
+    props: [
+      {
+        id: "alcove_brazier",
+        label: "Niche Brazier",
+        icon: "\u{1F56F}\uFE0F",
+        desc: "Brass scrolled like sermon metal, bowl full of last century's ash. Salt glass in the rim throws your torchlight into shards. This was meant to burn the honest way — oil and prayer — before the green strips overhead stole the idea of light.",
+        gridPosition: { row: 12, col: 14 },
+        actions: [
+          {
+            id: "relight",
+            label: "Light it with the chapel hymn",
+            desc: "You know the verses they sing when flame must mean sanctuary, not show.",
+            requires: { flags: ["has_hymn_knowledge"] },
+            effects: [
+              { type: "set_flag", flag: "alcove_brazier_lit" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Fire catches clean — no green edge, no chemical stink. Heat pushes the damp back; somewhere behind stone, bone feet hesitate and turn aside.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   9: {
     label: "To Mine Mouth",
-    hint: "the threshold warms faintly toward the sunlit mouth.",
+    hint: "air turns a fraction warmer toward the sun-cut entrance.",
     enemies: [],
     exit: { toAreaId: "a1_mine_mouth", toRoomGridId: 7 },
   },
   10: {
     label: "To Excursion Warrens",
-    hint: "timber props and raw earth — an unauthorized cut.",
+    hint: "props and clawed earth — a newer bite someone dug without asking.",
     enemies: [],
     exit: { toAreaId: "a1_excursion_warrens", toRoomGridId: 2 },
   },
   11: {
     label: "To Baron's Wing",
-    hint: "family iron and a motto you already know from the arch.",
+    hint: "Ashvere iron ahead; the words on the lock will be the ones over the arch.",
     enemies: [],
     exit: { toAreaId: "a1_barons_wing", toRoomGridId: 2 },
   },
@@ -159,7 +324,7 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
 export const A1_UPPER_GALLERIES: AreaDef = {
   id: "a1_upper_galleries",
   name: "Upper Galleries",
-  desc: "Shallow mines where coldfire replaced torchlight and the patrol never clocks out.",
+  desc: "Near-surface tunnels where someone strung sick green lamps overhead and left bone to walk the same path forever.",
   difficulty: 1,
   generator: "authored",
   authored: {

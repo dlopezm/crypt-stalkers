@@ -37,89 +37,313 @@ export const A1_BARONS_WING_GRID: number[][] = [
 export const A1_BARONS_WING_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Sealed Door",
-    hint: "Ashvere iron: pickaxe, crystal, mountain. the motto is the key.",
+    hint: "your family's iron: pickaxe, crystal, mountain. the lock listens for words, not keys.",
     enemies: [],
     isStart: true,
     notes:
-      "R24. Junction side: coldfire bleed from R15 outside. No enemies until opened. " +
-      "Iron door: ASHVERE CREST — pickaxe crossed with salt crystal over mountain. " +
-      "Lock expects FAMILY MOTTO (player knowledge or read through crack: 'From the earth, prosperity' — matches R1). " +
-      "FAMILY/IDENTITY GATE, not a skill gate. " +
-      "Opening hushes the wing — pristine, untouched, DARK.",
+      "R24. DARK beyond, coldfire bleed from R15 outside. " +
+      "Family/identity gate, not a skill gate.",
+    props: [
+      {
+        id: "barons_wing_door",
+        label: "Family Door",
+        icon: "\u{1F6AA}",
+        desc: "Ashvere work: pickaxe, crystal, mountain raised in iron relief. No keyhole — instead a plate punched for letters, tarnished except where thumbs tried every rumor. You know what belongs there. From the earth, prosperity. Saying it aloud tastes like swallowing pride and ash.",
+        gridPosition: { row: 9, col: 2 },
+        actions: [
+          {
+            id: "speak_motto",
+            label: "Say the motto aloud",
+            requires: { flags: ["knows_ashvere_motto"] },
+            effects: [
+              { type: "set_flag", flag: "barons_wing_opened" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Tumblers grind; hinges cough a lungful of centuries-old dust. Air beyond is still, cold, untouched — as if the stone held its breath waiting for your voice.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   3: {
     label: "Baron's Gallery",
-    hint: "polished salt-crystal walls, portraits under dust. the stone almost rings back.",
+    hint: "salt-crystal panels polished until they drink light. faces under dust; when you knock, the wall answers with a faint ring.",
     enemies: [],
     notes:
-      "R25. Era 1 premium. DARK. Private corridor; finest stonework in Area 1. " +
-      "Polished salt-crystal walls (dust-choked). " +
-      "SALT-PANEL PORTRAITS: young hopeful baron; older harder baron; family group smiling. " +
-      "Inscription: 'The Ashvere Line — Builders of the White Galleries.' " +
-      "Crystal here RINGS faintly when struck; in stillness it almost seems to ANSWER something far down and out of sight. " +
-      "HUB for tool cache, study, vault, and collapse point.",
+      "R25. Era 1 premium. DARK. Hub room. " +
+      "Crystal RINGS faintly when struck; seems to ANSWER something far down — What Lies Below seed.",
+    props: [
+      {
+        id: "salt_portraits",
+        label: "Carved Portraits in Salt",
+        icon: "\u{1F5BC}\uFE0F",
+        desc: "Three panels, dust packed into the lines like snow in engraving. A young man with soft jaw and clean collar — hope without caution. The same face later, mouth thin, eyes deep. Last, a cluster of children and a woman with your cheekbones, everyone smiling because the painter asked. A caption cut shallow: The Ashvere Line — Builders of the White Galleries. Your throat tightens; you share their noses, their stubborn chins.",
+        gridPosition: { row: 4, col: 6 },
+        onExamine: [
+          { type: "set_flag", flag: "seen_baron_portraits" },
+          {
+            type: "log",
+            message:
+              "They look proud before they learn the cost. You want to resent them; mostly you want them to have been kinder when the bills came due.",
+          },
+        ],
+      },
+    ],
   },
   4: {
     label: "Tool Cache",
-    hint: "rusted tools — except one maul whose crystal inlay arrested the rust.",
+    hint: "racks of rotten iron — save one hammer-head glittering with inlaid crystal, crest on the haft.",
     enemies: [],
     notes:
-      "R26. Era 1. DARK. Dead end off R25. " +
-      "Personal mining store. Most iron rusted through. " +
-      "Exception: MINING MAUL — heavy head, salt-crystal inlay, Ashvere crest on haft; crystal arrested rust. " +
-      "PRIMARY BLUNT CAPABILITY; best blunt weapon in game; future mining/breakable wall interactions. " +
-      "Intended 'come back prepared' weapon; validates return after first skeleton reform lesson. " +
-      "TRIUMPH beat after discomfort in R4/R27.",
+      "R26. Era 1. DARK. Dead end. " +
+      "Triumph beat after discomfort in R4/R27. " +
+      "PRIMARY BLUNT CAPABILITY — validates return after skeleton reform lesson.",
+    props: [
+      {
+        id: "mining_maul",
+        label: "Crystal-Inlaid Maul",
+        icon: "\u{1F528}",
+        desc: "Everything else flaked to powder on the stone floor. This one waited: head banded with white glass that kept the steel honest, haft carved with your crest worn smooth by someone else's grip. When you heft it, the weight settles like a debt paid — meant to split rock, meant to end fights that shouldn't get back up.",
+        gridPosition: { row: 1, col: 5 },
+        actions: [
+          {
+            id: "take",
+            label: "Claim the maul",
+            effects: [
+              { type: "set_flag", flag: "has_blunt" },
+              { type: "set_flag", flag: "has_mining_maul" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Yours. Not because the law says so — because it fits your hand the way stories said Ashvere tools always would. For the first time down here, you feel less like a trespasser.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   5: {
     label: "Baron's Study",
-    hint: "ledgers to pulp; three journals still trace a spiral in clear hand.",
+    hint: "shelves slumped to rot; three leather spines stayed dry — one bright hand tightens across them all.",
     enemies: [],
-    notes:
-      "R27. Era 1. DARK. Dead end off R25. " +
-      "Desk, chair, shelves of decayed ledgers. THREE JOURNAL VOLUMES trace debt spiral: " +
-      "VOL 1 — IDEALISM: discovery of deposit; schools for miners' children; fair wages; pride in honest work. " +
-      "VOL 2 — ARITHMETIC: market competition; debts to capital creditors; cutting costs; " +
-      "'the deeper veins will make us whole.' " +
-      "VOL 3 — THE LEDGER: indentured labor rationalized; safety warnings dismissed — " +
-      "'Superstition does not appear on the ledger.' Eve-of-collapse entry: tomorrow the lower gallery breaks through; confidence mixed with hurry. " +
-      "TUNING FORK in drawer — baron's pitch (quiet solution for R17 resonance lock). " +
-      "Lore bridges to deep areas; fork rewards thorough search.",
+    notes: "R27. Era 1. DARK. Dead end. " + "Lore bridges to deep areas.",
+    props: [
+      {
+        id: "baron_journal_v1",
+        label: "First Journal — Bright Years",
+        icon: "\u{1F4D5}",
+        desc: "Ink smells faintly of violets — ridiculous down here. He writes about the first white seam like a lover, promises schools for pit-children, fair tallies, bread with the wages. Sentences long and sure. You can almost like him on these pages. That makes what comes after worse.",
+        gridPosition: { row: 1, col: 7 },
+        onExamine: [{ type: "set_flag", flag: "read_baron_journal_1" }],
+      },
+      {
+        id: "baron_journal_v2",
+        label: "Second Journal — Tight Margins",
+        icon: "\u{1F4D5}",
+        desc: "Competitors undercut; creditors knock; timber costs climb. Phrases shorten. He starts crossing out whole paragraphs. The deeper salt will save us, he repeats, as if depth were mercy. Numbers creep into the margins until they eat the prose.",
+        gridPosition: { row: 2, col: 7 },
+        onExamine: [{ type: "set_flag", flag: "read_baron_journal_2" }],
+      },
+      {
+        id: "baron_journal_v3",
+        label: "Third Journal — The Last Ink",
+        icon: "\u{1F4D5}",
+        desc: "Indenture defended as 'contractual clarity.' Timbering requests denied: Superstition does not appear on the ledger — underlined twice. The night before silence: Tomorrow we open the lower gallery; the vein runs true. Hand steadier than it should be. After that entry, nothing — only paper, as if the pen refused or never got the chance.",
+        gridPosition: { row: 2, col: 8 },
+        onExamine: [
+          { type: "set_flag", flag: "read_baron_journal_3" },
+          {
+            type: "log",
+            message:
+              "He wrote off fear as a line item. The next morning he walked into the dark he helped dig. You close the cover gently, as if noise could wake him.",
+          },
+        ],
+      },
+      {
+        id: "tuning_fork",
+        label: "Mounted Tuning Fork",
+        icon: "\u{1F3B5}",
+        desc: "Bottom drawer, velvet gone to mold. Steel fork on a salt-crystal stand — when you strike it, the note hangs clean, and the desk grain shivers under your knuckles. Someone tuned galleries with this, or doors, or both.",
+        gridPosition: { row: 1, col: 8 },
+        actions: [
+          {
+            id: "take",
+            label: "Lift the fork",
+            effects: [
+              { type: "set_flag", flag: "has_tuning_fork" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "The hum travels through your arm into the walls. Salt answers salt; you feel foolish for not hearing it sooner.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   6: {
     label: "Family Vault",
-    hint: "inner door wants the motto again. beyond: gold, steel, and a letter you were not meant to read.",
+    hint: "second lock, same words as the arch. past it: coin, a show-piece tool, and paper in his hand — unsealed, unsent.",
     enemies: [],
     notes:
-      "R28. Era 1 reinforced. DARK. Dead end off R25. " +
-      "Inner door: COMBINATION — motto again or sequence from journals. " +
-      "BARON'S CACHE (bonus): " +
-      "PICK-HAMMER (unique blunt+piercing, mythic tool-of-the-mine); " +
-      "80 GOLD; " +
-      "BARON'S SIGNET RING (Ashvere proof, future dialogue); " +
-      "LETTER TO CHILD: 'If the mine takes me, don't come back for it. Let it go.' " +
-      "The player VIOLATES the warning. (Not the Area 4 ancestor-miner letter.) " +
-      "EMOTIONAL CLIMAX of Area 1; baron knew the cost and went anyway; heir repeats the pattern.",
+      "R28. Era 1 reinforced. DARK. Dead end. " +
+      "EMOTIONAL CLIMAX of Area 1 — baron knew the cost and went anyway; heir repeats the pattern. " +
+      "Not the Area 4 ancestor-miner letter — different generation, same warning.",
+    props: [
+      {
+        id: "vault_door",
+        label: "Inner Vault Portal",
+        icon: "\u{1F510}",
+        desc: "Iron bands, salt plugs, a letter-plate meant for speech not keys. The same motto the arch wore — or the rhythm those journals hammered into your head until words felt like numbers. Your mouth is dry before you try.",
+        gridPosition: { row: 8, col: 4 },
+        actions: [
+          {
+            id: "open",
+            label: "Speak the motto to the plate",
+            requires: { flags: ["knows_ashvere_motto"] },
+            effects: [
+              { type: "set_flag", flag: "vault_opened" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Bolts sigh back. Dust falls in a single sheet, undisturbed until your breath disturbed it — as if the room waited only for Ashvere air.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "pick_hammer",
+        label: "Ceremonial Pick-Hammer",
+        icon: "\u{2692}\uFE0F",
+        desc: "Displayed like relic and meant like work: blunt face on one end, needle pick on the other, crystal veining catching what little light you brought. The crest on the collar is yours, worn bright where palms tested the balance before parades and before shifts.",
+        gridPosition: { row: 9, col: 5 },
+        condition: { flags: ["vault_opened"] },
+        actions: [
+          {
+            id: "take",
+            label: "Lift it from the stand",
+            effects: [
+              { type: "set_flag", flag: "has_pick_hammer" },
+              { type: "set_flag", flag: "has_blunt" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Metal and crystal, heavy with intent — the kind of tool they showed visitors, then carried underground when pretty words failed.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "vault_gold",
+        label: "Rusted Strongbox",
+        icon: "\u{1FA99}",
+        desc: "Box jammed under a warped leg; lock corroded honest. Inside, eighty coins stacked with cloth between — dull, patient, never spent on the life above. They smell of oil and old fear.",
+        gridPosition: { row: 10, col: 5 },
+        condition: { flags: ["vault_opened"] },
+        actions: [
+          {
+            id: "take",
+            label: "Load the coins out",
+            effects: [
+              { type: "grant_gold", amount: 80 },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Eighty pieces. Enough to rebuild a name — or to understand why they left it to rot rather than spend it on mercy.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "signet_ring",
+        label: "Warm Signet",
+        icon: "\u{1F48D}",
+        desc: "Gold softened by skin oil long gone; crest raised, edges still sharp. It would fit your finger if you forced it — proof pressed into wax, proof pressed into flesh.",
+        gridPosition: { row: 9, col: 6 },
+        condition: { flags: ["vault_opened"] },
+        actions: [
+          {
+            id: "take",
+            label: "Slip it on",
+            effects: [
+              { type: "set_flag", flag: "has_signet_ring" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "The metal sits cool, then warms. Outside these walls the world forgot you; the ring remembers.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "letter_to_child",
+        label: "Letter Folded Open",
+        icon: "\u{2709}\uFE0F",
+        desc: "Paper foxed at the edges, ink brown. His hand — you've seen it all day in the journals. If the mine takes me, do not come for my bones. Do not come for the wealth. Let the debt die with the shaft. Tell your mother I tried to keep the count honest at the start. Tell yourself whatever you must. Let it go. No seal. No direction. He never gave the order to send it, or someone refused. You stand in the dark he begged a child to avoid, dust on your tongue, his wealth in reach, his warning in your hands. Pride and shame braid so tight you cannot pull one thread free.",
+        gridPosition: { row: 10, col: 6 },
+        condition: { flags: ["vault_opened"] },
+        onExamine: [
+          { type: "set_flag", flag: "read_baron_letter" },
+          {
+            type: "log",
+            message:
+              "He asked the next life to walk away. You didn't. That doesn't feel like victory — it feels like love and stubbornness and the same mistake dressed in better clothes.",
+          },
+        ],
+      },
+    ],
   },
   7: {
     label: "Collapse Point",
-    hint: "the wing ends in void. warm air rises from a fall no rope reaches.",
+    hint: "polished salt stops at nothing — black gulf, updraft hot as breath from deep lungs.",
     enemies: [],
     notes:
-      "R29. Era 1 edge / void. DARK. Dead end off R25. " +
-      "Wing ends at a CHASM — the 400-year collapse that killed the baron and hundreds. " +
-      "Not only timber and bad luck: the deep gallery broke a CRITICAL SALT STRATUM; " +
-      "strange heat welled from below; the PRESENCE SURGED; then rubble RE-SEALED the breach. " +
-      "Far down: shattered lower gallery hints. Updraft is WARM — wrong for a mine shaft. " +
-      "Faint RESONANCE rises from dark, as if salt were still transmitting what happened that day. " +
-      "The void reads as something still down there, held back by thickness and time — for now. " +
-      "Optional: drop lit torch — long fall, small impact flash — sells real depth. " +
+      "R29. Era 1 edge / void. DARK. Dead end. " +
       "Not a passage in Area 1; later ROPE/ENGINEERING (Area 4) may link to Deep Workings. " +
       "FORESHADOW WHAT LIES BELOW.",
+    props: [
+      {
+        id: "collapse_chasm",
+        label: "The Drop",
+        icon: "\u{1F573}\uFE0F",
+        desc: "Your family's pretty gallery shears into air. Wind climbs from below — too warm, carrying grit and a hum that isn't quite sound, more like pressure against your sinuses. Far under, broken angles catch stray gleams: ribs of timber, a flash of white that might be more salt, might be bone. Stories said the lower gallery punched through something it shouldn't; heat pushed up; the ceiling walked; hundreds died including the man whose journals you read. Standing here, belief isn't required. Your palms sweat; the stone under your boots feels thin.",
+        gridPosition: { row: 8, col: 10 },
+        actions: [
+          {
+            id: "drop_torch",
+            label: "Let a lit torch fall",
+            effects: [
+              { type: "set_flag", flag: "measured_chasm_depth" },
+              {
+                type: "log",
+                message:
+                  "Light shrinks to a coin, then a spark, then black. Counting heartbeats doesn't help. The hole is hungry.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   9: {
     label: "To Upper Galleries",
-    hint: "coldfire and crossroads beyond the family door.",
+    hint: "green glare and many paths wait beyond the iron you closed behind you.",
     enemies: [],
     exit: { toAreaId: "a1_upper_galleries", toRoomGridId: 5 },
   },
@@ -128,7 +352,7 @@ export const A1_BARONS_WING_ROOMS: Record<number, AuthoredRoom> = {
 export const A1_BARONS_WING: AreaDef = {
   id: "a1_barons_wing",
   name: "Baron's Wing",
-  desc: "Sealed Ashvere ground: tools, ledgers, and the baron's warning ignored.",
+  desc: "Your family's private slice of the mine — locked while the order preached, untouched while the dead walked — still holding tools, tallies, and words begging you to turn back.",
   difficulty: 2,
   generator: "authored",
   authored: {

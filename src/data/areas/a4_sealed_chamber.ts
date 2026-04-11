@@ -36,8 +36,38 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R141. DARK. Era 1 + 2. Salt grows asymmetric / organic — wrong geometry. Heavy air. " +
       "Light flickers oddly (not Shadow drain). Edge whispers as impressions: warmth, pull, weight — not a voice negotiating. " +
-      'Era 2 carved line: "BEYOND THIS POINT, THE VIGIL KEEPS." Ambient demon pressure only. ' +
+      "Ambient demon pressure only. " +
       "Connects R140 (shadow exit) ↔ R142 ward hall.",
+    props: [
+      {
+        id: "vigil_carved_line_r141",
+        label: "Carved Order Line",
+        icon: "\u{1F58B}\uFE0F",
+        desc: "Letters bitten deep into salt: BEYOND THIS POINT, THE VIGIL KEEPS. The chisel slipped once — a hairline like a warning inside a warning.",
+        gridPosition: { row: 10, col: 5 },
+        onExamine: [
+          { type: "set_flag", flag: "read_vigil_line_r141" },
+          {
+            type: "log",
+            message: "The brothers carved forever into salt — as if stone owed them the word.",
+          },
+        ],
+      },
+      {
+        id: "wrong_geometry_salt_r141",
+        label: "Wrong-Curve Growth",
+        icon: "\u{1F9C2}",
+        desc: "Salt should grow in hunger-straight lines here; instead it curls like muscle memory from something that never had bones. Touch brings warmth without comfort.",
+        gridPosition: { row: 11, col: 5 },
+        onExamine: [
+          { type: "set_flag", flag: "examined_wrong_salt_geometry_r141" },
+          {
+            type: "log",
+            message: "Pressure without personhood — impressions brushing your nerves like dust.",
+          },
+        ],
+      },
+    ],
   },
   3: {
     label: "Ward Hall",
@@ -47,6 +77,23 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
       "R142. DARK. Era 2. Salt-block corridor: binding formulae, prayer, math sigils floor to ceiling. " +
       "Wards active — faint pushback, not hard block. Finest order craft — supplement to geology, not substitute. " +
       "Connects R141 ↔ R143 seal, R144 shaft head, R145 observation.",
+    props: [
+      {
+        id: "ward_hall_sigils_r142",
+        label: "Layered Wards",
+        icon: "\u{1F52F}",
+        desc: "Prayer braided into geometry — sigils climbing floor to ceiling like frost that learned arithmetic. The air resists your stride: not a wall, a polite refusal. Salt did the first holding; these marks only argue with the stone.",
+        gridPosition: { row: 5, col: 5 },
+        onExamine: [
+          { type: "set_flag", flag: "read_ward_hall_sigils_r142" },
+          {
+            type: "log",
+            message:
+              "Chant and line-work stacked on salt — as if ink could stretch what the earth already bears.",
+          },
+        ],
+      },
+    ],
   },
   4: {
     label: "The Seal",
@@ -54,35 +101,195 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R143. DARK. Era 2. Circular chamber; floor sigil; ring of salt columns. Center: stress — hairline cracks, dust, warmth from below. " +
-      "Vast, patient presence — draw, not rant; not cartoon mind. Inscriptions (paraphrase): order's wards reinforce natural salt containment, not replace; mining thinned barrier; wards compensated; wards degrade while salt regrows if left alone. " +
-      "Binary math: stop mining OR maintain wards forever — forever is lie institutions tell. Cracks correlate with necromantic throughput: lich repairs stabilize one axis while undeath pressure opens another. " +
-      "Examine: weight, warmth, appetite without personhood. " +
-      "MAJOR DECISION — Demon seal: " +
-      "STUDY — Unlocks lich dialogue; affects endings. Reveals presence geological, not sentient — does not push, draws; salt accreted like calcium on irritant; if mining stops salt grows back; natural containment can suffice. Ties R145 log: thinning when people take, healing when they stop; lich ward reinforcement vs crack expansion under necromancy. " +
-      "STRENGTHEN — Cost consecration + salt crystal + 3 dungeon turns ritual; mends cracks; fewer/weaker Shadows in Areas 4–5; weakens lich tricks tied to deep presence; easier endgame. " +
-      "BREAK — Destroy columns → MISSING enemy demon released (HP ~150, ATK ~20, regenerates, multi-hit, destroys doors); rampage vs lich forces; lich crippled; demon remains problem. Ending 3 (Return — seal intact path) locked permanently. " +
+      "Vast, patient presence — draw, not rant; not cartoon mind. " +
+      "MAJOR DECISION — Demon seal (props capture Study / Strengthen / Break flags; MISSING demon enemy + combat when broken; three-turn ritual pacing is encounter-script). " +
       "Dead end branch off R142 until decision resolved.",
+    props: [
+      {
+        id: "demon_seal_inscriptions_r143",
+        label: "Order Inscriptions at the Ring",
+        icon: "\u{1F5DD}\uFE0F",
+        desc: "Carved testimony in a hand too steady to be kind: the pale brothers layered prayer on what the salt already held. Every heading thinned the wall; their marks bought years. The letters admit what nobody wanted carved — when the picks stop, the crystal returns. When the dead keep walking, something else cracks. Forever is a word men like; the vein only knows rest and hunger.",
+        gridPosition: { row: 2, col: 5 },
+        onExamine: [
+          { type: "set_flag", flag: "read_demon_seal_inscriptions_r143" },
+          {
+            type: "log",
+            message:
+              "You read until your mouth goes dry — faith, numbers, and fear all cut by the same tool.",
+          },
+        ],
+      },
+      {
+        id: "demon_seal_nexus_r143",
+        label: "Stressed Seal Heart",
+        icon: "\u{1F300}",
+        desc: "Floor sigil underfoot; salt columns like teeth around a mouth forced shut. At the center, hairline cracks breathe warmth — dust jumping to a rhythm too slow to be heartbeat. Weight pools in your knees; want brushes your thoughts without a face. Not a voice — pressure, patient as bedrock.",
+        gridPosition: { row: 3, col: 5 },
+        onExamine: [
+          { type: "set_flag", flag: "demon_seal_center_examined_r143" },
+          {
+            type: "log",
+            message: "Warmth without kindness — pull without a face.",
+          },
+        ],
+        actions: [
+          {
+            id: "study_seal",
+            label: "Study the seal calmly",
+            desc: "Kneel until the warmth, dust, and ring of columns sort into sense — not comfort, clarity.",
+            requires: { notFlags: ["demon_seal_studied_r143", "demon_seal_broken_r143"] },
+            effects: [
+              { type: "set_flag", flag: "demon_seal_studied_r143" },
+              { type: "set_flag", flag: "lich_dialogue_deep_geology_unlocked" },
+              {
+                type: "log",
+                message:
+                  "It is not a mind down there — it is weight that learned patience. Salt stacks calm around it when the picks go quiet. Chew the walls and the shell thins; keep the dead walking and new hairlines open. The watcher upstairs wrote the same story in ink.",
+              },
+            ],
+          },
+          {
+            id: "strengthen_seal",
+            label: "Perform the strengthening rite",
+            desc: "Blessing, raw salt pressed into the hairlines, breath after breath until the sigil stops trembling.",
+            requires: {
+              flags: ["has_consecration", "has_raw_salt_crystal"],
+              notFlags: ["demon_seal_strengthened_r143", "demon_seal_broken_r143"],
+            },
+            effects: [
+              { type: "set_flag", flag: "demon_seal_strengthened_r143" },
+              { type: "set_flag", flag: "has_raw_salt_crystal", value: false },
+              {
+                type: "log",
+                message:
+                  "Salt knits; the warm breath underfoot steadies. The deep should feel lighter — and Serevic's borrowed flesh may pay for every hour you bought the stone.",
+              },
+            ],
+          },
+          {
+            id: "break_seal",
+            label: "Shatter the salt columns",
+            desc: "Bring iron to the teeth of the ring — let whatever waits rise.",
+            requires: { notFlags: ["demon_seal_broken_r143"] },
+            effects: [
+              { type: "set_flag", flag: "demon_seal_broken_r143" },
+              { type: "set_flag", flag: "demon_released_from_seal_r143" },
+              { type: "set_flag", flag: "ending_return_seal_intact_locked" },
+              {
+                type: "log",
+                message:
+                  "Columns scream like glass. Something vast uncurls below — not grateful, not hurried. Whatever hope needed this ring intact dies with the salt.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   5: {
     label: "Miner's Shaft Head",
-    hint: "black drop into Area 5. rope from the equipment store, or a repaired winch.",
+    hint: "black drop into the deep. rope from the equipment store, or a repaired winch.",
     enemies: [],
     notes:
       "R144. DARK. Era 1 + 2. Top of deepest historic shaft; vertical drop to natural cavern (Area 5 R146). " +
       "Order-sheathed walls; original miner route. Progression gate: rope (R125 or other source) OR repaired lift (mining maul on broken winch). Quieter path than Area 3 R99 Lich's Ward. " +
       "Cross-area: a5_outer_ward return lands grid 5 (this room) per pair rule. Connects R142 ↔ exit 8 (descend).",
+    props: [
+      {
+        id: "shaft_head_drop_r144",
+        label: "Black Shaft Mouth",
+        icon: "\u{2B07}\uFE0F",
+        desc: "Air rises cold from a throat cut before the order existed. Iron staples and salt-sheathed guides show the original miner route — plain vertigo, nothing poetic about it.",
+        gridPosition: { row: 5, col: 8 },
+        onExamine: [
+          { type: "set_flag", flag: "examined_miner_shaft_head_r144" },
+          {
+            type: "log",
+            message:
+              "Rope from the forward supply cache, or a winch coaxed back to life — either way, your weight goes down that throat.",
+          },
+        ],
+      },
+      {
+        id: "broken_winch_r144",
+        label: "Broken Winch",
+        icon: "\u{2699}\uFE0F",
+        desc: "Gears split, chain snarled — something heavy panicked here. A maul could persuade the axle true again, if you are willing to announce yourself with noise.",
+        gridPosition: { row: 6, col: 9 },
+        condition: { notFlags: ["repaired_shaft_winch_r144"] },
+        actions: [
+          {
+            id: "repair_with_maul",
+            label: "Free the winch with the mining maul",
+            requires: { flags: ["has_mining_maul"] },
+            effects: [
+              { type: "set_flag", flag: "repaired_shaft_winch_r144" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message: "Iron shrieks, then yields — the winch turns, grudging but usable.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   6: {
     label: "Observation Post",
-    hint: "a slit frames the seal chamber. a log ties thinning to mining and cracks to necromancy.",
+    hint: "a slit frames the seal chamber. a log ties thinning headings to new cracks after Serevic's dead walked.",
     enemies: [],
     notes:
-      "R145. DARK. Era 2 + lich annotations. Slit view toward R143. Observation log structure: " +
-      'Order early: "No change." — barrier stable; geology doing most work. ' +
-      'As mining resumes/deepens: "Slight thinning, NE quadrant" — correlates with extraction bearing. ' +
-      'Lich era: "Barrier stabilized. Wards reinforced." then "Cracks. Expanding." — correlates with necromantic activity; new stress atop old thinning. ' +
+      "R145. DARK. Era 2 + lich annotations. Slit view toward R143. " +
       "Player synthesis (esp. after seal Study + Crystal Galleries): barrier thins when mine eaten, eases when taking stops; lich maintenance buys time while undeath frays seal; R143 cracks rhyme with log. " +
-      "Loot: 10 gold. Dead end.",
+      "Dead end.",
+    props: [
+      {
+        id: "observation_log_r145",
+        label: "Observation Log",
+        icon: "\u{1F4D6}",
+        desc: "Order pages, then lich margins. Early hand: No change. — geology doing most of the holding. Later, as headings chewed deeper: Slight thinning, NE quadrant. Then Serevic's ink: Barrier stabilized. Wards reinforced. Same book, a few pages on: Cracks. Expanding. The handwriting tightens — pride, then fear.",
+        gridPosition: { row: 5, col: 2 },
+        onExamine: [
+          { type: "set_flag", flag: "read_observation_log_r145" },
+          {
+            type: "log",
+            message:
+              "Same story as the ring under your boots: headings gnawed the wall thin; quiet years let salt return; Serevic's hand steadied the ink while new cracks opened anyway.",
+          },
+        ],
+      },
+      {
+        id: "observation_post_coin_purse_r145",
+        label: "Dropped Coin Purse",
+        icon: "\u{1FA99}",
+        desc: "Cloth slimy with salt-drip — a watcher fled mid-shift or simply forgot mortality pays poorly.",
+        gridPosition: { row: 6, col: 2 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the coins",
+            effects: [
+              { type: "grant_gold", amount: 10 },
+              { type: "consume_prop" },
+              { type: "log", message: "Ten gold — hazard pay never collected." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "observation_slit_r145",
+        label: "Slit Toward the Seal",
+        icon: "\u{1F441}\uFE0F",
+        desc: "A knife-cut view of the circular chamber — columns, sigil, the patient cracks breathing heat. Watching does not make you safer; it only proves someone wanted witnesses afraid.",
+        gridPosition: { row: 5, col: 3 },
+        onExamine: [
+          { type: "set_flag", flag: "examined_observation_slit_r145" },
+          { type: "log", message: "The seal looks smaller from here — a lie distance tells." },
+        ],
+      },
+    ],
   },
   7: {
     label: "Back through shadow depths",
@@ -101,7 +308,7 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
 export const A4_SEALED_CHAMBER: AreaDef = {
   id: "a4_sealed_chamber",
   name: "Sealed Chamber",
-  desc: "The order's last arithmetic: wards on top of geology, forever on the ledger.",
+  desc: "Salt grown wrong, prayer stacked higher, and a ring of columns around warmth that should not be patient.",
   difficulty: 5,
   generator: "authored",
   authored: {

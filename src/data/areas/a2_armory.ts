@@ -30,25 +30,156 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
     enemies: ["zombie", "zombie"],
     isStart: true,
     notes:
-      "R69. COLDFIRE. Era 2+3. Room design ref R69. Posted orders: no unauthorized entry. Fight, disguise, or official seal (R59). Cultists ×2 not in enemy list. " +
+      "R69. COLDFIRE. Era 2+3. Room design ref R69. Fight, disguise, or official seal (R59). Cultists ×2 not in enemy list. " +
       "Connects: R56 chapter hall (exit grid 8), R70 weapon racks, R72 training room.",
+    props: [
+      {
+        id: "armory_posted_orders",
+        label: "Posted Orders",
+        icon: "\u{1F4DD}",
+        desc: "Salt-board nailed crooked: NO UNAUTHORIZED ENTRY. Seals and signatures overlap like armor scales — each officer adding weight, none adding mercy.",
+        gridPosition: { row: 5, col: 3 },
+        onExamine: [
+          { type: "set_flag", flag: "read_armory_posted_orders_r69" },
+          {
+            type: "log",
+            message:
+              "The spare grandmaster seal from the chapter house would satisfy a bored guard — if the dead cared about paperwork.",
+          },
+        ],
+      },
+    ],
   },
   3: {
     label: "Weapon Racks",
     hint: "most racks are bare; a high shelf still holds a crossbow and a bundle of quarrels.",
     enemies: [],
     notes:
-      "R70. COLDFIRE. Era 2. Room design ref R70. " +
-      "CROSSBOW + 12 BOLTS (RANGED capability); halberd; longsword. " +
+      "R70. COLDFIRE. Era 2. Room design ref R70. RANGED capability from crossbow pickup. " +
       "Connects: R69, R71 armor storage (dead end).",
+    props: [
+      {
+        id: "overlooked_crossbow",
+        label: "Crossbow and Quarrels",
+        icon: "\u{1F3F9}",
+        desc: "High rack, dust-thick: a crossbow strung with care and a bundle of twelve quarrels, overlooked when patrols stripped the lower shelves.",
+        gridPosition: { row: 5, col: 7 },
+        actions: [
+          {
+            id: "take",
+            label: "Take crossbow and quarrels",
+            effects: [
+              { type: "set_flag", flag: "has_crossbow" },
+              { type: "set_flag", flag: "has_twelve_bolts" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Twelve bolts counted. For the first time since the gate, you can answer danger from a distance.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "rack_halberd",
+        label: "Halberd",
+        icon: "\u{2694}\uFE0F",
+        desc: "A polearm too long for these tight cuts — unless you find a hall wide enough to let it wheel. Edge polished, shaft oiled by habit.",
+        gridPosition: { row: 4, col: 6 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the halberd",
+            effects: [
+              { type: "set_flag", flag: "has_halberd" },
+              { type: "consume_prop" },
+              { type: "log", message: "Reach and heft. The dead do not respect fair distance." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "rack_longsword",
+        label: "Longsword",
+        icon: "\u{1F5E1}\uFE0F",
+        desc: "Straight, balanced, unadorned — the order's workman blade. No blessing etched; only a serial number salt-stamped on the guard.",
+        gridPosition: { row: 4, col: 7 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the longsword",
+            effects: [
+              { type: "set_flag", flag: "has_longsword" },
+              { type: "consume_prop" },
+              { type: "log", message: "Steel answers your grip like it was waiting." },
+            ],
+          },
+        ],
+      },
+    ],
   },
   4: {
     label: "Armor Storage",
     hint: "corroded mail and a ceremonial plate that would sing if struck.",
     enemies: [],
-    notes:
-      "R71. COLDFIRE. Era 2+3. Room design ref R71. Light chain mail (upgrade); ceremonial plate (flavor); 15 gold. " +
-      "Connects: R70 only.",
+    notes: "R71. COLDFIRE. Era 2+3. Room design ref R71. Connects: R70 only.",
+    props: [
+      {
+        id: "light_chain_mail",
+        label: "Salvageable Chain Mail",
+        icon: "\u{1F6E1}",
+        desc: "Rings corroded at the shoulder but sound at the core — light enough to move in, honest enough to turn a knife.",
+        gridPosition: { row: 4, col: 10 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the chain mail",
+            effects: [
+              { type: "set_flag", flag: "has_light_chain_mail" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message: "The mail settles on you like a second skeleton — lighter than fear.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "ceremonial_plate_display",
+        label: "Ceremonial Plate",
+        icon: "\u{1F3F0}",
+        desc: "Display armor: order sigil acid-etched on the breast, gilding flaking. Beautiful, impractical — meant for processions, not punches.",
+        gridPosition: { row: 5, col: 10 },
+        onExamine: [
+          { type: "set_flag", flag: "read_ceremonial_plate_r71" },
+          {
+            type: "log",
+            message:
+              "Gilded, heavy — parade metal. The order dressed its legend in plate while sending others forward in corroded rings.",
+          },
+        ],
+      },
+      {
+        id: "armor_storage_gold",
+        label: "Paymaster's Tin",
+        icon: "\u{1FA99}",
+        desc: "Behind a loose grate: a tin with payroll chits and coin — someone skimmed before the skimmer vanished.",
+        gridPosition: { row: 5, col: 11 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the coin",
+            effects: [
+              { type: "grant_gold", amount: 15 },
+              { type: "consume_prop" },
+              { type: "log", message: "15 gold — armor budget that never reached the smith." },
+            ],
+          },
+        ],
+      },
+    ],
   },
   5: {
     label: "Lower Gate East",
@@ -59,18 +190,74 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
       "Soft gate: RELIABLE LIGHT — darkness is the real wall; torch punishing; shuttered lantern recommended. " +
       "NOT the area-transition room; use adjacent exit grid 10 for a3_threshold. " +
       "Grid 5 = designated return arrival from a3_threshold (convention).",
+    props: [
+      {
+        id: "lower_gate_east_threshold",
+        label: "Eastern Lower Gate",
+        icon: "\u{1F6AA}",
+        desc: "Iron gives way to a throat of raw dark. No coldfire beyond — only sound: shuffling, bone scrape, drip. The bone halls breathe through the gap.",
+        gridPosition: { row: 7, col: 10 },
+        onExamine: [
+          { type: "set_flag", flag: "examined_lower_gate_east_r73" },
+          {
+            type: "log",
+            message:
+              "The gate stands open; darkness is the wall. True flame or a shuttered lantern will matter more than courage here.",
+          },
+        ],
+      },
+    ],
   },
   6: {
     label: "Training Room",
-    hint: "spar circle; cultists drill while a zombie takes blows that never teach.",
+    hint: "spar circle; living drill while a dead thing takes blows that never change it.",
     enemies: ["zombie", "zombie", "zombie"],
     notes:
-      "R72. COLDFIRE. Era 2+3. Room design ref R72. Spar circle; cultists ×2 not in list (zombies partial). Training manual (minor buff); practice weapons. " +
+      "R72. COLDFIRE. Era 2+3. Room design ref R72. Spar circle; cultists ×2 not in list (zombies partial). " +
       "Connects: R69, R73 Lower Gate East, R74 Lower Gate West, exit grid 10 (Ossuary transit).",
+    props: [
+      {
+        id: "training_manual_r72",
+        label: "Training Manual",
+        icon: "\u{1F4D8}",
+        desc: "Illustrated drills: footwork, guard, how to brace against undead leverage. Margins warn about overcommitting — someone learned the hard way.",
+        gridPosition: { row: 8, col: 7 },
+        actions: [
+          {
+            id: "study",
+            label: "Study the drills",
+            effects: [
+              { type: "set_flag", flag: "studied_armory_training_manual" },
+              { type: "heal_player", amount: 2 },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Your stance shifts without thinking. Small confidence — earned from paper.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "practice_weapons_bin",
+        label: "Practice Weapons",
+        icon: "\u{2694}\uFE0F",
+        desc: "Blunted steel and wicker shields, splintered from use. Plentiful; weak — but better than empty hands if you need a decoy.",
+        gridPosition: { row: 7, col: 7 },
+        onExamine: [
+          {
+            type: "log",
+            message:
+              "Wood and dulled iron — training tools, not killers. Someone still swings them out of habit.",
+          },
+        ],
+      },
+    ],
   },
   7: {
     label: "Lower Gate West",
-    hint: "coldfire holds here; past the choke, something floral blocks stone and air alike.",
+    hint: "coldfire holds here; past the narrow throat, something floral blocks stone and air alike.",
     enemies: [],
     notes:
       "R74. COLDFIRE near gate. Era 2+3. Room design ref R74. Skullflower choke — type not in enemy list; FIRE + pump state hard gate; alternate to Area 4 via R68 when cleared + drained. " +
@@ -96,7 +283,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
 export const A2_ARMORY: AreaDef = {
   id: "a2_armory",
   name: "Armory & Lower Gate",
-  desc: "Steel, drills, and the lower gates — east into darkness, west toward fire and flood.",
+  desc: "Racks thinned by panic-drill; east gate drops into the bone halls' dark, west chokes on bloom and wet stone.",
   difficulty: 3,
   generator: "authored",
   authored: {

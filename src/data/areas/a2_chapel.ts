@@ -42,6 +42,23 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
       "Ornate arch: flame-and-voice motif. Zombies flank like ushers. Beyond, cavern opens — every footstep and clash gains resonance. " +
       "Special: chapel acoustic rules — combat noise spreads to adjacent chapel rooms; Banshee screams amplified; can alert Ghosts in Library block (R43–R50). " +
       "Connects: R30 cloister (exit grid 8), R38 nave.",
+    props: [
+      {
+        id: "chapel_entrance_arch",
+        label: "Flame-and-Voice Arch",
+        icon: "\u{1F3DB}\uFE0F",
+        desc: "Ornate salt-stone arch: tongues of carved flame interwoven with open mouths, as if song could be masonry. Beyond, the cavern swallows sound and gives it back louder.",
+        gridPosition: { row: 9, col: 5 },
+        onExamine: [
+          { type: "set_flag", flag: "read_chapel_entrance_arch_r37" },
+          {
+            type: "log",
+            message:
+              "The order wanted everyone to know: here, voice and fire were the same liturgy.",
+          },
+        ],
+      },
+    ],
   },
   3: {
     label: "Nave",
@@ -51,14 +68,13 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
       "R38. COLDFIRE. Era 2+3. Room design ref R38. " +
       "Vast nave: salt-crystal walls vanishing upward, pews carved from floor. Cultists chant; zombies sit — drone almost beautiful (cultists ×2 not in enemy list). " +
       "Stalactites as singing saints, mouths open forever. " +
-      "Contains: offering bowls 18 gold total; damaged hymnals — one legible notation (hymn fragment clue). " +
       "Connects: R37, R39 choir loft, R40 cantor's stand, R41 great brazier, R42 side chapel.",
     props: [
       {
         id: "offering_bowls",
         label: "Offering Bowls",
         icon: "\u{1F963}",
-        desc: "Stone bowls arranged along the nave aisle, holding coins pressed between scraps of salt. The cult accepts tribute; the saints, perhaps, do not.",
+        desc: "Stone bowls along the nave aisle, coins pressed between scraps of salt. They still feed the bowl as if hunger lived in the stone — the carved saints above owe them nothing.",
         gridPosition: { row: 6, col: 10 },
         actions: [
           {
@@ -95,9 +111,53 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R39. DARK. Era 2. Room design ref R39. " +
       "Elevated platform; salt stairs from R38. Robed figure, mouth frozen open. Wail corrupts hymn if player saw R38 hymnal. Music stands; sheet music. " +
-      "Contains: complete hymn sheet (brazier ritual); 15 gold (conductor's box). " +
       "Special: wail echoes R37–R42; triggers Library Ghosts; ranged silence or accept cascade. " +
       "Connects: R38 only.",
+    props: [
+      {
+        id: "complete_vigil_hymn_sheet",
+        label: "Complete Hymn Sheet",
+        icon: "\u{1F3BC}",
+        desc: "On a music stand, pages held by salt-clips: the Vigil Hymn in full arrangement — every voice part, every rest the cantor once owned. The margins bear grease from nervous thumbs.",
+        gridPosition: { row: 2, col: 10 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the sheet music",
+            effects: [
+              { type: "set_flag", flag: "has_complete_vigil_hymn_sheet" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "The paper whispers when folded. The great bowl was fed full song — not the half page you found in the nave.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "conductors_strongbox",
+        label: "Conductor's Box",
+        icon: "\u{1F4E6}",
+        desc: "A small iron box beneath the stand, meant for stipends and replacement reeds. The lock is rust, not secret.",
+        gridPosition: { row: 3, col: 11 },
+        actions: [
+          {
+            id: "open",
+            label: "Pry it open",
+            effects: [
+              { type: "grant_gold", amount: 15 },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message: "15 gold — the choir's wages, outlasting every throat that earned them.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   5: {
     label: "Cantor's Stand",
@@ -105,9 +165,42 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R40. COLDFIRE. Era 2. Room design ref R40. " +
-      "Small raised platform for lead singer. Inscription (exact): 'At the crescendo of the Vigil Hymn, the keeper strikes the brazier's heart and sings the note of waking' — plus notation. Rosetta for singing + fire + faith. " +
-      "Contains: hymn fragment (core relighting key — combine R39, R53, Rennic R49). " +
+      "Small raised platform for lead singer. Rosetta for singing + fire + faith — ties brazier system to order practice. " +
+      "Combine with R39 sheet, R53 ritual texts, Rennic (R49) for full relighting procedure. " +
       "Connects: R38 only.",
+    props: [
+      {
+        id: "cantor_stand_inscription",
+        label: "Cantor's Inscription",
+        icon: "\u{1F5FF}",
+        desc: "Carved into the platform riser: ceremony text and musical notation, salt-filled grooves. Someone scored lines through the words; the chisel cuts underneath still read clear.",
+        gridPosition: { row: 4, col: 5 },
+        onExamine: [
+          { type: "set_flag", flag: "read_cantors_stand_inscription" },
+          { type: "set_flag", flag: "knows_cantor_brazier_strike_rite" },
+          {
+            type: "log",
+            message:
+              "At the crescendo of the Vigil Hymn, the keeper strikes the brazier's heart and sings the note of waking. The notation under it burns into memory — strike, breathe, pitch.",
+          },
+        ],
+      },
+      {
+        id: "cantor_hymn_fragment_tablet",
+        label: "Wax Tablet Fragment",
+        icon: "\u{1F4DC}",
+        desc: "A cracked wax tablet wedged under the platform — rehearsal marks, a thumbprint smear, the same cadence the nave hymnal hinted at, written large.",
+        gridPosition: { row: 3, col: 6 },
+        onExamine: [
+          { type: "set_flag", flag: "read_cantor_hymn_fragment" },
+          {
+            type: "log",
+            message:
+              "The keeper's blow lands on the breath before the chorus answers — that is when the basin wakes. Fire follows voice, the old rite swore.",
+          },
+        ],
+      },
+    ],
   },
   6: {
     label: "Great Brazier Platform",
@@ -129,12 +222,11 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
           {
             id: "relight",
             label: "Sing the Vigil Hymn and relight",
-            desc: "Requires the hymn fragment",
+            desc: "You need the cadence from the nave; humming wrong will leave the basin cold",
             requires: { flags: ["knows_hymn_fragment"] },
             effects: [
               { type: "set_flag", flag: "has_consecration" },
               { type: "set_flag", flag: "great_brazier_lit" },
-              { type: "consume_prop" },
               {
                 type: "log",
                 message:
@@ -162,9 +254,66 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
     enemies: ["ghost"],
     notes:
       "R42. DARK. Era 2. Room design ref R42. " +
-      "Quiet alcove; altar to patron saint of miners. Ghost (ex-priest) kneels, murmuring unheard. Salt offerings; painting — mine mouth in gold light. " +
-      "Contains: salt (crafting); 8 gold (offering box); painting (lore). Quiet approach avoids fight; Banshee (R39) can wake Ghost. " +
+      "Quiet alcove; altar to patron saint of miners. Ghost (ex-priest) kneels, murmuring unheard. Salt offerings. " +
+      "Quiet approach avoids fight; Banshee (R39) can wake Ghost unexpectedly. " +
       "Connects: R38 only.",
+    props: [
+      {
+        id: "side_chapel_salt_offering",
+        label: "Salt Offering Piles",
+        icon: "\u{1F9C2}",
+        desc: "Cones of blessed salt at the altar foot, grey and pink in layers. The miners' saint never asked for gold — only this, heaped until it spilled.",
+        gridPosition: { row: 6, col: 16 },
+        actions: [
+          {
+            id: "take",
+            label: "Bag some salt",
+            effects: [
+              { type: "set_flag", flag: "has_side_chapel_blessed_salt" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Coarse grains hiss in the sack. Salt for trade, for thresholds, for whatever work comes — the kneeling shade does not look up.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "side_chapel_offering_box",
+        label: "Offering Box",
+        icon: "\u{1FA99}",
+        desc: "Iron box on a chain, slot worn shiny. Inside, coin and folded prayers — some legible, most melted to illegible humility.",
+        gridPosition: { row: 5, col: 17 },
+        actions: [
+          {
+            id: "take",
+            label: "Empty the box",
+            effects: [
+              { type: "grant_gold", amount: 8 },
+              { type: "consume_prop" },
+              { type: "log", message: "8 gold — alms that outlived the almsgivers." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "miners_patron_painting",
+        label: "Small Painting",
+        icon: "\u{1F5BC}\uFE0F",
+        desc: "A panel no larger than a prayer book: the mine mouth in gold light, carts like toys, figures raising hands as if warding something generous. Their story — guardians, not toll-takers. Your jaw tightens anyway.",
+        gridPosition: { row: 6, col: 17 },
+        onExamine: [
+          { type: "set_flag", flag: "read_miners_patron_painting_r42" },
+          {
+            type: "log",
+            message:
+              "Whoever painted it believed the story. You wonder which side of the ledger they never saw.",
+          },
+        ],
+      },
+    ],
   },
   8: {
     label: "Back to the Cloister",
@@ -174,7 +323,7 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
   },
   9: {
     label: "Upper Passage (Chapter House)",
-    hint: "a narrow cut overhead; administration's private approach to the brazier dais.",
+    hint: "a narrow cut overhead; clerks' shortcut to the great hearth — stone scuffed by soles that never used the nave.",
     enemies: [],
     exit: { toAreaId: "a2_chapter_house", toRoomGridId: 7 },
   },
@@ -183,7 +332,7 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
 export const A2_CHAPEL: AreaDef = {
   id: "a2_chapel",
   name: "Chapel Cavern",
-  desc: "A natural cavern where the order sang; sound and flame still judge the living.",
+  desc: "The order hollowed a cavern into a throat — every footstep returns louder; the great hearth waits cold or cruel.",
   difficulty: 2,
   generator: "authored",
   authored: {

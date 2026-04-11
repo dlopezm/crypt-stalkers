@@ -34,8 +34,25 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
     enemies: ["skeleton"],
     isStart: true,
     notes:
-      "R100. Era 2. DARK. Transition from factory to crypt: clean salt-block, inscriptions, doorframes. " +
+      "R100. Era 2. DARK. Transition from factory to crypt. " +
       "Skeleton ×1 in corroded order armor; slow patrol. Connects to R101 and exit to R98 Hidden Passage (bone stacks).",
+    props: [
+      {
+        id: "crypt_entrance_inscriptions",
+        label: "Doorframe Inscriptions",
+        icon: "\u{1F58B}\uFE0F",
+        desc: "Clean salt-block returns like a held breath. Names and vigil mottoes curl along the doorframes — the order still speaking to the dead as persons, not grades.",
+        gridPosition: { row: 8, col: 6 },
+        onExamine: [
+          { type: "set_flag", flag: "read_r100_crypt_entrance_inscriptions" },
+          {
+            type: "log",
+            message:
+              "The roar of carts fades behind you; here they still speak to the dead like people, not like ore.",
+          },
+        ],
+      },
+    ],
   },
   3: {
     label: "Honor Guard Hall",
@@ -45,15 +62,86 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R101. Era 2. DARK. Knight-effigy sarcophagi; three honor guards (Ancient Honor Guard: HP 20, ATK 8, slower — use boss_skeleton_lord ×3) dormant until entry or noise. " +
       "Era 2 dignity weaponized into Era 3 security. Connects to R100, R102 Founding Tomb, R103 Epitaph Gallery, R105 Consecration Circle.",
+    props: [
+      {
+        id: "honor_guard_sarcophagi",
+        label: "Knight-Effigy Sarcophagi",
+        icon: "\u{26B0}\uFE0F",
+        desc: "Stone knights lie in state on their lids, swords crossed over carved surcoats. The effigies are beautiful — and therefore dangerous. You feel watched from beneath closed helms.",
+        gridPosition: { row: 9, col: 11 },
+        onExamine: [
+          { type: "set_flag", flag: "examined_r101_honor_sarcophagi" },
+          {
+            type: "log",
+            message:
+              "Beauty cut for war — tombs meant to guard sleep, turned into sentries for someone else's hoard.",
+          },
+        ],
+      },
+    ],
   },
   4: {
     label: "Founding Tomb",
     hint: "a single sarcophagus; the plaque asks more of you than gold does.",
     enemies: [],
     notes:
-      "R102. Era 2. DARK. Single sarcophagus; founding symbol. Remains of first knight-commander; preservation cloth. " +
-      "HOLY RELIC — blessed salt-crystal pendant (CONSECRATION physical part). Pair with Area 2 R53 ritual text; activate at R105. " +
-      'Honor guard does not pursue into this room. Plaque: "First to serve. Last to rest."',
+      "R102. Era 2. DARK. Single sarcophagus; founding symbol. Remains of first knight-commander. " +
+      "Pair with Area 2 R53 ritual text; activate at R105. Honor guard does not pursue into this room.",
+    props: [
+      {
+        id: "founding_tomb_plaque",
+        label: "Founding Plaque",
+        icon: "\u{1F3DB}\uFE0F",
+        desc: 'Bronze-green with age, letters still proud: "First to serve. Last to rest." The first knight-commander\'s name is half worn away; the sentiment is not.',
+        gridPosition: { row: 3, col: 11 },
+        onExamine: [
+          { type: "set_flag", flag: "read_founding_tomb_plaque_r102" },
+          {
+            type: "log",
+            message:
+              "The vigil at its kindest — before the mills taught everyone a crueler way to speak about bodies.",
+          },
+        ],
+      },
+      {
+        id: "founding_sarcophagus",
+        label: "Founding Sarcophagus",
+        icon: "\u{26B0}\uFE0F",
+        desc: "A single lid, founding symbol carved deep. Beneath: remains dressed with preservation cloth gone brittle — and at the breast, a glint not coin: a blessed salt-crystal pendant on a chain fine as prayer.",
+        gridPosition: { row: 4, col: 11 },
+        onExamine: [
+          { type: "set_flag", flag: "examined_founding_sarcophagus_r102" },
+          {
+            type: "log",
+            message:
+              "The honor guard does not follow you here — this room is still under older law.",
+          },
+        ],
+      },
+      {
+        id: "founding_holy_relic",
+        label: "Founding Pendant",
+        icon: "\u{1F48E}",
+        desc: "Small, cold, almost humming when your palm closes. This is the physical half of consecration — the refusal to strip ground bare. It wants a rite you have not spoken yet.",
+        gridPosition: { row: 3, col: 12 },
+        actions: [
+          {
+            id: "take",
+            label: "Lift the founding pendant",
+            desc: "Small, cold, almost humming — the old refusal to strip ground bare, hung on a chain fine as prayer.",
+            effects: [
+              { type: "set_flag", flag: "has_founding_tomb_holy_relic" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "The pendant settles against your sternum like a second heartbeat, slower than yours.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   5: {
     label: "Epitaph Gallery",
@@ -61,7 +149,24 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R103. Era 2. DARK. Carved epitaphs across centuries; late entries sparse — decline visible. Last entry: name, date, empty tribute. " +
-      "Epitaph records cross-ref Area 2 R58 roster. Connects to R101 and R104 Reliquary Niche.",
+      "Connects to R101 and R104 Reliquary Niche.",
+    props: [
+      {
+        id: "epitaph_gallery_carving",
+        label: "Carved Epitaphs",
+        icon: "\u{1F58B}\uFE0F",
+        desc: "Centuries of names pressed into salt-block — early centuries crowded, hands sure; later centuries sparse, letters shallow. The last line gives a name and a date, then stops: no tribute, no prayer, only empty space where grief should sit.",
+        gridPosition: { row: 8, col: 16 },
+        onExamine: [
+          { type: "set_flag", flag: "read_epitaph_gallery_r103" },
+          {
+            type: "log",
+            message:
+              "Some of these names appear on the work lists in the halls above — marked on shift years after the dates carved here.",
+          },
+        ],
+      },
+    ],
   },
   6: {
     label: "Reliquary Niche",
@@ -69,21 +174,79 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R104. Era 2. DARK. Locked alcove; deceased members' valuables. " +
-      "CEREMONIAL KEY — Grandmaster sigil (not library seal) → physical lock on Order's Restricted Vault (Area 2, behind R52 Shadow Corridor). " +
       "Full vault route also needs Crystal Lantern + Shadow passage + CONSECRATION for sealed door (top optional path). R104 key to Restricted Archive / Area 2 restricted content.",
+    props: [
+      {
+        id: "reliquary_grandmaster_key",
+        label: "Grandmaster Ceremonial Key",
+        icon: "\u{1F511}",
+        desc: "Heavy iron, sigil of the grandmaster's office — not the librarian's common seal, not the warden's ring. This belongs to a door they hid behind the black-silk passage in the lower shelves. Cold bites your palm when you lift it.",
+        gridPosition: { row: 10, col: 20 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the ceremonial key",
+            desc: "Weight and chill — a key meant for what they filed under stewardship and meant as hunger.",
+            effects: [
+              { type: "set_flag", flag: "has_grandmaster_restricted_vault_key" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message: "A key to what they filed under stewardship and meant as hunger.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   7: {
     label: "Consecration Circle",
     hint: "an intact order circle; it brightens when you carry something that remembers prayer.",
     enemies: [],
     notes:
-      "R105. Era 2. DARK. Intact order consecration circle. With holy relic (R102) + ritual text (Area 2 R53), player performs first rite → CONSECRATION activates permanently. " +
+      "R105. Era 2. DARK. Intact order consecration circle. " +
       "Circle faint glows when player enters with relic. Theme — anti-greed: consecration inverts extraction; you give up a room's loot permanently to make ground unusable to the undead cycle — safety by refusing to take. " +
       "Effects (master spec): consecrate rooms / safe pockets, seal loot, deny undead resurrection in combat, open consecration caches dungeon-wide.",
+    props: [
+      {
+        id: "consecration_circle_r105",
+        label: "Vigil Consecration Circle",
+        icon: "\u{2728}",
+        desc: "Stone rings within rings, salt-white in the dark. When you carry the founding pendant, the grooves answer with a shy light — not coldfire, not belt-glow. This is what the vigil meant by giving ground back instead of stripping it hollow.",
+        gridPosition: { row: 14, col: 11 },
+        actions: [
+          {
+            id: "perform_first_rite",
+            label: "Perform the founding consecration rite",
+            desc: "The pendant warms when paired with the sealed ritual words — if you carry both, the stone will answer.",
+            requires: {
+              flags: ["has_founding_tomb_holy_relic", "read_consecration_rite_knowledge_r53"],
+              notFlags: ["consecration_rite_performed_r105"],
+            },
+            effects: [
+              { type: "set_flag", flag: "consecration_rite_performed_r105" },
+              {
+                type: "log",
+                message:
+                  "The first rite takes. Light threads the circle once, then settles under your ribs — a vow that will not let their tallies own every grave and tunnel.",
+              },
+            ],
+          },
+        ],
+        onExamine: [
+          {
+            type: "log",
+            message:
+              "The grooves remember prayer. Pendant and sealed ritual text together could wake a power he would call useless — because it refuses to feed him.",
+          },
+        ],
+      },
+    ],
   },
   8: {
-    label: "To Hidden Passage",
-    hint: "timber and old air; the stacks feel far behind.",
+    label: "Toward the Old Timber Pass",
+    hint: "timber and old draft; the bone-mountains feel far behind.",
     enemies: [],
     exit: { toAreaId: "a3_bone_stacks", toRoomGridId: 6 },
     notes:
@@ -94,7 +257,7 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
 export const A3_DEEP_CRYPT: AreaDef = {
   id: "a3_deep_crypt",
   name: "Deep Crypt",
-  desc: "Era 2 dignity: named dead, relics, and the rite that refuses extraction.",
+  desc: "Named dead, carved epitaphs, and a circle that asks you to give treasure back — the vigil's heart under the noise of the mills.",
   difficulty: 3,
   generator: "authored",
   authored: {

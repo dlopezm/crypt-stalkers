@@ -43,52 +43,298 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
     hint: "pantry shelves stripped of rot; rats argue over salt-cured scraps.",
     enemies: ["rat", "rat", "rat", "rat"],
     notes:
-      "R63. DIM. Era 2. Room design ref R63. " +
-      "Contains: lamp oil ×3 (FIRE part 1); dried salt; 8 gold (cook's stash). " +
+      "R63. DIM. Era 2. Room design ref R63. FIRE part 1 — combine with R65 glass flasks for oil bombs when crafting exists. " +
       "Connects: R62, R64 kitchen.",
+    props: [
+      {
+        id: "lamp_oil_jugs",
+        label: "Sealed Lamp-Oil Jugs",
+        icon: "\u{1F6E1}",
+        desc: "Three wax-sealed jugs, still fragrant. The workshop labels them for coldfire lamps — but true flame answers to oil all the same.",
+        gridPosition: { row: 5, col: 7 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the jugs",
+            effects: [
+              { type: "set_flag", flag: "has_lamp_oil_three", value: 1 },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Three jugs — enough for lamps, for flasks, for anything you mean to set alight when the moment comes.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "pantry_dried_salt",
+        label: "Dried Salt Crystals",
+        icon: "\u{1F9C2}",
+        desc: "Bins of coarse salt for curing — irony in a mine that sells blessed grains for thrice the price.",
+        gridPosition: { row: 4, col: 7 },
+        onExamine: [
+          {
+            type: "log",
+            message:
+              "Industrial salt, not ritual salt. The kitchens knew the difference; the pulpits pretended not to.",
+          },
+        ],
+      },
+      {
+        id: "cooks_stash_r63",
+        label: "Cook's Hidden Tin",
+        icon: "\u{1FA99}",
+        desc: "Behind a loose brick: a tin of coin and a spoon bent from stirring stone soup for zombies.",
+        gridPosition: { row: 5, col: 6 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the stash",
+            effects: [
+              { type: "grant_gold", amount: 8 },
+              { type: "consume_prop" },
+              { type: "log", message: "8 gold — hazard pay the cook never spent." },
+            ],
+          },
+        ],
+      },
+    ],
   },
   4: {
     label: "Workshop",
     hint: "pegs and a bench; a zombie turns a wheel that will never fit anything again.",
     enemies: ["zombie"],
     notes:
-      "R65. COLDFIRE. Era 2+3. Room design ref R65. " +
-      "Glass flasks ×3 (FIRE part 2 — combine R63 oil); tools; 10 gold. " +
+      "R65. COLDFIRE. Era 2+3. Room design ref R65. FIRE part 2 — pair with R63 lamp oil when crafting UI lands. " +
       "Connects: R62 only.",
+    props: [
+      {
+        id: "intact_glass_flasks",
+        label: "Intact Glass Flasks",
+        icon: "\u{1F52C}",
+        desc: "Three lamp flasks from maintenance stock, blown thick, stoppers tied with waxed cord. Waiting for oil and a steady hand.",
+        gridPosition: { row: 6, col: 6 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the flasks",
+            effects: [
+              { type: "set_flag", flag: "has_glass_flasks_three", value: 1 },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Three empty vessels. You already know what happens when oil meets glass and a steady hand.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "workshop_till_box",
+        label: "Bench Till",
+        icon: "\u{1FA99}",
+        desc: "Under the vise: petty cash for runners and replacement wicks. Pegboard above — pliers, coldfire wrenches, files salt-dulled — still honest metal watching over dishonest light.",
+        gridPosition: { row: 6, col: 7 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the coin",
+            effects: [
+              { type: "grant_gold", amount: 10 },
+              { type: "consume_prop" },
+              { type: "log", message: "10 gold — maintenance skim, unmaintained." },
+            ],
+          },
+        ],
+      },
+    ],
   },
   5: {
     label: "Kitchen",
     hint: "ovens and a working well; cleaver rings on stone that will never be meat.",
     enemies: ["zombie", "zombie", "zombie"],
     notes:
-      "R64. COLDFIRE. Era 2+3. Room design ref R64. Ovens; working well (extinguish/cleanse); kitchen cleaver (melee); 5 gold. " +
-      "Zombies 'cook'; one chops stone forever. Connects: R63, cloister refectory exit grid 10 (R35).",
+      "R64. COLDFIRE. Era 2+3. Room design ref R64. Zombies 'cook'; one chops stone forever. " +
+      "Connects: R63, cloister refectory exit grid 10 (R35).",
+    props: [
+      {
+        id: "kitchen_well",
+        label: "Working Well",
+        icon: "\u{1F6B0}",
+        desc: "Stone lip, rope scarred, water clear enough to reflect coldfire wrong. Someone maintained the filters — living work, recent.",
+        gridPosition: { row: 5, col: 11 },
+        actions: [
+          {
+            id: "draw",
+            label: "Draw water",
+            effects: [
+              { type: "set_flag", flag: "used_kitchen_well_r64" },
+              { type: "heal_player", amount: 1 },
+              {
+                type: "log",
+                message: "Cold, clean. Your throat remembers what trust tastes like.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "kitchen_cleaver",
+        label: "Kitchen Cleaver",
+        icon: "\u{1F52A}",
+        desc: "Heavy blade, edge chipped from stone, not bone. A zombie has been lifting it forever — the steel still wants purpose.",
+        gridPosition: { row: 4, col: 11 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the cleaver",
+            effects: [
+              { type: "set_flag", flag: "has_kitchen_cleaver" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Brutal, close, loud if you swing wild — a kitchen blade for when you're already in something's arms.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "kitchen_spice_tin_gold",
+        label: "Spice Tin",
+        icon: "\u{1FA99}",
+        desc: "Old tin labeled in joke-hand: 'saffron.' Inside: not spice.",
+        gridPosition: { row: 5, col: 10 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the coin",
+            effects: [
+              { type: "grant_gold", amount: 5 },
+              { type: "consume_prop" },
+              { type: "log", message: "5 gold — cook's joke on whoever audited the pantry." },
+            ],
+          },
+        ],
+      },
+    ],
   },
   6: {
     label: "Lamp Workshop",
     hint: "half-built lanterns; one brass shell waits with a lever and a salt-crystal lens.",
     enemies: [],
     notes:
-      "R66. DIM. Era 2. Room design ref R66. " +
-      "SHUTTERED LANTERN (RELIABLE LIGHT): open = true flame; shut = dark; consumes lamp oil; longer burn than torch. " +
+      "R66. DIM. Era 2. Room design ref R66. RELIABLE LIGHT — open shutter = true flame, shut = dark; consumes lamp oil; longer burn than torch (fuel hook TBD). " +
       "Connects: R62 only.",
+    props: [
+      {
+        id: "shuttered_lantern_r66",
+        label: "Shuttered Lantern",
+        icon: "\u{1F526}",
+        desc: "Brass shell on the high shelf, salt-crystal lens, lever shutter that slides like a drawn breath. Open it for true flame; close it to swallow light whole. Hungry for oil, patient for hands that remember how.",
+        gridPosition: { row: 8, col: 6 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the lantern",
+            effects: [
+              { type: "set_flag", flag: "has_shuttered_lantern" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Weight and balance right. This is the first honest fire you've held since the coldfire halls.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   7: {
     label: "Pump Room",
-    hint: "Era 1 iron and Era 2 gauges — frozen until someone reads the right sequence.",
+    hint: "old iron and ordered gauges — frozen until someone reads the right sequence.",
     enemies: [],
     notes:
-      "R67. DIM. Era 1+2. Room design ref R67. Era 1 pumps + Era 2 controls. Pump activation needs R48 mine engineering docs; wrong guesses risk jam/flood. Drains R68 and Area 4 Drained Tunnels (R111–R116). " +
+      "R67. DIM. Era 1+2. Room design ref R67. Era 1 pumps + Era 2 controls. Wrong guesses risk jam/flood when puzzle logic exists. Drains R68 and Area 4 Drained Tunnels (R111–R116). " +
       "Connects: R62, R68.",
+    props: [
+      {
+        id: "pump_control_console",
+        label: "Pump Console",
+        icon: "\u{2699}\uFE0F",
+        desc: "Levers, valves, gauges frozen at angry angles. Heavy mine iron couples to dials someone labeled in confident ink — then abandoned.",
+        gridPosition: { row: 10, col: 7 },
+        actions: [
+          {
+            id: "examine_gauges",
+            label: "Read the gauges",
+            effects: [
+              {
+                type: "log",
+                message:
+                  "Pressure dreams in rust. Without the engineering folio from the mining records room, this is sculpture, not machinery.",
+              },
+            ],
+          },
+          {
+            id: "run_sequence",
+            label: "Run the drain sequence",
+            desc: "You need the barons' pump sequence from the mining records — guessing will jam the works",
+            requires: { flags: ["has_mine_engineering_documents"] },
+            effects: [
+              { type: "set_flag", flag: "pumps_activated_r67" },
+              {
+                type: "log",
+                message:
+                  "Valves bite, iron shudders, water somewhere below begins to leave its chair. The drain shaft ahead will fall; far below, drowned workings groan as the same pull empties them.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   8: {
     label: "Drain Access",
     hint: "water breathes at the lip of the shaft; something floral chokes the deep air.",
     enemies: [],
     notes:
-      "R68. DARK. Era 1+2. Room design ref R68. Waist-deep water until pumps run. Skullflower at waterline — enemy type not in list; needs FIRE after drain to clear. " +
-      "Dual gate to Area 4: infrastructure knowledge + fire. Alternate R74 Lower Gate West when Skullflower cleared + pumps drained. " +
+      "R68. DARK. Era 1+2. Room design ref R68. Waist-deep water until pumps run (flag pumps_activated_r67). Skullflower choke — enemy type not in data yet. " +
+      "Dual gate to Area 4: infrastructure + fire. Alternate R74 Lower Gate West when Skullflower cleared + pumps drained. " +
       "Grid 8 = arrival from a4_drained_tunnels and a2_armory R74. Exits: Area 4 (grid 11), armory (grid 12).",
+    props: [
+      {
+        id: "drain_shaft_skullflower",
+        label: "Skullflower at the Waterline",
+        icon: "\u{1F33A}",
+        desc: "Pale growth choking the shaft floor to ceiling, petals like bone plates, rooted in the flood. It drinks lamplight and gives nothing back. After the pumps pull the water down, fire might starve it.",
+        gridPosition: { row: 12, col: 11 },
+        condition: { notFlags: ["skullflower_burned_r68"] },
+        actions: [
+          {
+            id: "burn",
+            label: "Douse it with oil and ignite",
+            desc: "Requires lamp oil and glass flasks; the water level needs to be low",
+            requires: {
+              flags: ["has_lamp_oil_three", "has_glass_flasks_three", "pumps_activated_r67"],
+            },
+            effects: [
+              { type: "set_flag", flag: "skullflower_burned_r68" },
+              {
+                type: "log",
+                message:
+                  "Flame catches the oil-slicked bloom. It screams like wet paper. The choked passage west gapes — air moves again where the flower strangled it.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   9: {
     label: "Back to the Cloister (Common Room)",
@@ -119,7 +365,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
 export const A2_MAINTENANCE: AreaDef = {
   id: "a2_maintenance",
   name: "Maintenance Halls",
-  desc: "Kitchens, workshops, and pumps — where fire, reliable light, and the deep drain are assembled.",
+  desc: "Kitchens, workshops, pumps — where honest flame gets built and the flood below finally learns to obey.",
   difficulty: 2,
   generator: "authored",
   authored: {
