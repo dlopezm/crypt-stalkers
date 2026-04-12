@@ -1,43 +1,46 @@
 import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
- * Area 2 — The Library (R43–R50)
+ * Area 2 - The Library (R43–R50)
  * R43↔R44↔R45; R44↔R46; R43↔R47↔R48; R47↔R49; R47↔R50.
  */
 
 // prettier-ignore
 export const A2_LIBRARY_GRID: number[][] = [
-  //  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  0
-  [ 1,  1, 10, 10,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  1
-  [ 1,  1, 10, 10,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  2
-  [ 1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  3
-  [ 1,  1,  2,  2,  2,  0,  3,  3,  3,  0,  5,  5,  5,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  4  R43↔R44↔R46
-  [ 1,  1,  2,  2,  2,  1,  3,  3,  3,  1,  5,  5,  5,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  5
-  [ 1,  1,  2,  2,  2,  1,  3,  3,  3,  1,  5,  5,  5,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  6
-  [ 1,  1,  2,  2,  2,  1,  3,  3,  3,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  7
-  [ 1,  1,  2,  2,  2,  1,  3,  0,  4,  4,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  8  R44↔R45
-  [ 1,  1,  2,  2,  2,  1,  4,  4,  4,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  9
-  [ 1,  1,  2,  2,  2,  1,  4,  4,  4,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 10
-  [ 1,  1,  2,  2,  2,  0,  6,  6,  6,  6,  6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 11  R43↔R47
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  6,  6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 12
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  6,  6,  0,  7,  7,  7,  1,  1,  1,  1,  1,  1,  1], // 13  R47↔R48
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  6,  6,  0,  7,  7,  7,  1,  1,  1,  1,  1,  1,  1], // 14
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  6,  6,  0,  7,  7,  7,  1,  1,  1,  1,  1,  1,  1], // 15
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  6,  6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 16
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  6,  6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 17
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  0,  8,  8,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 18  R47↔R49 (col 9)
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  1,  8,  8,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 19
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  6,  6,  6,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 20  R47↔R50 (col 12; avoids R49 col 10)
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  9,  9,  9,  9,  1,  1,  1,  1,  1,  1], // 21
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  9,  9,  9,  9,  1,  1,  1,  1,  1,  1], // 22
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 23
+ // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 0
+ [ 1, 1, 10, 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 1
+ [ 1, 1, 10, 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 2
+ [ 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 3
+ [ 1, 1, 2, 2, 2, 0, 3, 3, 3, 0, 5, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 4 R43↔R44↔R46
+ [ 1, 1, 2, 2, 2, 1, 3, 3, 3, 1, 5, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 5
+ [ 1, 1, 2, 2, 2, 1, 3, 3, 3, 1, 5, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 6
+ [ 1, 1, 2, 2, 2, 1, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 7
+ [ 1, 1, 2, 2, 2, 1, 3, 0, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 8 R44↔R45
+ [ 1, 1, 2, 2, 2, 1, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 9
+ [ 1, 1, 2, 2, 2, 1, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 10
+ [ 1, 1, 2, 2, 2, 0, 6, 6, 6, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 11 R43↔R47
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 12
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 0, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1], // 13 R47↔R48
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 0, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1], // 14
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 0, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1], // 15
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 16
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 17
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 0, 8, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 18 R47↔R49 (col 9)
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 1, 8, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 19
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 6, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 20 R47↔R50 (col 12; avoids R49 col 10)
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1], // 21
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1], // 22
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 23
 ];
 
 export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Library Entrance",
     hint: "an arch demands seek and be illuminated; zombies mime shelving books that are long gone.",
+    description:
+      "Archway with deep-carved motto. Past it: rows of empty wooden racks, cracked varnish. " +
+      "Thin coldfire. Board floor; salt dust; boots sound sharp.",
     enemies: ["zombie", "zombie"],
     isStart: true,
     notes:
@@ -64,9 +67,12 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
   3: {
     label: "Public Stacks",
     hint: "narrow galleries of salt-preserved spines; shapes drift between shelves without feet.",
+    description:
+      "Tight aisles between tall shelves. Leather bindings, white salt crust on some spines. " +
+      "Coldfire; dust in the light. Noticeably colder between the stacks. Sound dies a few steps in - then a random creak carries.",
     enemies: ["ghost", "ghost"],
     notes:
-      "R44. COLDFIRE. Era 2. Room design ref R44. Ghosts reshelve; quiet zone — adjacent fights can wake them. " +
+      "R44. COLDFIRE. Era 2. Room design ref R44. Ghosts reshelve; quiet zone - adjacent fights can wake them. " +
       "Connects: R43, R45, R46.",
     props: [
       {
@@ -101,7 +107,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Slow breath, steady grip. Your shoulders loosen — a small, borrowed calm.",
+                  "Slow breath, steady grip. Your shoulders loosen - a small, borrowed calm.",
               },
             ],
           },
@@ -112,6 +118,9 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
   4: {
     label: "Reading Room",
     hint: "dead lamps on desks; something small moves behind overturned furniture.",
+    description:
+      "Reading room wrecked: desks tipped, lamp wicks dry. Light mostly from the doorway. " +
+      "Deep shadows in the corners. Dry paper and old varnish smell. Floorboards pop on their own.",
     enemies: ["ghost"],
     notes:
       "R45. COLDFIRE. Room design ref R45. Mira encounter 2: trade gives patrol windows Areas 1–2 and shortcut R61→R41; blocking her exits loses the deal. " +
@@ -126,7 +135,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
         actions: [
           {
             id: "parley",
-            label: "Offer passage — hear her terms",
+            label: "Offer passage - hear her terms",
             effects: [
               { type: "set_flag", flag: "mira_met_r45" },
               { type: "set_flag", flag: "mira_r45_allied" },
@@ -135,7 +144,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Mira trades what she knows about patrol timing — from the inner gate route through these galleries — for you not blocking her run toward the upper cut. She scratches a line on the floor: chapter-house portraits, a maintenance crawl, then you're over the cavern's big hearth before the nave stairs would take you. 'Don't make me regret showing you.'",
+                  "Mira trades what she knows about patrol timing - from the inner gate route through these galleries - for you not blocking her run toward the upper cut. She scratches a line on the floor: chapter-house portraits, a maintenance crawl, then you're over the cavern's big hearth before the nave stairs would take you. 'Don't make me regret showing you.'",
               },
             ],
           },
@@ -169,7 +178,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
               { type: "consume_prop" },
               {
                 type: "log",
-                message: "10 gold — theft interrupted by collapse and rot, not conscience.",
+                message: "10 gold - theft interrupted by collapse and rot, not conscience.",
               },
             ],
           },
@@ -179,10 +188,14 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
   },
   5: {
     label: "Order Archive",
-    hint: "ledgers and deeds — the paper spine of tithes, licenses, and bought mines.",
+    hint: "ledgers and deeds - the paper spine of tithes, licenses, and bought mines.",
+    description:
+      "Large office floor. Rows of desks, wall cubbies, iron strongboxes bolted down. Smooth salt-block; bright coldfire - easy to read labels. " +
+      "Thin dust; everything still squared on the desks. Ink, varnish, cold dry air. " +
+      "Very quiet; only your own movement and the tick of cooling metal somewhere.",
     enemies: ["ghost"],
     notes:
-      "R46. COLDFIRE. Room design ref R46. Administrative core — anger beat vs authority's greed; lich dialogue can hook Ashvere claim. " +
+      "R46. COLDFIRE. Room design ref R46. Administrative core - anger beat vs authority's greed; lich dialogue can hook Ashvere claim. " +
       "Connects: R44 only.",
     props: [
       {
@@ -196,7 +209,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
           {
             type: "log",
             message:
-              "Ordinary salt, a prayer, a seal — and a price that climbed every famine year. The blessing was stamped; the barrier was assumed.",
+              "Ordinary salt, a prayer, a seal - and a price that climbed every famine year. The blessing was stamped; the barrier was assumed.",
           },
         ],
       },
@@ -219,7 +232,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
         id: "revenue_vs_ward_reports",
         label: "Revenue and Ward Maintenance Reports",
         icon: "\u{1F4CA}",
-        desc: "Decades of columns: income rising beside a thin line labeled 'barrier upkeep.' The gap yawns wider each decade — math as accusation.",
+        desc: "Decades of columns: income rising beside a thin line labeled 'barrier upkeep.' The gap yawns wider each decade - math as accusation.",
         gridPosition: { row: 5, col: 10 },
         onExamine: [
           { type: "set_flag", flag: "read_revenue_vs_ward_maintenance" },
@@ -241,7 +254,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
           {
             type: "log",
             message:
-              "Your family name, priced and dismissed in the same breath. If you climb to face what took the order's seat, you could shove this under his nose — and see whether the ink still shames him.",
+              "Your family name, priced and dismissed in the same breath. If you climb to face what took the order's seat, you could shove this under his nose - and see whether the ink still shames him.",
           },
         ],
       },
@@ -258,7 +271,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "grant_gold", amount: 15 },
               { type: "consume_prop" },
-              { type: "log", message: "15 gold — tithe change that never went back to the towns." },
+              { type: "log", message: "15 gold - tithe change that never went back to the towns." },
             ],
           },
         ],
@@ -268,6 +281,9 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
   6: {
     label: "Catalog Room",
     hint: "index drawers and finding-slips point toward shelves you're not meant to open.",
+    description:
+      "Three walls of card drawers. Brass pulls polished by use. Center table stacked with cord-tied finding slips. " +
+      "Steady coldfire. Half-open drawers click when the air moves.",
     enemies: [],
     notes:
       "R47. COLDFIRE. Room design ref R47. " +
@@ -275,9 +291,9 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
     props: [
       {
         id: "restricted_catalog_index",
-        label: "Catalog Index — Restricted Wing",
+        label: "Catalog Index - Restricted Wing",
         icon: "\u{1F4DC}",
-        desc: "Drawer labels in careful script: On the Persistence of the Self Beyond Mortality; Confessions of the Chapter; Relighting of Sacred Flame — Full Ritual (restricted). Titles enough to guess what they hid.",
+        desc: "Drawer labels in careful script: On the Persistence of the Self Beyond Mortality; Confessions of the Chapter; Relighting of Sacred Flame - Full Ritual (restricted). Titles enough to guess what they hid.",
         gridPosition: { row: 14, col: 8 },
         onExamine: [
           { type: "set_flag", flag: "read_restricted_catalog_index_r47" },
@@ -308,16 +324,19 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
   7: {
     label: "Mining Records",
     hint: "baron-era maps curl at the edges; pump diagrams and reflector notes wait in the dim.",
+    description:
+      "Darker than the front rooms. Slit windows, bit of coldfire, dead oil lamps on hooks. " +
+      "Big tables; curled vellum maps weighted with stones. Iron-gall ink smell. Rougher older floor stone than the catalog hall.",
     enemies: [],
     notes:
-      "R48. DIM. Room design ref R48. Correlation of thinning barrier surveys with order mining timelines — lore backbone for Area 4. " +
+      "R48. DIM. Room design ref R48. Correlation of thinning barrier surveys with order mining timelines - lore backbone for Area 4. " +
       "Connects: R47 only.",
     props: [
       {
         id: "mine_engineering_documents",
         label: "Mine Engineering Folio",
         icon: "\u{1F4D0}",
-        desc: "Baron-era maps, pump diagrams, valve callouts — the language of the deep drains. Without this, the pump room is only iron soup.",
+        desc: "Baron-era maps, pump diagrams, valve callouts - the language of the deep drains. Without this, the pump room is only iron soup.",
         gridPosition: { row: 14, col: 13 },
         actions: [
           {
@@ -339,7 +358,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
         id: "crystal_reflector_documentation",
         label: "Reflector Array Notes",
         icon: "\u{1F52D}",
-        desc: "Sheaves on crystal reflector arrays — geometry, mounting angles, maintenance oaths. Meant for eyes cleared for the deep workings.",
+        desc: "Sheaves on crystal reflector arrays - geometry, mounting angles, maintenance oaths. Meant for eyes cleared for the deep workings.",
         gridPosition: { row: 13, col: 12 },
         onExamine: [
           { type: "set_flag", flag: "read_crystal_reflector_documentation" },
@@ -376,7 +395,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
           {
             type: "log",
             message:
-              "Public face: prosperity. Private margins: dread — and margins that send the reader hunting other volumes for the rest of the truth.",
+              "Public face: prosperity. Private margins: dread - and margins that send the reader hunting other volumes for the rest of the truth.",
           },
         ],
       },
@@ -384,17 +403,21 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
   },
   8: {
     label: "Scholar's Alcove",
-    hint: "a niche of open books and a faint glow that does not threaten — only grieves.",
+    hint: "a niche of open books and a faint glow that does not threaten - only grieves.",
+    description:
+      "Shallow niche off the stacks - open front, no door. Low ceiling; shelves overhead. Codices left open on a ledge. " +
+      "Pale glow in the corner - grey-white, not green coldfire. Still cold. " +
+      "Your voice falls flat; almost no echo. Stale paper and old dust on the tongue.",
     enemies: [],
     notes:
-      "R49. DARK. Room design ref R49. Rennic: ghost scholar, non-hostile — translation, library wayfinding, hymn–brazier bridge. " +
+      "R49. DARK. Room design ref R49. Rennic: ghost scholar, non-hostile - translation, library wayfinding, hymn–brazier bridge. " +
       "Connects: R47 only.",
     props: [
       {
         id: "rennic_scholar_presence",
         label: "Pale Glow and Ink",
         icon: "\u{1F47B}",
-        desc: "A man-shaped shimmer bent over codices he cannot quite turn. Faint light, warm at the edges — grief without heat. When he notices you, his mouth shapes words the air almost carries.",
+        desc: "A man-shaped shimmer bent over codices he cannot quite turn. Faint light, warm at the edges - grief without heat. When he notices you, his mouth shapes words the air almost carries.",
         gridPosition: { row: 18, col: 10 },
         actions: [
           {
@@ -405,7 +428,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Rennic's voice steadies when he speaks of the flame — it answered to the voice, he says, not to tithe, not to decree. He translates stray marginalia, tells you the sealed ritual vault lies past the grandmaster's key, warns the shelves facing the street are a lid on a deeper shelf. 'Your family built this. And this place destroyed them for it.'",
+                  "Rennic's voice steadies when he speaks of the flame - it answered to the voice, he says, not to tithe, not to decree. He translates stray marginalia, tells you the sealed ritual vault lies past the grandmaster's key, warns the shelves facing the street are a lid on a deeper shelf. 'Your family built this. And this place destroyed them for it.'",
               },
             ],
           },
@@ -419,7 +442,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "You hum; he answers without thinking — harmony threading the dark like a second sun remembered. Pale Vigil, he whispers. For a breath, the alcove feels lit.",
+                  "You hum; he answers without thinking - harmony threading the dark like a second sun remembered. Pale Vigil, he whispers. For a breath, the alcove feels lit.",
               },
             ],
           },
@@ -452,6 +475,8 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
   9: {
     label: "Restricted Section Door",
     hint: "grandmaster seal; the keyhole is dark, and something inside tastes of swallowed light.",
+    description:
+      "Thick salt-wood door banded with iron. Grandmaster seal plate. Cold draft from the keyhole; your torch flame pulls toward it.",
     enemies: [],
     notes:
       "R50. COLDFIRE. Room design ref R50. Inscription: Beyond lies knowledge too heavy for the uninitiated. Key: Grandmaster's Library Seal (R59). Shadow beyond R52; crystal lantern backtrack gate. " +
@@ -461,6 +486,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
   10: {
     label: "Back to the Cloister",
     hint: "the cloister's coldfire and the echo of the common room.",
+    description: "Short hall past empty racks, then the cloister common room opens out.",
     enemies: [],
     exit: { toAreaId: "a2_cloister", toRoomGridId: 3 },
   },
@@ -469,7 +495,7 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
 export const A2_LIBRARY: AreaDef = {
   id: "a2_library",
   name: "The Library",
-  desc: "Stacks that smell of salt and old varnish — the order's pretty version of history shelved a breath away from what they locked.",
+  desc: "Stacks that smell of salt and old varnish - the order's pretty version of history shelved a breath away from what they locked.",
   difficulty: 2,
   generator: "authored",
   authored: {

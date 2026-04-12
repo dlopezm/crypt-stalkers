@@ -1,56 +1,62 @@
 import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
- * Area 2 — Maintenance Halls (R62–R68)
+ * Area 2 - Maintenance Halls (R62–R68)
  * R62↔R63↔R64; R62↔R65,R66; R62↔R67↔R68; R68↔exits Area4/armory.
  */
 
 // prettier-ignore
 export const A2_MAINTENANCE_GRID: number[][] = [
-  //  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  0
-  [ 1,  1,  9,  9,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  1
-  [ 1,  1,  9,  9,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  2
-  [ 1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  3
-  [ 1,  1,  2,  2,  2,  0,  3,  3,  3,  0,  5,  5,  5,  1,  1,  1,  1,  1,  1], //  4  R62|R63|R64
-  [ 1,  1,  2,  2,  2,  1,  3,  3,  3,  1,  5,  5,  5,  1,  1,  1,  1,  1,  1], //  5
-  [ 1,  1,  2,  2,  2,  0,  4,  4,  1,  1,  5,  5,  5,  0, 10, 10,  1,  1,  1], //  6  R62↔R65; R64↔exit10
-  [ 1,  1,  2,  2,  2,  1,  1,  1,  1,  1,  1,  1,  1,  1, 10, 10,  1,  1,  1], //  7
-  [ 1,  1,  2,  2,  2,  0,  6,  6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  8  R62↔R66
-  [ 1,  1,  2,  2,  2,  1,  6,  6,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  9
-  [ 1,  1,  2,  2,  2,  0,  7,  7,  7,  0,  8,  8,  8,  1,  1,  1,  1,  1,  1], // 10  R62↔R67↔R68
-  [ 1,  1,  2,  2,  2,  1,  7,  7,  7,  1,  8,  8,  8,  1,  1,  1,  1,  1,  1], // 11
-  [ 1,  1,  1,  1,  1,  1,  7,  7,  7,  1,  8,  8,  8,  0, 12, 12,  1,  1,  1], // 12  R68↔armory (col13)
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  8,  8,  8,  1, 12, 12,  1,  1,  1], // 13
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  8,  8,  8,  0, 11, 11,  1,  1,  1], // 14  R68↔Area4
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  8,  8,  8,  1, 11, 11,  1,  1,  1], // 15
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 11, 11,  1,  1,  1], // 16
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 17
+ // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 0
+ [ 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 1
+ [ 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 2
+ [ 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 3
+ [ 1, 1, 2, 2, 2, 0, 3, 3, 3, 0, 5, 5, 5, 1, 1, 1, 1, 1, 1], // 4 R62|R63|R64
+ [ 1, 1, 2, 2, 2, 1, 3, 3, 3, 1, 5, 5, 5, 1, 1, 1, 1, 1, 1], // 5
+ [ 1, 1, 2, 2, 2, 0, 4, 4, 1, 1, 5, 5, 5, 0, 10, 10, 1, 1, 1], // 6 R62↔R65; R64↔exit10
+ [ 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 10, 10, 1, 1, 1], // 7
+ [ 1, 1, 2, 2, 2, 0, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 8 R62↔R66
+ [ 1, 1, 2, 2, 2, 1, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 9
+ [ 1, 1, 2, 2, 2, 0, 7, 7, 7, 0, 8, 8, 8, 1, 1, 1, 1, 1, 1], // 10 R62↔R67↔R68
+ [ 1, 1, 2, 2, 2, 1, 7, 7, 7, 1, 8, 8, 8, 1, 1, 1, 1, 1, 1], // 11
+ [ 1, 1, 1, 1, 1, 1, 7, 7, 7, 1, 8, 8, 8, 0, 12, 12, 1, 1, 1], // 12 R68↔armory (col13)
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8, 8, 1, 12, 12, 1, 1, 1], // 13
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8, 8, 0, 11, 11, 1, 1, 1], // 14 R68↔Area4
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8, 8, 1, 11, 11, 1, 1, 1], // 15
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 11, 11, 1, 1, 1], // 16
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 17
 ];
 
 export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Service Corridor",
     hint: "pipes crowd the ceiling; zombies haul crates in a maintenance pantomime.",
+    description:
+      "Narrow service corridor. Iron pipes along the ceiling; steady drips to the floor. Colored coldfire in wire cages. " +
+      "Tool marks on the walls. Wet stone, oil, and a low hum from water moving in the pipes.",
     enemies: ["zombie", "zombie"],
     isStart: true,
     notes:
-      "R62. COLDFIRE. Era 2. Room design ref R62. Cramped; ceiling pipes. Zombies haul tool crates — maintenance pantomime. " +
+      "R62. COLDFIRE. Era 2. Room design ref R62. Cramped; ceiling pipes. Zombies haul tool crates - maintenance pantomime. " +
       "Connects: R31 cloister (exit grid 9), R63 stores, R65 workshop, R66 lamp workshop, R67 pump room.",
   },
   3: {
     label: "Kitchen Stores",
     hint: "pantry shelves stripped of rot; rats argue over salt-cured scraps.",
+    description:
+      "Pantry: rows of shelves, many empty. Dim light from a shaft and a little coldfire - dust in the air. " +
+      "Brine, old grain, and stacked curing salt - same grey crystals as road salt, not the ritual stuff.",
     enemies: ["rat", "rat", "rat", "rat"],
     notes:
-      "R63. DIM. Era 2. Room design ref R63. FIRE part 1 — combine with R65 glass flasks for oil bombs when crafting exists. " +
+      "R63. DIM. Era 2. Room design ref R63. FIRE part 1 - combine with R65 glass flasks for oil bombs when crafting exists. " +
       "Connects: R62, R64 kitchen.",
     props: [
       {
         id: "lamp_oil_jugs",
         label: "Sealed Lamp-Oil Jugs",
         icon: "\u{1F6E1}",
-        desc: "Three wax-sealed jugs, still fragrant. The workshop labels them for coldfire lamps — but true flame answers to oil all the same.",
+        desc: "Three wax-sealed jugs, still fragrant. The workshop labels them for coldfire lamps - but true flame answers to oil all the same.",
         gridPosition: { row: 5, col: 7 },
         actions: [
           {
@@ -62,7 +68,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Three jugs — enough for lamps, for flasks, for anything you mean to set alight when the moment comes.",
+                  "Three jugs - enough for lamps, for flasks, for anything you mean to set alight when the moment comes.",
               },
             ],
           },
@@ -72,7 +78,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
         id: "pantry_dried_salt",
         label: "Dried Salt Crystals",
         icon: "\u{1F9C2}",
-        desc: "Bins of coarse salt for curing — irony in a mine that sells blessed grains for thrice the price.",
+        desc: "Bins of coarse salt for curing - irony in a mine that sells blessed grains for thrice the price.",
         gridPosition: { row: 4, col: 7 },
         onExamine: [
           {
@@ -95,7 +101,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "grant_gold", amount: 8 },
               { type: "consume_prop" },
-              { type: "log", message: "8 gold — hazard pay the cook never spent." },
+              { type: "log", message: "8 gold - hazard pay the cook never spent." },
             ],
           },
         ],
@@ -105,9 +111,12 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
   4: {
     label: "Workshop",
     hint: "pegs and a bench; a zombie turns a wheel that will never fit anything again.",
+    description:
+      "Workshop. Bench, vise, pegboard - files and wrenches salt-dulled, lamp parts laid out on cloth. " +
+      "Coldfire track on the ceiling. Grit on the floor. Somewhere a gear wheel spins free, metal ticking steady.",
     enemies: ["zombie"],
     notes:
-      "R65. COLDFIRE. Era 2+3. Room design ref R65. FIRE part 2 — pair with R63 lamp oil when crafting UI lands. " +
+      "R65. COLDFIRE. Era 2+3. Room design ref R65. FIRE part 2 - pair with R63 lamp oil when crafting UI lands. " +
       "Connects: R62 only.",
     props: [
       {
@@ -136,7 +145,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
         id: "workshop_till_box",
         label: "Bench Till",
         icon: "\u{1FA99}",
-        desc: "Under the vise: petty cash for runners and replacement wicks. Pegboard above — pliers, coldfire wrenches, files salt-dulled — still honest metal watching over dishonest light.",
+        desc: "Under the vise: petty cash for runners and replacement wicks. Pegboard above - pliers, coldfire wrenches, files salt-dulled - still honest metal watching over dishonest light.",
         gridPosition: { row: 6, col: 7 },
         actions: [
           {
@@ -145,7 +154,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "grant_gold", amount: 10 },
               { type: "consume_prop" },
-              { type: "log", message: "10 gold — maintenance skim, unmaintained." },
+              { type: "log", message: "10 gold - maintenance skim, unmaintained." },
             ],
           },
         ],
@@ -155,6 +164,9 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
   5: {
     label: "Kitchen",
     hint: "ovens and a working well; cleaver rings on stone that will never be meat.",
+    description:
+      "Big kitchen vault. Black brick ovens; empty pot hooks. Colored coldfire instead of hearth fire. " +
+      "Stone well head cut through older rock; green light on the water. Pots clang; rinse water drips; cooling brick ticks.",
     enemies: ["zombie", "zombie", "zombie"],
     notes:
       "R64. COLDFIRE. Era 2+3. Room design ref R64. Zombies 'cook'; one chops stone forever. " +
@@ -164,7 +176,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
         id: "kitchen_well",
         label: "Working Well",
         icon: "\u{1F6B0}",
-        desc: "Stone lip, rope scarred, water clear enough to reflect coldfire wrong. Someone maintained the filters — living work, recent.",
+        desc: "Stone lip, rope scarred, water clear enough to reflect coldfire wrong. Someone maintained the filters - living work, recent.",
         gridPosition: { row: 5, col: 11 },
         actions: [
           {
@@ -185,7 +197,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
         id: "kitchen_cleaver",
         label: "Kitchen Cleaver",
         icon: "\u{1F52A}",
-        desc: "Heavy blade, edge chipped from stone, not bone. A zombie has been lifting it forever — the steel still wants purpose.",
+        desc: "Heavy blade, edge chipped from stone, not bone. A zombie has been lifting it forever - the steel still wants purpose.",
         gridPosition: { row: 4, col: 11 },
         actions: [
           {
@@ -197,7 +209,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Brutal, close, loud if you swing wild — a kitchen blade for when you're already in something's arms.",
+                  "Brutal, close, loud if you swing wild - a kitchen blade for when you're already in something's arms.",
               },
             ],
           },
@@ -216,7 +228,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "grant_gold", amount: 5 },
               { type: "consume_prop" },
-              { type: "log", message: "5 gold — cook's joke on whoever audited the pantry." },
+              { type: "log", message: "5 gold - cook's joke on whoever audited the pantry." },
             ],
           },
         ],
@@ -226,9 +238,12 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
   6: {
     label: "Lamp Workshop",
     hint: "half-built lanterns; one brass shell waits with a lever and a salt-crystal lens.",
+    description:
+      "Lantern assembly room. Half-built brass shells on shelves; lenses in cloth; drawers of wicks and stoppers. " +
+      "Shaft light plus coldfire. Oil, brass polish, hot dust. Hinges and shutters squeak loud in the quiet.",
     enemies: [],
     notes:
-      "R66. DIM. Era 2. Room design ref R66. RELIABLE LIGHT — open shutter = true flame, shut = dark; consumes lamp oil; longer burn than torch (fuel hook TBD). " +
+      "R66. DIM. Era 2. Room design ref R66. RELIABLE LIGHT - open shutter = true flame, shut = dark; consumes lamp oil; longer burn than torch (fuel hook TBD). " +
       "Connects: R62 only.",
     props: [
       {
@@ -257,7 +272,10 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
   },
   7: {
     label: "Pump Room",
-    hint: "old iron and ordered gauges — frozen until someone reads the right sequence.",
+    hint: "old iron and ordered gauges - frozen until someone reads the right sequence.",
+    description:
+      "Pump chamber. Old thick iron pipe; newer brass gauges and levers on a console. Everything stiff with rust. " +
+      "Dim light. Water noise behind the metal panels. Floor stone cold and damp through your boots.",
     enemies: [],
     notes:
       "R67. DIM. Era 1+2. Room design ref R67. Era 1 pumps + Era 2 controls. Wrong guesses risk jam/flood when puzzle logic exists. Drains R68 and Area 4 Drained Tunnels (R111–R116). " +
@@ -267,7 +285,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
         id: "pump_control_console",
         label: "Pump Console",
         icon: "\u{2699}\uFE0F",
-        desc: "Levers, valves, gauges frozen at angry angles. Heavy mine iron couples to dials someone labeled in confident ink — then abandoned.",
+        desc: "Levers, valves, gauges frozen at angry angles. Heavy mine iron couples to dials someone labeled in confident ink - then abandoned.",
         gridPosition: { row: 10, col: 7 },
         actions: [
           {
@@ -284,7 +302,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
           {
             id: "run_sequence",
             label: "Run the drain sequence",
-            desc: "You need the barons' pump sequence from the mining records — guessing will jam the works",
+            desc: "You need the barons' pump sequence from the mining records - guessing will jam the works",
             requires: { flags: ["has_mine_engineering_documents"] },
             effects: [
               { type: "set_flag", flag: "pumps_activated_r67" },
@@ -302,9 +320,12 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
   8: {
     label: "Drain Access",
     hint: "water breathes at the lip of the shaft; something floral chokes the deep air.",
+    description:
+      "Open shaft mouth. Rope-worn stone lip. Damp air; mineral smell. " +
+      "Over that: thick sweet flower stink - wrong down here. Dark below; water dripping; slow slap of water on rock; iron groaning somewhere under.",
     enemies: [],
     notes:
-      "R68. DARK. Era 1+2. Room design ref R68. Waist-deep water until pumps run (flag pumps_activated_r67). Skullflower choke — enemy type not in data yet. " +
+      "R68. DARK. Era 1+2. Room design ref R68. Waist-deep water until pumps run (flag pumps_activated_r67). Skullflower choke - enemy type not in data yet. " +
       "Dual gate to Area 4: infrastructure + fire. Alternate R74 Lower Gate West when Skullflower cleared + pumps drained. " +
       "Grid 8 = arrival from a4_drained_tunnels and a2_armory R74. Exits: Area 4 (grid 11), armory (grid 12).",
     props: [
@@ -328,7 +349,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Flame catches the oil-slicked bloom. It screams like wet paper. The choked passage west gapes — air moves again where the flower strangled it.",
+                  "Flame catches the oil-slicked bloom. It screams like wet paper. The choked passage west gapes - air moves again where the flower strangled it.",
               },
             ],
           },
@@ -339,24 +360,29 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
   9: {
     label: "Back to the Cloister (Common Room)",
     hint: "stone benches and the hum of the common hall.",
+    description: "Corridor opens into the cloister common room - higher vault, stone benches.",
     enemies: [],
     exit: { toAreaId: "a2_cloister", toRoomGridId: 3 },
   },
   10: {
     label: "Back to the Cloister (Refectory)",
     hint: "salt tables and the matins bell's ghost.",
+    description: "Warmer coldfire ahead; long refectory tables and echo from the big hall.",
     enemies: [],
     exit: { toAreaId: "a2_cloister", toRoomGridId: 6 },
   },
   11: {
     label: "To the Deep Workings",
     hint: "the shaft drops into wet dark and older stone.",
+    description: "Steps down: older rougher stone, colder air, echo growing with each flight.",
     enemies: [],
     exit: { toAreaId: "a4_drained_tunnels", toRoomGridId: 2 },
   },
   12: {
     label: "Back to the Armory",
     hint: "drills and racks somewhere above.",
+    description:
+      "Climb toward the armory: drier air, oil smell, faint drill noise from the training room.",
     enemies: [],
     exit: { toAreaId: "a2_armory", toRoomGridId: 7 },
   },
@@ -365,7 +391,7 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
 export const A2_MAINTENANCE: AreaDef = {
   id: "a2_maintenance",
   name: "Maintenance Halls",
-  desc: "Kitchens, workshops, pumps — where honest flame gets built and the flood below finally learns to obey.",
+  desc: "Kitchens, workshops, pumps - where honest flame gets built and the flood below finally learns to obey.",
   difficulty: 2,
   generator: "authored",
   authored: {

@@ -159,7 +159,7 @@ function serializeAreaFile(
       const notesField = serializeNotesField("    ", r.notes);
       return `  ${id}: {
     label: ${JSON.stringify(r.label)},
-    hint: ${JSON.stringify(r.hint)},
+    hint: ${JSON.stringify(r.hint)},${r.description ? `\n    description: ${JSON.stringify(r.description)},` : ""}
     enemies: ${enemies},${flags.length ? "\n" + flags.join("\n") : ""}${notesField}
   },`;
     })
@@ -650,6 +650,21 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
                   value={selectedRoom.hint}
                   onChange={(e) => updateRoom(selectedRoomId, { hint: e.target.value })}
                   rows={2}
+                  className="w-full bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-1 py-0.5 mt-0.5"
+                />
+              </label>
+              <label className="text-xs text-crypt-muted">
+                Description{" "}
+                <span className="text-crypt-dim normal-case">(shown to player after visiting)</span>
+                <textarea
+                  value={selectedRoom.description ?? ""}
+                  onChange={(e) =>
+                    updateRoom(selectedRoomId, {
+                      description: e.target.value === "" ? undefined : e.target.value,
+                    })
+                  }
+                  rows={2}
+                  placeholder="A damp chamber with crumbling pillars…"
                   className="w-full bg-[#1a1610] border border-[#3a2f25] text-crypt-text px-1 py-0.5 mt-0.5"
                 />
               </label>

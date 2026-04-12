@@ -1,32 +1,35 @@
 import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
- * Area 2 — Armory & Lower Gate (R69–R74)
+ * Area 2 - Armory & Lower Gate (R69–R74)
  * R69↔R70↔R71; R69↔R72; R72↔R73; R72↔R74. R73 = combat only; grid10 = transit exit to a3_threshold.
  */
 
 // prettier-ignore
 export const A2_ARMORY_GRID: number[][] = [
-  //  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  0
-  [ 1,  1,  8,  8,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  1
-  [ 1,  1,  8,  8,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  2
-  [ 1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  3
-  [ 1,  1,  2,  2,  2,  0,  3,  3,  3,  0,  4,  4,  1,  1,  1,  1,  1,  1], //  4  R69|R70|R71
-  [ 1,  1,  2,  2,  2,  1,  3,  3,  3,  1,  4,  4,  1,  1,  1,  1,  1,  1], //  5
-  [ 1,  1,  2,  2,  2,  0,  6,  6,  6,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  6  R69↔R72
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  0,  5,  5,  1,  1,  1,  1,  1,  1], //  7  R72↔R73 only
-  [ 1,  1,  1,  1,  1,  1,  6,  6,  6,  1,  5,  5,  1,  6,  0, 10, 10,  1], //  8  R72↔exit10 (no link 5↔10)
-  [ 1,  1,  1,  1,  1,  0,  6,  6,  6,  6,  6,  6,  6,  1, 10, 10,  1], //  9  R72 bridge + R74 door
-  [ 1,  1,  1,  1,  1,  0,  7,  7,  7,  1,  1,  1,  1,  1,  1, 10, 10,  1], // 10
-  [ 1,  1,  1,  1,  1,  1,  7,  7,  7,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 11
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 12
+ // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 0
+ [ 1, 1, 8, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 1
+ [ 1, 1, 8, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 2
+ [ 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 3
+ [ 1, 1, 2, 2, 2, 0, 3, 3, 3, 0, 4, 4, 1, 1, 1, 1, 1, 1], // 4 R69|R70|R71
+ [ 1, 1, 2, 2, 2, 1, 3, 3, 3, 1, 4, 4, 1, 1, 1, 1, 1, 1], // 5
+ [ 1, 1, 2, 2, 2, 0, 6, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 6 R69↔R72
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 0, 5, 5, 1, 1, 1, 1, 1, 1], // 7 R72↔R73 only
+ [ 1, 1, 1, 1, 1, 1, 6, 6, 6, 1, 5, 5, 1, 6, 0, 10, 10, 1], // 8 R72↔exit10 (no link 5↔10)
+ [ 1, 1, 1, 1, 1, 0, 6, 6, 6, 6, 6, 6, 6, 1, 10, 10, 1], // 9 R72 bridge + R74 door
+ [ 1, 1, 1, 1, 1, 0, 7, 7, 7, 1, 1, 1, 1, 1, 1, 10, 10, 1], // 10
+ [ 1, 1, 1, 1, 1, 1, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 11
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 12
 ];
 
 export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Armory Entrance",
     hint: "posted orders forbid unauthorized entry; the racks beyond smell of oil and old leather.",
+    description:
+      "Low ceiling. Notices nailed to salt-wood boards. Hard coldfire - glare on any metal you carry. " +
+      "Smell of oil, leather, and iron filings. Colder than the chapter hall behind you.",
     enemies: ["zombie", "zombie"],
     isStart: true,
     notes:
@@ -37,14 +40,14 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         id: "armory_posted_orders",
         label: "Posted Orders",
         icon: "\u{1F4DD}",
-        desc: "Salt-board nailed crooked: NO UNAUTHORIZED ENTRY. Seals and signatures overlap like armor scales — each officer adding weight, none adding mercy.",
+        desc: "Salt-board nailed crooked: NO UNAUTHORIZED ENTRY. Seals and signatures overlap like armor scales - each officer adding weight, none adding mercy.",
         gridPosition: { row: 5, col: 3 },
         onExamine: [
           { type: "set_flag", flag: "read_armory_posted_orders_r69" },
           {
             type: "log",
             message:
-              "The spare grandmaster seal from the chapter house would satisfy a bored guard — if the dead cared about paperwork.",
+              "The spare grandmaster seal from the chapter house would satisfy a bored guard - if the dead cared about paperwork.",
           },
         ],
       },
@@ -53,6 +56,9 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
   3: {
     label: "Weapon Racks",
     hint: "most racks are bare; a high shelf still holds a crossbow and a bundle of quarrels.",
+    description:
+      "Weapon racks on both walls. Most pegs empty; scuffs where steel used to hang. " +
+      "Coldfire through the uprights - bars of shadow on the floor. Drag marks and chips in the stone.",
     enemies: [],
     notes:
       "R70. COLDFIRE. Era 2. Room design ref R70. RANGED capability from crossbow pickup. " +
@@ -85,7 +91,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         id: "rack_halberd",
         label: "Halberd",
         icon: "\u{2694}\uFE0F",
-        desc: "A polearm too long for these tight cuts — unless you find a hall wide enough to let it wheel. Edge polished, shaft oiled by habit.",
+        desc: "A polearm too long for these tight cuts - unless you find a hall wide enough to let it wheel. Edge polished, shaft oiled by habit.",
         gridPosition: { row: 4, col: 6 },
         actions: [
           {
@@ -103,7 +109,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         id: "rack_longsword",
         label: "Longsword",
         icon: "\u{1F5E1}\uFE0F",
-        desc: "Straight, balanced, unadorned — the order's workman blade. No blessing etched; only a serial number salt-stamped on the guard.",
+        desc: "Straight, balanced, unadorned - the order's workman blade. No blessing etched; only a serial number salt-stamped on the guard.",
         gridPosition: { row: 4, col: 7 },
         actions: [
           {
@@ -122,6 +128,9 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
   4: {
     label: "Armor Storage",
     hint: "corroded mail and a ceremonial plate that would sing if struck.",
+    description:
+      "Smaller room. Stands for mail and plate; parade harness on hooks - green corrosion at the rivets. " +
+      "Damp leather and oil smell. Tap a hanging helm: rings loud and sharp.",
     enemies: [],
     notes: "R71. COLDFIRE. Era 2+3. Room design ref R71. Connects: R70 only.",
     props: [
@@ -129,7 +138,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         id: "light_chain_mail",
         label: "Salvageable Chain Mail",
         icon: "\u{1F6E1}",
-        desc: "Rings corroded at the shoulder but sound at the core — light enough to move in, honest enough to turn a knife.",
+        desc: "Rings corroded at the shoulder but sound at the core - light enough to move in, honest enough to turn a knife.",
         gridPosition: { row: 4, col: 10 },
         actions: [
           {
@@ -140,7 +149,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
               { type: "consume_prop" },
               {
                 type: "log",
-                message: "The mail settles on you like a second skeleton — lighter than fear.",
+                message: "The mail settles on you like a second skeleton - lighter than fear.",
               },
             ],
           },
@@ -150,14 +159,14 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         id: "ceremonial_plate_display",
         label: "Ceremonial Plate",
         icon: "\u{1F3F0}",
-        desc: "Display armor: order sigil acid-etched on the breast, gilding flaking. Beautiful, impractical — meant for processions, not punches.",
+        desc: "Display armor: order sigil acid-etched on the breast, gilding flaking. Beautiful, impractical - meant for processions, not punches.",
         gridPosition: { row: 5, col: 10 },
         onExamine: [
           { type: "set_flag", flag: "read_ceremonial_plate_r71" },
           {
             type: "log",
             message:
-              "Gilded, heavy — parade metal. The order dressed its legend in plate while sending others forward in corroded rings.",
+              "Gilded, heavy - parade metal. The order dressed its legend in plate while sending others forward in corroded rings.",
           },
         ],
       },
@@ -165,7 +174,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         id: "armor_storage_gold",
         label: "Paymaster's Tin",
         icon: "\u{1FA99}",
-        desc: "Behind a loose grate: a tin with payroll chits and coin — someone skimmed before the skimmer vanished.",
+        desc: "Behind a loose grate: a tin with payroll chits and coin - someone skimmed before the skimmer vanished.",
         gridPosition: { row: 5, col: 11 },
         actions: [
           {
@@ -174,7 +183,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "grant_gold", amount: 15 },
               { type: "consume_prop" },
-              { type: "log", message: "15 gold — armor budget that never reached the smith." },
+              { type: "log", message: "15 gold - armor budget that never reached the smith." },
             ],
           },
         ],
@@ -183,11 +192,14 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
   },
   5: {
     label: "Lower Gate East",
-    hint: "iron bars end; beyond is not coldfire — only dark and the scrape of bone.",
+    hint: "iron bars end; beyond is not coldfire - only dark and the scrape of bone.",
+    description:
+      "Heavy iron gate; worn grooves in the floor from the doors. " +
+      "Coldfire ends at the threshold. Past it: pitch black. Drip water. Distant shuffle. Dry scrape of bone on stone.",
     enemies: ["skeleton", "skeleton"],
     notes:
-      "R73. DARK beyond gate. Era 2+3. Room design ref R73. Content room — skeletons; threshold to Area 3 Ossuary. " +
-      "Soft gate: RELIABLE LIGHT — darkness is the real wall; torch punishing; shuttered lantern recommended. " +
+      "R73. DARK beyond gate. Era 2+3. Room design ref R73. Content room - skeletons; threshold to Area 3 Ossuary. " +
+      "Soft gate: RELIABLE LIGHT - darkness is the real wall; torch punishing; shuttered lantern recommended. " +
       "NOT the area-transition room; use adjacent exit grid 10 for a3_threshold. " +
       "Grid 5 = designated return arrival from a3_threshold (convention).",
     props: [
@@ -195,7 +207,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         id: "lower_gate_east_threshold",
         label: "Eastern Lower Gate",
         icon: "\u{1F6AA}",
-        desc: "Iron gives way to a throat of raw dark. No coldfire beyond — only sound: shuffling, bone scrape, drip. The bone halls breathe through the gap.",
+        desc: "Iron gives way to a throat of raw dark. No coldfire beyond - only sound: shuffling, bone scrape, drip. The bone halls breathe through the gap.",
         gridPosition: { row: 7, col: 10 },
         onExamine: [
           { type: "set_flag", flag: "examined_lower_gate_east_r73" },
@@ -211,6 +223,9 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
   6: {
     label: "Training Room",
     hint: "spar circle; living drill while a dead thing takes blows that never change it.",
+    description:
+      "Training floor: circle scribed in the stone, sand and splintered wicker, bins of blunt practice steel. " +
+      "Coldfire high on the walls. Low vault - noise bounces fast. Dark stains in the sand.",
     enemies: ["zombie", "zombie", "zombie"],
     notes:
       "R72. COLDFIRE. Era 2+3. Room design ref R72. Spar circle; cultists ×2 not in list (zombies partial). " +
@@ -220,7 +235,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         id: "training_manual_r72",
         label: "Training Manual",
         icon: "\u{1F4D8}",
-        desc: "Illustrated drills: footwork, guard, how to brace against undead leverage. Margins warn about overcommitting — someone learned the hard way.",
+        desc: "Illustrated drills: footwork, guard, how to brace against undead leverage. Margins warn about overcommitting - someone learned the hard way.",
         gridPosition: { row: 8, col: 7 },
         actions: [
           {
@@ -233,7 +248,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Your stance shifts without thinking. Small confidence — earned from paper.",
+                  "Your stance shifts without thinking. Small confidence - earned from paper.",
               },
             ],
           },
@@ -243,13 +258,13 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         id: "practice_weapons_bin",
         label: "Practice Weapons",
         icon: "\u{2694}\uFE0F",
-        desc: "Blunted steel and wicker shields, splintered from use. Plentiful; weak — but better than empty hands if you need a decoy.",
+        desc: "Blunted steel and wicker shields, splintered from use. Plentiful; weak - but better than empty hands if you need a decoy.",
         gridPosition: { row: 7, col: 7 },
         onExamine: [
           {
             type: "log",
             message:
-              "Wood and dulled iron — training tools, not killers. Someone still swings them out of habit.",
+              "Wood and dulled iron - training tools, not killers. Someone still swings them out of habit.",
           },
         ],
       },
@@ -258,24 +273,29 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
   7: {
     label: "Lower Gate West",
     hint: "coldfire holds here; past the narrow throat, something floral blocks stone and air alike.",
+    description:
+      "Narrow gap between armory dry stone and wet maintenance passage. Steady coldfire. " +
+      "Past the wicket: thick sweet smell over mildew and wet stone.",
     enemies: [],
     notes:
-      "R74. COLDFIRE near gate. Era 2+3. Room design ref R74. Skullflower choke — type not in enemy list; FIRE + pump state hard gate; alternate to Area 4 via R68 when cleared + drained. " +
+      "R74. COLDFIRE near gate. Era 2+3. Room design ref R74. Skullflower choke - type not in enemy list; FIRE + pump state hard gate; alternate to Area 4 via R68 when cleared + drained. " +
       "Exit → a2_maintenance R68 (grid 8).",
     exit: { toAreaId: "a2_maintenance", toRoomGridId: 8 },
   },
   8: {
     label: "Back to Chapter House",
     hint: "maps and seals lie the way you came.",
+    description: "Short hall back to the chapter house - wider ceiling, wax and paper smell.",
     enemies: [],
     exit: { toAreaId: "a2_chapter_house", toRoomGridId: 2 },
   },
   10: {
     label: "To the Ossuary",
     hint: "past the gate chamber, the threshold accepts your tread.",
+    description: "Stone passage past the gate room; floor grain and sound change underfoot.",
     enemies: [],
     notes:
-      "Transit only — pairs with a3_threshold grid 2. R73 remains combat/content at the gate proper.",
+      "Transit only - pairs with a3_threshold grid 2. R73 remains combat/content at the gate proper.",
     exit: { toAreaId: "a3_threshold", toRoomGridId: 2 },
   },
 };

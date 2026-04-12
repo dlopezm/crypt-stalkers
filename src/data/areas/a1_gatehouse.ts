@@ -1,39 +1,41 @@
 import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
- * Area 1 — The Gatehouse (R7–R11)
+ * Area 1 - The Gatehouse (R7–R11)
  * Encoding: 1 = wall, 0 = corridor, integers >= 2 = room IDs.
  *
  * Connectivity (per design doc):
- *   exit7(mine mouth) ↔ R7(court) ↔ R8(guard, dead end)
- *                                  ↔ R9(receiving) ↔ R10(record, dead end)
- *                                                   ↔ R11(balcony, dead end)
+ *  exit7(mine mouth) ↔ R7(court) ↔ R8(guard, dead end)
+ *                 ↔ R9(receiving) ↔ R10(record, dead end)
+ *                          ↔ R11(balcony, dead end)
  */
 
 // prettier-ignore
 export const A1_GATEHOUSE_GRID: number[][] = [
-  //  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  0
-  [ 1,  1,  1,  1,  1,  1,  1,  6,  6,  6,  6,  6,  1,  1,  1], //  1  R11 Balcony (5x2)
-  [ 1,  1,  1,  1,  1,  1,  1,  6,  6,  6,  6,  6,  1,  1,  1], //  2
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  1,  1], //  3  R9→R11 corridor
-  [ 1,  1,  3,  3,  3,  1,  4,  4,  4,  4,  4,  0,  5,  5,  1], //  4  R8, R9, R9→R10
-  [ 1,  1,  3,  3,  3,  1,  4,  4,  4,  4,  4,  1,  5,  5,  1], //  5
-  [ 1,  1,  1,  0,  1,  1,  4,  4,  4,  4,  4,  1,  5,  5,  1], //  6  R7→R8 corridor
-  [ 1,  2,  2,  2,  2,  2,  2,  0,  1,  1,  1,  1,  1,  1,  1], //  7  R7 Outer Court + R7→R9
-  [ 1,  2,  2,  2,  2,  2,  2,  1,  1,  1,  1,  1,  1,  1,  1], //  8
-  [ 1,  2,  2,  2,  2,  2,  2,  1,  1,  1,  1,  1,  1,  1,  1], //  9
-  [ 1,  2,  2,  2,  2,  2,  2,  1,  1,  1,  1,  1,  1,  1,  1], // 10
-  [ 1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 11  R7→exit7 corridor
-  [ 1,  1,  7,  7,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 12  exit7
-  [ 1,  1,  7,  7,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 13
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 14
+ // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 0
+ [ 1, 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 1, 1, 1], // 1 R11 Balcony (5x2)
+ [ 1, 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 1, 1, 1], // 2
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1], // 3 R9→R11 corridor
+ [ 1, 1, 3, 3, 3, 1, 4, 4, 4, 4, 4, 0, 5, 5, 1], // 4 R8, R9, R9→R10
+ [ 1, 1, 3, 3, 3, 1, 4, 4, 4, 4, 4, 1, 5, 5, 1], // 5
+ [ 1, 1, 1, 0, 1, 1, 4, 4, 4, 4, 4, 1, 5, 5, 1], // 6 R7→R8 corridor
+ [ 1, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 1, 1, 1], // 7 R7 Outer Court + R7→R9
+ [ 1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1], // 8
+ [ 1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1], // 9
+ [ 1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1], // 10
+ [ 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 11 R7→exit7 corridor
+ [ 1, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 12 exit7
+ [ 1, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 13
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 14
 ];
 
 export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Outer Court",
-    hint: "sky through a broken crown of wall. pillars carved with flame and gaping throats — their warning, still standing.",
+    hint: "sky through a broken crown of wall. pillars carved with flame and gaping throats - their warning, still standing.",
+    description:
+      "Open sky through a broken wall ring - flagstones, grit in the wind. Two salt pillars carved with flames and gaping mouths.",
     enemies: [],
     isStart: true,
     notes:
@@ -43,14 +45,14 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
         id: "gate_carvings",
         label: "Carved Gateposts",
         icon: "\u{1F525}",
-        desc: "Stone tongues of fire and carved mouths stretched wide — the kind of art that wants you to hear singing you can't quite catch. Beyond, their courtyard sags and splits; only these two stayed proud.",
+        desc: "Stone tongues of fire and carved mouths stretched wide - the kind of art that wants you to hear singing you can't quite catch. Beyond, their courtyard sags and splits; only these two stayed proud.",
         gridPosition: { row: 7, col: 3 },
       },
       {
         id: "dead_robber_pack",
         label: "Corpse by the Threshold",
         icon: "\u{1F480}",
-        desc: "Bent wrong, skull caved — patrol work, not age. His pack burst on the flags: waxed torches, charcoal scrawl on scraped hide — the upper tunnels sketched quick, X's where he was afraid, circles where he thought treasure sat. Fifteen coins weight the belt pouch; he never spent them.",
+        desc: "Bent wrong, skull caved - patrol work, not age. His pack burst on the flags: waxed torches, charcoal scrawl on scraped hide - the upper tunnels sketched quick, X's where he was afraid, circles where he thought treasure sat. Fifteen coins weight the belt pouch; he never spent them.",
         gridPosition: { row: 9, col: 5 },
         actions: [
           {
@@ -73,7 +75,9 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
   },
   3: {
     label: "Guard Room",
-    hint: "weapon racks stripped to splinters and rust. one parchment still nailed — shifts, names, dates you don't recognize.",
+    hint: "weapon racks stripped to splinters and rust. one parchment still nailed - shifts, names, dates you don't recognize.",
+    description:
+      "Narrow room off the court - stripped weapon racks, splinters and rust flakes on the floor. Dim light; damp mortar joints; wet stone and iron on the air.",
     enemies: ["rat", "rat"],
     notes:
       "R8. Era 2 + neglect. DIM. Dead end. " +
@@ -83,7 +87,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
         id: "duty_roster",
         label: "Pinned Roster",
         icon: "\u{1F4CB}",
-        desc: "Ink faded to brown; nailheads weep rust. Four on, two off, repeat until the page ends — the same cadence you watched bone feet keep in the gallery. Someone wrote it clean once; something else still obeys.",
+        desc: "Ink faded to brown; nailheads weep rust. Four on, two off, repeat until the page ends - the same cadence you watched bone feet keep in the gallery. Someone wrote it clean once; something else still obeys.",
         gridPosition: { row: 4, col: 4 },
         onExamine: [{ type: "set_flag", flag: "read_duty_roster" }],
       },
@@ -91,7 +95,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
         id: "rusted_shortsword",
         label: "Guard's Shortsword",
         icon: "\u{1F5E1}\uFE0F",
-        desc: "Leather grip gone to powder; blade pocked orange but sharp enough to open a belly. It wants a slashing arm — not the kind of weight that stomps marrow to splinters.",
+        desc: "Leather grip gone to powder; blade pocked orange but sharp enough to open a belly. It wants a slashing arm - not the kind of weight that stomps marrow to splinters.",
         gridPosition: { row: 5, col: 3 },
         actions: [
           {
@@ -113,25 +117,27 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
   },
   4: {
     label: "Receiving Hall",
-    hint: "plaster saints lift hands; paint flakes into dust. two slumped figures haul salt toward the yard, same steps, same pause — as if the hall taught them the route.",
+    hint: "plaster saints lift hands; paint flakes into dust. two slumped figures haul salt toward the yard, same steps, same pause - as if the hall taught them the route.",
+    description:
+      "Tall hall - peeling plaster, worn floor flags where salt was dragged toward the yard. Thin daylight from the arch. Sound carries; you hear drips and movement along the walls.",
     enemies: ["zombie", "zombie"],
     notes:
       "R9. Era 2. DIM. " +
-      "Zombies lug salt on fixed path R9→R7→surface — workers reduced to instructions; player can observe without fight. " +
-      "Singing motif in frescoes — resonance hint for R17 Inner Gate.",
+      "Zombies lug salt on fixed path R9→R7→surface - workers reduced to instructions; player can observe without fight. " +
+      "Singing motif in frescoes - resonance hint for R17 Inner Gate.",
     props: [
       {
         id: "order_frescoes",
         label: "Peeling Wall Paintings",
         icon: "\u{1F3A8}",
-        desc: "Color gone to ghosts: a pit in the hill, palms lifted, little painted flames hovering like tame stars. A row of open mouths — not screaming; singing, the way choirs do when breath is meant to be shared. Underfoot, letters you can still read: We who keep the vigil stand between the salt and the shadow.",
+        desc: "Color gone to ghosts: a pit in the hill, palms lifted, little painted flames hovering like tame stars. A row of open mouths - not screaming; singing, the way choirs do when breath is meant to be shared. Underfoot, letters you can still read: We who keep the vigil stand between the salt and the shadow.",
         gridPosition: { row: 5, col: 8 },
         onExamine: [
           { type: "set_flag", flag: "seen_singing_frescoes" },
           {
             type: "log",
             message:
-              "They wanted everyone who passed to hear music in their heads. You do — thin, stubborn, stuck behind your teeth.",
+              "They wanted everyone who passed to hear music in their heads. You do - thin, stubborn, stuck behind your teeth.",
           },
         ],
       },
@@ -140,6 +146,8 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
   5: {
     label: "Record Room",
     hint: "black damp; shelves slumped into fungus. one dry corner kept a single sheet legible.",
+    description:
+      "Black damp, sagging shelves, ceiling lost in dark. Floor slopes to a clogged drain. Rotting paper smell; old ink, metallic edge.",
     enemies: [],
     notes: "R10. Era 2. DARK. Dead end. " + "Emotional beat: the heir was sold cheap.",
     props: [
@@ -147,7 +155,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
         id: "acquisition_receipt",
         label: "Sale Receipt",
         icon: "\u{1F4DC}",
-        desc: "Crisp ink on paper that somehow stayed honest. The Ashvere mining concession — twelve silver marks and a line about spiritual stewardship, whatever that weighed to them. A horse costs more. Scraps beside it call the Ashvere claim greedy, your name thrown around like a joke in a tavern.",
+        desc: "Crisp ink on paper that somehow stayed honest. The Ashvere mining concession - twelve silver marks and a line about spiritual stewardship, whatever that weighed to them. A horse costs more. Scraps beside it call the Ashvere claim greedy, your name thrown around like a joke in a tavern.",
         gridPosition: { row: 4, col: 13 },
         onExamine: [
           { type: "set_flag", flag: "read_acquisition_receipt" },
@@ -184,6 +192,8 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
   6: {
     label: "Gatehouse Balcony",
     hint: "narrow stone lip over open air. from here the yard and the black mouth read like a map you can walk later.",
+    description:
+      "Narrow stone ledge over open air; low parapet, wind on your chest. Below: cracked flags, yard, tunnel mouth - you can judge distance and cover from here.",
     enemies: [],
     notes:
       "R11. Era 2. LIT (open air). Dead end. " +
@@ -194,7 +204,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
         id: "balcony_view",
         label: "View from the Ledge",
         icon: "\u{1F441}\uFE0F",
-        desc: "Wind finds your throat. Below, cracked flags and the tunnel's yawn; the tracks shine where nothing living polishes them anymore. Two bone figures walk a circle — arch, court, arch again — never hurrying, never resting. You could time a breath to their stride.",
+        desc: "Wind finds your throat. Below, cracked flags and the tunnel's yawn; the tracks shine where nothing living polishes them anymore. Two bone figures walk a circle - arch, court, arch again - never hurrying, never resting. You could time a breath to their stride.",
         gridPosition: { row: 1, col: 9 },
         onExamine: [
           { type: "set_flag", flag: "observed_patrol" },
@@ -210,6 +220,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
   7: {
     label: "To Mine Mouth",
     hint: "steps fall toward iron rails and the rough cut your people made first.",
+    description: "Steps down to iron rails and the rough first cut of the mine.",
     enemies: [],
     exit: { toAreaId: "a1_mine_mouth", toRoomGridId: 2 },
   },
@@ -218,7 +229,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
 export const A1_GATEHOUSE: AreaDef = {
   id: "a1_gatehouse",
   name: "The Gatehouse",
-  desc: "Their fort over your hole — broken now, but still preaching stone and sky while the dark underneath remembers your name.",
+  desc: "Their fort over your hole - broken now, but still preaching stone and sky while the dark underneath remembers your name.",
   difficulty: 1,
   generator: "authored",
   authored: {

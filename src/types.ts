@@ -273,6 +273,7 @@ export interface RoomTemplate {
   label: string;
   enemies: string[];
   hint: string;
+  description?: string;
 }
 
 /** A door from one room to a room in another area. */
@@ -326,6 +327,7 @@ export interface PropState {
 export interface AuthoredRoom {
   label: string;
   hint: string;
+  description?: string;
   enemies: string[];
   isStart?: boolean;
   isBoss?: boolean;
@@ -394,6 +396,7 @@ export interface AreaNode {
   /** Active necromancer resurrection ritual. Counts down each area turn. */
   necroRitual: { typeId: string; turnsLeft: number; hpFraction: number } | null;
   hint: string;
+  description?: string;
   state: RoomState;
   cx: number;
   cy: number;

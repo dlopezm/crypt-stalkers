@@ -1,50 +1,52 @@
 import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
- * Area 4 — Shadow Depths (R135–R140), difficulty 5.
+ * Area 4 - Shadow Depths (R135–R140), difficulty 5.
  * Linear vertical stack 2–7 = R135–R140; 8 = exit abandoned dig R128 (grid 6); 9 = exit sealed R141 (grid 2).
  * Each floor linked by a single-row 0 strip (two room neighbors max per corridor cell).
  */
 
 // prettier-ignore
 export const A4_SHADOW_DEPTHS_GRID: number[][] = [
-  //  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  8,  8,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  8,  8,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  0,  0,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  2,  2,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  2,  2,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  0,  0,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  3,  3,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  3,  3,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  0,  0,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  4,  4,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  4,  4,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  0,  0,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  5,  5,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  5,  5,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  0,  0,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  6,  6,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  6,  6,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  0,  0,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  7,  7,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  7,  7,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  0,  0,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  9,  9,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  9,  9,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1],
+ // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 8, 8, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 8, 8, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 3, 3, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 3, 3, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 6, 6, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 6, 6, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ];
 
 export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Shadow Threshold",
     hint: "the dark weighs on your flame. each step eats a little more of it.",
+    description:
+      "Your torch shrinks - small pool of flame. Footsteps sound dull. Far ahead, salt catches a faint warm glint.",
     enemies: ["shadow"],
     isStart: true,
     notes:
-      "R135. DARK — ambient drain zone. Era 1. " +
-      "World-state (impl tune): in this subarea non-crystal player light loses ~1 intensity per ~2 turns — urgency toward R138 craft. " +
+      "R135. DARK - ambient drain zone. Era 1. " +
+      "World-state (impl tune): in this subarea non-crystal player light loses ~1 intensity per ~2 turns - urgency toward R138 craft. " +
       "Shadow ×1. Cross-ref: crystal lantern immunity (sunlight-class). Connects R128 ↔ R136.",
     props: [
       {
@@ -66,6 +68,8 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
   3: {
     label: "Consumed Gallery",
     hint: "wall crystals blackened as if starved for years.",
+    description:
+      "Wall crystals dulled and gray-black, cold to touch. Your beam frays at the edges; middle of the gallery stays black. No drip; dead quiet.",
     enemies: ["shadow", "shadow"],
     notes:
       "R136. DARK. Era 1. Shadows ×2; torch may last ~3 turns (tuning). " +
@@ -75,13 +79,13 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
         id: "blackened_wall_crystals_r136",
         label: "Blackened Salt Crystals",
         icon: "\u{26AB}",
-        desc: "Facets that should glitter are soot-sick — starved by years of shadow grazing. They feel cold even when your hand expects warmth.",
+        desc: "Facets that should glitter are soot-sick - starved by years of shadow grazing. They feel cold even when your hand expects warmth.",
         gridPosition: { row: 7, col: 3 },
         onExamine: [
           { type: "set_flag", flag: "examined_blackened_crystals_r136" },
           {
             type: "log",
-            message: "Proof of hunger — the wall paid for your trespass in color.",
+            message: "Proof of hunger - the wall paid for your trespass in color.",
           },
         ],
       },
@@ -90,9 +94,11 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
   4: {
     label: "Crystal Vein",
     hint: "the seam glows on its own. the note says the salt refuses to go dark.",
+    description:
+      "Thick vein of deep salt with a dull glow of its own. Warm against your knuckles. Dark thins along the vein; past the ends it goes black again. Tap it and you feel hum in your chest.",
     enemies: ["shadow"],
     notes:
-      "R137. DARK — crystal faint internal glow (not Shadow-food). Era 1. Exposed deep salt vein; self-luminous crystals resist Shadow consumption — " +
+      "R137. DARK - crystal faint internal glow (not Shadow-food). Era 1. Exposed deep salt vein; self-luminous crystals resist Shadow consumption - " +
       "glow reads as containment working; same formation that drew presence also armors against its echo. Treasure and barrier, one material. " +
       "Shadow ×1. Connects R136 ↔ R138.",
     props: [
@@ -107,7 +113,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
           { type: "set_flag", flag: "knows_crystal_lantern_recipe" },
           {
             type: "log",
-            message: "The deep salt glows on its own — a vein that will not feed what eats flame.",
+            message: "The deep salt glows on its own - a vein that will not feed what eats flame.",
           },
         ],
       },
@@ -115,7 +121,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
         id: "self_luminous_vein_r137",
         label: "Glowing Salt Vein",
         icon: "\u{1F48E}",
-        desc: "Salt grown thick with its own stubborn radiance — not bright, but honest. The seam holds the dark out the way thick doors hold out weather.",
+        desc: "Salt grown thick with its own stubborn radiance - not bright, but honest. The seam holds the dark out the way thick doors hold out weather.",
         gridPosition: { row: 11, col: 3 },
         condition: { notFlags: ["harvested_self_luminous_vein_r137"] },
         actions: [
@@ -129,7 +135,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Two fused masses — warm salt that keeps its own glow, humming faintly against your palm.",
+                  "Two fused masses - warm salt that keeps its own glow, humming faintly against your palm.",
               },
             ],
           },
@@ -139,12 +145,14 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
   },
   5: {
     label: "Crystal Forge",
-    hint: "a miner bench, polish, mounts — everything to cage a stubborn glow in brass and glass.",
+    hint: "a miner bench, polish, mounts - everything to cage a stubborn glow in brass and glass.",
+    description:
+      "Work alcove: polish wheels, brass jigs, mounts for lantern shells. Tools on pegs; bench worn at the front edge where people leaned. Wall salt warms the wood. Smells like metal dust and oil.",
     enemies: [],
     notes:
       "R138. DARK. Era 1. Miner workshop alcove: bench, polish, mounts. " +
-      "CRAFT CRYSTAL LANTERN — requires: self-luminous crystal (R137), shuttered lantern, knowledge (R137 note OR Area 2 R48 mining/reflector docs OR reflector work R119–R120). " +
-      "Output: sunlight-class light, immune to Shadow drain, shutterable like base lantern — key for Area 5 and Shadow backtrack. " +
+      "CRAFT CRYSTAL LANTERN - requires: self-luminous crystal (R137), shuttered lantern, knowledge (R137 note OR Area 2 R48 mining/reflector docs OR reflector work R119–R120). " +
+      "Output: sunlight-class light, immune to Shadow drain, shutterable like base lantern - key for Area 5 and Shadow backtrack. " +
       "Thematic: oldest mine matter + player's intent = light Shadows cannot eat; not imported sanctity. " +
       "Connects R137 ↔ R139.",
     props: [
@@ -152,7 +160,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
         id: "crystal_forge_bench_r138",
         label: "Miner's Light Bench",
         icon: "\u{1F6E0}\uFE0F",
-        desc: "Polish wheels, brass mounts, jigs meant to seat a lantern shell around a crystal heart. The tools expect patience — the same patience that refused to strip the deep bare.",
+        desc: "Polish wheels, brass mounts, jigs meant to seat a lantern shell around a crystal heart. The tools expect patience - the same patience that refused to strip the deep bare.",
         gridPosition: { row: 13, col: 3 },
         actions: [
           {
@@ -175,7 +183,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "You cage the stubborn glow in brass and glass. The beam comes up warm and whole — the kind of light the shadows cannot drink, only shy from.",
+                  "You cage the stubborn glow in brass and glass. The beam comes up warm and whole - the kind of light the shadows cannot drink, only shy from.",
               },
             ],
           },
@@ -199,7 +207,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Order lines meet miner's hands — the lantern wakes steady, the way prayers pretend to be.",
+                  "Order lines meet miner's hands - the lantern wakes steady, the way prayers pretend to be.",
               },
             ],
           },
@@ -223,7 +231,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Numbers and ink become heat in your hands — light with the same discipline as a tally book.",
+                  "Numbers and ink become heat in your hands - light with the same discipline as a tally book.",
               },
             ],
           },
@@ -247,7 +255,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Your hands remember how the first mirror drank light — the lantern answers in the same dialect.",
+                  "Your hands remember how the first mirror drank light - the lantern answers in the same dialect.",
               },
             ],
           },
@@ -271,7 +279,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Three sightlines taught your fingers the angles — the finished lantern hums like the junction satisfied.",
+                  "Three sightlines taught your fingers the angles - the finished lantern hums like the junction satisfied.",
               },
             ],
           },
@@ -282,10 +290,12 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
   6: {
     label: "Deep Reflector",
     hint: "mirrors meant to marry this place to the galleries far above.",
+    description:
+      "Large salt-glass mirror, grit in the mounts, scrapes on the frame, aimed on a sightline toward the galleries above. Corners cold; mirror rim slightly warm. Your breath fogs the brass.",
     enemies: ["shadow", "shadow"],
     notes:
       "R139. DARK → LIT if restored. Era 1. Deepest array; Shadows ×2 aggressive pursuers. " +
-      "Restore: clean, align — crystal lantern strongly recommended; completes optical chain to R120 / Crystal Master Array final leg. " +
+      "Restore: clean, align - crystal lantern strongly recommended; completes optical chain to R120 / Crystal Master Array final leg. " +
       "Hardest Shadow pair without lantern. Cross-ref: R122 bonus daylight in galleries + this subarea when array complete. " +
       "Connects R138 ↔ R140; reflector path to R120 (puzzle chain).",
     props: [
@@ -293,7 +303,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
         id: "deep_reflector_array_r139",
         label: "Deep Array Mirror",
         icon: "\u{1FA9E}",
-        desc: "Salt-glass canted toward a sightline that should kiss the three-mount hall far above. Grit, cracks, claw marks from things that hated being seen. Square this disk and the long light-path closes — if your flame lasts the work.",
+        desc: "Salt-glass canted toward a sightline that should kiss the three-mount hall far above. Grit, cracks, claw marks from things that hated being seen. Square this disk and the long light-path closes - if your flame lasts the work.",
         gridPosition: { row: 16, col: 3 },
         onExamine: [
           { type: "set_flag", flag: "examined_deep_reflector_r139" },
@@ -301,7 +311,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
           {
             type: "log",
             message:
-              "The last mirror in the chain — tie it to the bright halls above or let the dark keep this floor.",
+              "The last mirror in the chain - tie it to the bright halls above or let the dark keep this floor.",
           },
         ],
       },
@@ -310,10 +320,12 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
   7: {
     label: "Shadow Heart",
     hint: "three absences circle you. your torch feels like a candle in a gale.",
+    description:
+      "Walls are flat matte black salt. Torch gutters hard though the air is still - pressure in your ears. Only faint warm pinpricks in the seam where deep crystal still throws a little light back.",
     enemies: ["shadow", "shadow", "shadow"],
     notes:
-      "R140. DARK — max drain. Era 1. Darkest room; Shadows ×3; ordinary light can fail in one turn (tuning). " +
-      "Crystal lantern dimmed but not killed. Walls fully stained black. Passage toward Sealed Chamber; sense of vast patience below — draw, not dialogue. " +
+      "R140. DARK - max drain. Era 1. Darkest room; Shadows ×3; ordinary light can fail in one turn (tuning). " +
+      "Crystal lantern dimmed but not killed. Walls fully stained black. Passage toward Sealed Chamber; sense of vast patience below - draw, not dialogue. " +
       "Toughest non-boss fight Area 4; lantern near-mandatory. " +
       "Connects R139 ↔ R141 (via exit). Cross-ref: demon pressure R141–R143.",
     props: [
@@ -321,13 +333,13 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
         id: "shadow_heart_walls_r140",
         label: "Soot-Sick Walls",
         icon: "\u{2B1B}",
-        desc: "Salt gone velvet-black — not soot, absence stacked until it has texture. Somewhere underfoot, patience widens like a throat.",
+        desc: "Salt gone velvet-black - not soot, absence stacked until it has texture. Somewhere underfoot, patience widens like a throat.",
         gridPosition: { row: 19, col: 3 },
         onExamine: [
           { type: "set_flag", flag: "examined_shadow_heart_walls_r140" },
           {
             type: "log",
-            message: "No voice — only pull, wide and patient, like standing beside deep water.",
+            message: "No voice - only pull, wide and patient, like standing beside deep water.",
           },
         ],
       },
@@ -335,7 +347,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
         id: "shadow_essence_pool_r140",
         label: "Black Tar Pool",
         icon: "\u{1F52E}",
-        desc: "A tar-slick puddle that refuses to reflect you — apothecaries pay for such sludge; down here it is only proof you lived through the heart.",
+        desc: "A tar-slick puddle that refuses to reflect you - apothecaries pay for such sludge; down here it is only proof you lived through the heart.",
         gridPosition: { row: 20, col: 3 },
         condition: { notFlags: ["has_shadow_essence_alchemy"] },
         actions: [
@@ -348,7 +360,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Cold slips into the vial — fodder for a still or a curse, depending who buys it.",
+                  "Cold slips into the vial - fodder for a still or a curse, depending who buys it.",
               },
             ],
           },
@@ -359,12 +371,14 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
   8: {
     label: "Back toward abandoned dig",
     hint: "warmer air and the memory of coldfire.",
+    description: "Air warms slightly toward camp dust and coldfire residue from the dig above.",
     enemies: [],
     exit: { toAreaId: "a4_abandoned_dig", toRoomGridId: 6 },
   },
   9: {
     label: "Toward the sealed chamber",
     hint: "order glyphs bite the air ahead. something patient waits behind salt.",
+    description: "Order carvings ahead. Stone underfoot turns warmer as you go.",
     enemies: [],
     exit: { toAreaId: "a4_sealed_chamber", toRoomGridId: 2 },
   },
@@ -373,7 +387,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
 export const A4_SHADOW_DEPTHS: AreaDef = {
   id: "a4_shadow_depths",
   name: "Shadow Depths",
-  desc: "Where the dark eats flame — and the oldest salt still refuses to go out.",
+  desc: "Where the dark eats flame - and the oldest salt still refuses to go out.",
   difficulty: 5,
   generator: "authored",
   authored: {
@@ -383,6 +397,6 @@ export const A4_SHADOW_DEPTHS: AreaDef = {
   combatRooms: [],
   hiddenFromTown: true,
   notes:
-    "Area 4 Subarea 5 — Shadow territory; crystal lantern craft (R138); Master Array leg R139. " +
+    "Area 4 Subarea 5 - Shadow territory; crystal lantern craft (R138); Master Array leg R139. " +
     "Light table: coldfire/bioluminescence fake; true flame vulnerable; crystal lantern = sunlight vs drain.",
 };

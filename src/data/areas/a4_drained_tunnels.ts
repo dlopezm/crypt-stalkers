@@ -1,24 +1,26 @@
 import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
- * Area 4 — The Deep Workings — Drained Tunnels (R111–R116), difficulty 4.
+ * Area 4 - The Deep Workings - Drained Tunnels (R111–R116), difficulty 4.
  * Design grid IDs 2–7 = R111–R116; 8 = exit a2_maintenance; 9 = exit a4_crystal_galleries.
  * Topology: linear chain only; R115 (6) gates R114→R116 (no 5–7 shortcut).
  */
 
 // prettier-ignore
 export const A4_DRAINED_TUNNELS_GRID: number[][] = [
-  //  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1],
-  [ 1,  1,  1,  1,  1,  8,  8,  0,  2,  2,  0,  3,  3,  0,  4,  4,  0,  5,  5,  0,  6,  6,  0,  7,  7,  0,  9,  9,  1,  1],
-  [ 1,  1,  1,  1,  1,  8,  8,  0,  2,  2,  0,  3,  3,  0,  4,  4,  0,  5,  5,  0,  6,  6,  0,  7,  7,  0,  9,  9,  1,  1],
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1],
+ // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+ [ 1, 1, 1, 1, 1, 8, 8, 0, 2, 2, 0, 3, 3, 0, 4, 4, 0, 5, 5, 0, 6, 6, 0, 7, 7, 0, 9, 9, 1, 1],
+ [ 1, 1, 1, 1, 1, 8, 8, 0, 2, 2, 0, 3, 3, 0, 4, 4, 0, 5, 5, 0, 6, 6, 0, 7, 7, 0, 9, 9, 1, 1],
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ];
 
 export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Drain Mouth",
     hint: "wet stone and the smell of worked pumps. the shaft above is quiet now.",
+    description:
+      "Bottom of the drain shaft: old mine timber and iron, newer pipework above. Water still weeps from the joints. Air smells like cold metal and wet salt.",
     enemies: [],
     isStart: true,
     notes:
@@ -30,18 +32,20 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
   3: {
     label: "Flooded Gallery",
     hint: "ankle-deep water. cart rails glint beneath the murk.",
+    description:
+      "Black water to your ankles. Rusted cart rails show under the surface. Timber props, beads of condensation. Your steps sound hollow on the wet stone.",
     enemies: ["rat", "rat", "rat"],
     notes:
-      "R112. DARK. Era 1. Gallery still partly flooded — ankle-deep water, bad footing; pumps lowered level. " +
+      "R112. DARK. Era 1. Gallery still partly flooded - ankle-deep water, bad footing; pumps lowered level. " +
       "Rats along waterline; cart tracks under surface. " +
-      "World-state / combat: footing hazard — disadvantage or miss chance in water. " +
+      "World-state / combat: footing hazard - disadvantage or miss chance in water. " +
       "Connects R111 ↔ R113.",
     props: [
       {
         id: "waterlogged_miners_pack_r112",
         label: "Waterlogged Miner's Pack",
         icon: "\u{1F392}",
-        desc: "Canvas black with wet, buckles rusted shut. Inside: oil-wrapped tools and a pay-pouch that never made it topside — the kind of weight someone died still carrying.",
+        desc: "Canvas black with wet, buckles rusted shut. Inside: oil-wrapped tools and a pay-pouch that never made it topside - the kind of weight someone died still carrying.",
         gridPosition: { row: 1, col: 11 },
         actions: [
           {
@@ -65,6 +69,8 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
   4: {
     label: "Pump Station Alpha",
     hint: "massive hand-cranked gear, iron pipe, old wood and salt-stained iron.",
+    description:
+      "Massive hand-crank gear: wood and iron crusted with salt. Pipes run up into the dark. Rust comes off on your fingers if you touch the frame. Somewhere in the wall, slow dripping.",
     enemies: [],
     notes:
       "R113. DARK. Era 1 water control: huge hand-cranked gear, wood, iron pipe. " +
@@ -75,14 +81,14 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
         id: "pump_maintenance_log_r113",
         label: "Pump Maintenance Log",
         icon: "\u{1F4D6}",
-        desc: "Ledger chained to the gear frame. Entries in a confident engineer's hand describe head pressure, gasket rot, and — toward the back — a nervous margin note about galleries beyond the wet belt where the crystals 'answer the lamps wrong.'",
+        desc: "Ledger chained to the gear frame. Entries in a confident engineer's hand describe head pressure, gasket rot, and - toward the back - a nervous margin note about galleries beyond the wet belt where the crystals 'answer the lamps wrong.'",
         gridPosition: { row: 1, col: 17 },
         onExamine: [
           { type: "set_flag", flag: "read_pump_maintenance_log_r113" },
           {
             type: "log",
             message:
-              "Past the wet belt, the entries name crystal halls — dry air, wrong reflections in the lamps. Someone drew a line you could follow with your feet.",
+              "Past the wet belt, the entries name crystal halls - dry air, wrong reflections in the lamps. Someone drew a line you could follow with your feet.",
           },
         ],
       },
@@ -90,7 +96,7 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
         id: "pump_station_tool_rack_r113",
         label: "Spare Tools",
         icon: "\u{1F6E0}\uFE0F",
-        desc: "Iron wrenches, grease jars, and spare pins for the crank dog. Everything is old mine iron — heavier than it needs to be, built for hands that expected to die old at their post.",
+        desc: "Iron wrenches, grease jars, and spare pins for the crank dog. Everything is old mine iron - heavier than it needs to be, built for hands that expected to die old at their post.",
         gridPosition: { row: 2, col: 18 },
         onExamine: [
           { type: "set_flag", flag: "examined_pump_tools_r113" },
@@ -105,19 +111,21 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
   5: {
     label: "Dry Gallery",
     hint: "a skeleton hefts a pickaxe on a fixed loop until it notices you.",
+    description:
+      "Dry grit on the floor; cart rails run straight into timber. Salt crystals fleck the ceiling. Air is dust, not pond-water - this heading reads older than the wet galleries.",
     enemies: ["skeleton"],
     notes:
       "R114. DARK. Era 1. Fully drained gallery. " +
-      "Skeleton = Era 3 abandoned crew — pickaxe, cart on track, fixed patrol loop until light/noise aggro. " +
+      "Skeleton = Era 3 abandoned crew - pickaxe, cart on track, fixed patrol loop until light/noise aggro. " +
       "Impl note: avoid soft-lock on narrow track. " +
-      "IMPORTANT: no corridor shortcut to R116 — player must pass R115 gate. " +
+      "IMPORTANT: no corridor shortcut to R116 - player must pass R115 gate. " +
       "Connects R113 ↔ R115 only.",
     props: [
       {
         id: "salt_cart_on_track_r114",
         label: "Cart on the Rails",
         icon: "\u{1F6E4}\uFE0F",
-        desc: "A salt cart frozen mid-haul, wheels kissed to the track. Scrapes on the timber show the loop it traced — back and forth — while whoever drove it forgot how to stop.",
+        desc: "A salt cart frozen mid-haul, wheels kissed to the track. Scrapes on the timber show the loop it traced - back and forth - while whoever drove it forgot how to stop.",
         gridPosition: { row: 1, col: 17 },
         onExamine: [
           { type: "set_flag", flag: "examined_r114_salt_cart" },
@@ -131,7 +139,7 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
         id: "loose_pickaxe_r114",
         label: "Pickaxe Leaned on Timber",
         icon: "\u{26CF}\uFE0F",
-        desc: "A spare pick head, edge chipped but true, left where a living hand might grab it before running. The haft is dry — the skeleton on the loop prefers its own.",
+        desc: "A spare pick head, edge chipped but true, left where a living hand might grab it before running. The haft is dry - the skeleton on the loop prefers its own.",
         gridPosition: { row: 2, col: 14 },
         condition: { notFlags: ["has_pickaxe"] },
         actions: [
@@ -151,10 +159,12 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
   6: {
     label: "Skullflower Threshold",
     hint: "blue-green bioluminescence chokes the way. something fibrous breathes.",
+    description:
+      "Passage narrows. Blue-green light on the salt - cold, wrong color. Walls weep. Air is damp and smells like rot and wet fiber.",
     enemies: [],
     notes:
-      "R115. DARK + Skullflower bioluminescence (fake light — no Shadow protection). Era 1 + 3. " +
-      "MISSING enemy type: skullflower mass ×1 — physical block; FIRE hard gate. " +
+      "R115. DARK + Skullflower bioluminescence (fake light - no Shadow protection). Era 1 + 3. " +
+      "MISSING enemy type: skullflower mass ×1 - physical block; FIRE hard gate. " +
       "In full dark regrows ~5 dungeon turns; sustained real light keeps passage clear. " +
       "World-state: timer may pause/slow in lit tiles (impl). " +
       "Connects R114 ↔ R116 (after clear). Theme: cost of greed / containment vs taking.",
@@ -163,7 +173,7 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
         id: "skullflower_mass_r115",
         label: "Skullflower Mass",
         icon: "\u{1FAB7}",
-        desc: "Blue-green meat fills the passage — fibrous, wet, and wrong-bright. It pulses like breath. Coldfire and pretty glows do not count as truth here; only fire and honest light make it shrink back.",
+        desc: "Blue-green meat fills the passage - fibrous, wet, and wrong-bright. It pulses like breath. Coldfire and pretty glows do not count as truth here; only fire and honest light make it shrink back.",
         gridPosition: { row: 1, col: 20 },
         onExamine: [
           { type: "set_flag", flag: "examined_skullflower_threshold_r115" },
@@ -178,6 +188,8 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
   7: {
     label: "Clear Passage",
     hint: "cleaner air. tiny salt crystals glitter in the walls ahead.",
+    description:
+      "Air turns sharp and dry. Salt in the walls shows tiny new facets where nobody has picked. Ahead feels warmer than the wet belt - steady heat from the deep salt.",
     enemies: [],
     notes:
       "R116. DARK. Era 1. Beyond Skullflower. Cleaner air. " +
@@ -188,7 +200,7 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
         id: "first_wall_crystals_r116",
         label: "New Wall Crystals",
         icon: "\u{1F48E}",
-        desc: "Salt has begun to jewel the seam — tiny facets where nobody has scraped for years. They catch your light like an answer: where the taking stops, the stone starts again.",
+        desc: "Salt has begun to jewel the seam - tiny facets where nobody has scraped for years. They catch your light like an answer: where the taking stops, the stone starts again.",
         gridPosition: { row: 1, col: 23 },
         onExamine: [
           { type: "set_flag", flag: "examined_first_regrowth_crystals_r116" },
@@ -204,12 +216,14 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
   8: {
     label: "To maintenance shaft",
     hint: "climb toward the pumps and the order works above.",
+    description: "Climb toward colder drafts and order iron - pumps and the shaft works above.",
     enemies: [],
     exit: { toAreaId: "a2_maintenance", toRoomGridId: 8 },
   },
   9: {
     label: "Toward crystal galleries",
     hint: "the tunnel brightens with faint facet reflections.",
+    description: "Dry salt ahead; your lamp picks up faint colored flashes from the facets.",
     enemies: [],
     exit: { toAreaId: "a4_crystal_galleries", toRoomGridId: 2 },
   },
@@ -228,7 +242,7 @@ export const A4_DRAINED_TUNNELS: AreaDef = {
   combatRooms: [],
   hiddenFromTown: true,
   notes:
-    "Area 4 Subarea 1 — transition from order works to raw mine. " +
+    "Area 4 Subarea 1 - transition from order works to raw mine. " +
     "Theme hook: treasure and danger same substance; pumping reveals older headings. " +
     "Key beat: Skullflower gate (R115) forces FIRE + light discipline before crystal halls.",
 };

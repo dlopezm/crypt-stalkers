@@ -1,46 +1,48 @@
 import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
- * Area 3 — Ossuary — Funerary Threshold (R75–R79). Grid IDs: 2=R75 … 6=R78, 9=exit a2, 10=exit sorting.
+ * Area 3 - Ossuary - Funerary Threshold (R75–R79). Grid IDs: 2=R75 … 6=R78, 9=exit a2, 10=exit sorting.
  * R78 branch uses column 16 so its corridor cell does not stack-merge with the R75–R79 horizontal 0-row.
  */
 
 // prettier-ignore
 export const A3_THRESHOLD_GRID: number[][] = [
-  //  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], //  0
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  6,  6,  6,  1,  1,  1,  1,  1,  1], //  1  R78
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  6,  6,  6,  1,  1,  1,  1,  1,  1], //  2
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  6,  6,  6,  1,  1,  1,  1,  1,  1], //  3
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1,  1], //  4  R77↔R78 only
-  [ 1,  1,  9,  9,  0,  2,  2,  2,  0,  3,  3,  3,  0,  4,  4,  4,  0,  5,  5,  5,  1,  1,  1], //  5  main chain (one row of 0s)
-  [ 1,  1,  9,  9,  1,  2,  2,  2,  1,  3,  3,  3,  1,  4,  4,  4,  1,  5,  5,  5,  1,  1,  1], //  6
-  [ 1,  1,  9,  9,  1,  2,  2,  2,  1,  3,  3,  3,  1,  4,  4,  4,  1,  5,  5,  5,  1,  1,  1], //  7
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  5,  5,  5,  1,  1,  1], //  8
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  5,  5,  5,  1,  1,  1], //  9
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  1,  1], // 10  R79→sorting
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 10, 10,  1,  1,  1,  1], // 11
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 10, 10,  1,  1,  1,  1], // 12
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 13
+ // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 0
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 6, 6, 1, 1, 1, 1, 1, 1], // 1 R78
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 6, 6, 1, 1, 1, 1, 1, 1], // 2
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 6, 6, 1, 1, 1, 1, 1, 1], // 3
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1], // 4 R77↔R78 only
+ [ 1, 1, 9, 9, 0, 2, 2, 2, 0, 3, 3, 3, 0, 4, 4, 4, 0, 5, 5, 5, 1, 1, 1], // 5 main chain (one row of 0s)
+ [ 1, 1, 9, 9, 1, 2, 2, 2, 1, 3, 3, 3, 1, 4, 4, 4, 1, 5, 5, 5, 1, 1, 1], // 6
+ [ 1, 1, 9, 9, 1, 2, 2, 2, 1, 3, 3, 3, 1, 4, 4, 4, 1, 5, 5, 5, 1, 1, 1], // 7
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 1, 1, 1], // 8
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 1, 1, 1], // 9
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1], // 10 R79→sorting
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 10, 10, 1, 1, 1, 1], // 11
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 10, 10, 1, 1, 1, 1], // 12
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 13
 ];
 
 export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
   2: {
     label: "Crypt Mouth",
     hint: "a carved arch; letters you were taught to respect now read as license.",
+    description:
+      "Deep salt arch. Air past it is colder than the brothers' halls. Thin coldfire strip behind you; ahead is dark.",
     enemies: ["skeleton", "skeleton"],
     isStart: true,
     notes:
-      "R75. Era 2+3. COLDFIRE fading to dark — strips thin quickly; darkness follows in a few rooms. " +
+      "R75. Era 2+3. COLDFIRE fading to dark - strips thin quickly; darkness follows in a few rooms. " +
       "First room past Lower Gate East (Area 2 R73); reliable light soft gate at that gate. " +
-      "Skeletons ×2 on patrol — already the lich's shift, not the order's rest. " +
+      "Skeletons ×2 on patrol - already the lich's shift, not the order's rest. " +
       "Teaching: true flame vs coldfire; shuttered lantern rhythm for Area 3 gauntlet.",
     props: [
       {
         id: "threshold_arch_inscription",
         label: "Carved Arch",
         icon: "\u{1F3DB}\uFE0F",
-        desc: 'Salt-block arch deep enough to swallow torchlight at the edges. The order\'s motto is cut clean: "From service in life to service in death." Below it, in shallower letters, some long-dead mason scratched a diagram — hands together, head bowed — the bow this place expects before it lets you pass.',
+        desc: 'Salt-block arch deep enough to swallow torchlight at the edges. The order\'s motto is cut clean: "From service in life to service in death." Below it, in shallower letters, some long-dead mason scratched a diagram - hands together, head bowed - the bow this place expects before it lets you pass.',
         gridPosition: { row: 6, col: 6 },
         onExamine: [
           { type: "set_flag", flag: "read_threshold_arch_motto_r75" },
@@ -57,6 +59,8 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
   3: {
     label: "Ritual Arch",
     hint: "the floor sigil holds a patient glow; the air waits for a gesture.",
+    description:
+      "Ceremonial arch, swept stone floor. Sigil in the floor glows faint in its grooves. Cold salt smell.",
     enemies: [],
     notes:
       "R76. Era 2. DARK. Ceremonial arch; intact floor ward, faint glow. " +
@@ -67,13 +71,13 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
         id: "ritual_arch_floor_ward",
         label: "Floor Ward",
         icon: "\u{2728}",
-        desc: "A ceremonial arch frames a sigil set flush into the stone. The lines hold a patient, offended glow — not coldfire, not quite hearth either. The air waits, as if counting your steps.",
+        desc: "A ceremonial arch frames a sigil set flush into the stone. The lines hold a patient, offended glow - not coldfire, not quite hearth either. The air waits, as if counting your steps.",
         gridPosition: { row: 6, col: 10 },
         actions: [
           {
             id: "cross_with_gesture",
             label: "Cross with the interment sign",
-            desc: "Hands together, head bowed — the way the arch showed, or the way Voss breathed it when he was still trying to warn you.",
+            desc: "Hands together, head bowed - the way the arch showed, or the way Voss breathed it when he was still trying to warn you.",
             requires: { flags: ["knows_interment_passage_gesture"] },
             effects: [
               { type: "set_flag", flag: "r76_ward_crossed_safely" },
@@ -86,7 +90,7 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
           {
             id: "cross_with_gesture_voss",
             label: "Cross using Voss's warning",
-            desc: "You fold yourself the way he described in the cloister — small, obedient, not worth a shout.",
+            desc: "You fold yourself the way he described in the cloister - small, obedient, not worth a shout.",
             requires: { flags: ["voss_met_r34"] },
             effects: [
               { type: "set_flag", flag: "r76_ward_crossed_safely" },
@@ -100,14 +104,14 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
           {
             id: "cross_reckless",
             label: "Walk through without the gesture",
-            desc: "Pride or haste — the lines on the floor do not care which.",
+            desc: "Pride or haste - the lines on the floor do not care which.",
             effects: [
               { type: "damage_player", amount: 5 },
               { type: "set_flag", flag: "r76_ward_alarm_triggered" },
               {
                 type: "log",
                 message:
-                  "Salt-light slams up through the stone — a blow of stored vigil-ward, loud as a bell. Somewhere ahead, something lifts its head.",
+                  "Salt-light slams up through the stone - a blow of stored vigil-ward, loud as a bell. Somewhere ahead, something lifts its head.",
               },
             ],
           },
@@ -118,18 +122,20 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
   4: {
     label: "Old Receiving Room",
     hint: "a stone slab, rusted tools. something still mimics preparation on nothing.",
+    description:
+      "Small hall. One stone slab, hooks for tools on the wall. Rust, swept dust. Quiet.",
     enemies: ["zombie"],
     notes:
       "R77. Era 2. DARK. Modest receiving room. " +
-      "Zombie ×1 mimics preparation on nothing — instructions with no body; order care collapsed into habit. " +
+      "Zombie ×1 mimics preparation on nothing - instructions with no body; order care collapsed into habit. " +
       "Contrast: one corpse, one ritual; above, throughput in tons. " +
-      "Connects to R76, R78 (guard post only — not R75), R79.",
+      "Connects to R76, R78 (guard post only - not R75), R79.",
     props: [
       {
         id: "receiving_stone_slab",
         label: "Stone Slab",
         icon: "\u{1F6CB}\uFE0F",
-        desc: "A single slab, swept absurdly clean. No body rests here — only the ghost of procedure. Chalk arcs on the stone suggest where feet and shoulders were meant to lie.",
+        desc: "A single slab, swept absurdly clean. No body rests here - only the ghost of procedure. Chalk arcs on the stone suggest where feet and shoulders were meant to lie.",
         gridPosition: { row: 6, col: 14 },
         onExamine: [
           { type: "set_flag", flag: "examined_r77_receiving_slab" },
@@ -144,14 +150,14 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
         id: "rusted_ritual_tools_shelf",
         label: "Rusted Ritual Tools",
         icon: "\u{2692}\uFE0F",
-        desc: "Hooks along the wall hold tongs, linen shears, and a salt-rimed brush — all rust-locked, all still aligned with monastic care. Whoever stocked this shelf believed someone would be received with dignity.",
+        desc: "Hooks along the wall hold tongs, linen shears, and a salt-rimed brush - all rust-locked, all still aligned with monastic care. Whoever stocked this shelf believed someone would be received with dignity.",
         gridPosition: { row: 5, col: 15 },
         onExamine: [
           { type: "set_flag", flag: "examined_r77_ritual_tools" },
           {
             type: "log",
             message:
-              "Tools for one honest burial. Below, nobody reaches for linen shears — only hooks and chalk.",
+              "Tools for one honest burial. Below, nobody reaches for linen shears - only hooks and chalk.",
           },
         ],
       },
@@ -160,24 +166,26 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
   5: {
     label: "Descent Steps",
     hint: "stairs fall away; coldfire ends. bone scrapes stone somewhere below.",
+    description:
+      "Stairs into dark. Coldfire ends at the top treads. Damp air rising. Walls turn rough - work cuts, not finished vigil block.",
     enemies: [],
     notes:
-      "R79. Era 2+3. DARK — coldfire ends here; true darkness unless player lights. " +
+      "R79. Era 2+3. DARK - coldfire ends here; true darkness unless player lights. " +
       "Staircase deeper; air cooler, damper; walls shift from Era 2 salt-block to rougher work. " +
-      "Distant bone-on-stone — the sorting line starting below. Connects to R77 and R80 (Sorting Halls).",
+      "Distant bone-on-stone - the sorting line starting below. Connects to R77 and R80 (Sorting Halls).",
     props: [
       {
         id: "descent_steps_wall_shift",
         label: "Rougher Masonry",
         icon: "\u{1F9F1}",
-        desc: "Coldfire gives up here; ordinary dark swallows the last green strip. Under your palm the wall changes — clean vigil salt-block yields to rougher cuts, as if the old workings pushed back through the veneer.",
+        desc: "Coldfire gives up here; ordinary dark swallows the last green strip. Under your palm the wall changes - clean vigil salt-block yields to rougher cuts, as if the old workings pushed back through the veneer.",
         gridPosition: { row: 7, col: 18 },
         onExamine: [
           { type: "set_flag", flag: "examined_r79_descent_masonry" },
           {
             type: "log",
             message:
-              "Somewhere below, bone scrapes stone — a rhythm like carts, like sorting, like something always one shift ahead of you.",
+              "Somewhere below, bone scrapes stone - a rhythm like carts, like sorting, like something always one shift ahead of you.",
           },
         ],
       },
@@ -186,27 +194,29 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
   6: {
     label: "Guard Post",
     hint: "coldfire, a watchman's niche. someone reassigned here sounds smaller than their robe.",
+    description:
+      "Shallow niche off the main passage, coldfire-lit. Shelf with bread, jar, herbs in a row. Slightly warmer than the stairs.",
     enemies: [],
     notes:
-      "R78. Era 2+3. COLDFIRE. Cultist ×1 watches if not bypassed — enemy type cultist not in data; use stealth/disguise logic in script. " +
+      "R78. Era 2+3. COLDFIRE. Cultist ×1 watches if not bypassed - enemy type cultist not in data; use stealth/disguise logic in script. " +
       "Cultist disguise: no hostile reaction; otherwise combat. " +
-      "VOSS ENCOUNTER 2: if player returns after meeting Voss in Area 2, Voss is reassigned here — deeper, more frightened. " +
+      "VOSS ENCOUNTER 2: if player returns after meeting Voss in Area 2, Voss is reassigned here - deeper, more frightened. " +
       "Cultists do not attack on sight for 3–4 dungeon turns after donning the robe (script timing). " +
-      "World emptied by three eras of greed; the cult is what's left. Foreshadows Ending 3 (collapse/destroy — nowhere left) vs Ending 4 (release/walk away — fragile continuity). " +
+      "World emptied by three eras of greed; the cult is what's left. Foreshadows Ending 3 (collapse/destroy - nowhere left) vs Ending 4 (release/walk away - fragile continuity). " +
       "Connects only to R77 (dead end branch).",
     props: [
       {
         id: "voss_guard_post_encounter",
         label: "Hunched Figure in Cult Robes",
         icon: "\u{1F9D5}",
-        desc: 'Not the zeal you saw in the cloister — this posture is smaller, shoulders curled as if the stone itself disapproves. When the hood lifts, it is Voss. His eyes dart past you toward the dark stairs. "They moved me down," he breathes. "Closer to what Tomasz became. Take this. Don\'t say I gave it."',
+        desc: 'Not the zeal you saw in the cloister - this posture is smaller, shoulders curled as if the stone itself disapproves. When the hood lifts, it is Voss. His eyes dart past you toward the dark stairs. "They moved me down," he breathes. "Closer to what Tomasz became. Take this. Don\'t say I gave it."',
         gridPosition: { row: 2, col: 15 },
         condition: { flags: ["voss_met_r34"] },
         actions: [
           {
             id: "take_cultist_disguise",
             label: "Take the folded cultist robe",
-            desc: "His fingers shake as he presses the cloth into your hands — borrowed skin, borrowed safety.",
+            desc: "His fingers shake as he presses the cloth into your hands - borrowed skin, borrowed safety.",
             effects: [
               { type: "set_flag", flag: "has_cultist_disguise_robe" },
               { type: "set_flag", flag: "voss_encounter_r78_complete" },
@@ -223,7 +233,7 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
           {
             type: "log",
             message:
-              "\"End this. Or don't — just... don't destroy everything. Some of us don't have anywhere else.\"",
+              "\"End this. Or don't - just... don't destroy everything. Some of us don't have anywhere else.\"",
           },
         ],
       },
@@ -237,14 +247,14 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
           {
             id: "use_provisions",
             label: "Eat a little from the vigil stores",
-            desc: "Hard bread, bitter herbs — the small kindness of whoever stocked this niche.",
+            desc: "Hard bread, bitter herbs - the small kindness of whoever stocked this niche.",
             effects: [
               { type: "heal_player", amount: 4 },
               { type: "consume_prop" },
               {
                 type: "log",
                 message:
-                  "Dry bread, harsh herbs — small warmth in a room that trades on cold light.",
+                  "Dry bread, harsh herbs - small warmth in a room that trades on cold light.",
               },
             ],
           },
@@ -255,6 +265,7 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
   9: {
     label: "Toward the Lower Gate",
     hint: "salt-block gives way; you smell oil and old steel from the armory passage you forced.",
+    description: "Passage climbs. Cleaner salt-block. Oil and steel smell from the armory route.",
     enemies: [],
     exit: { toAreaId: "a2_armory", toRoomGridId: 10 },
     notes:
@@ -263,6 +274,8 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
   10: {
     label: "Stairs Into the Works",
     hint: "the dark below breathes machine-warm; somewhere, belts throb and bone chatters on stone.",
+    description:
+      "Stairwell down. Warm air, low machine throb. Dry scrape of bone on stone from below.",
     enemies: [],
     exit: { toAreaId: "a3_sorting", toRoomGridId: 2 },
     notes:

@@ -266,7 +266,12 @@ export function generateArea(def: AreaDef): GenerateAreaResult {
     let authoredProps: AreaNode["props"];
     if (authored) {
       const ar = authored.rooms[room.gridId];
-      tmpl = { label: ar.label, enemies: [...ar.enemies], hint: ar.hint };
+      tmpl = {
+        label: ar.label,
+        enemies: [...ar.enemies],
+        hint: ar.hint,
+        description: ar.description,
+      };
       authoredProps = ar.props;
     } else if (isStart) {
       tmpl = { label: "Entrance", enemies: [], hint: "" };
@@ -285,6 +290,7 @@ export function generateArea(def: AreaDef): GenerateAreaResult {
       corpses: {},
       necroRitual: null,
       hint: tmpl.hint || "",
+      description: tmpl.description,
       state: isStart ? ("visited" as const) : ("locked" as const),
       cx: room.cx * CELL_PX,
       cy: room.cy * CELL_PX,

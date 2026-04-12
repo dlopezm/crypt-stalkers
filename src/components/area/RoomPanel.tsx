@@ -48,6 +48,10 @@ export function RoomPanel({
         <p className="text-sm text-crypt-gold mb-1">{"\u2691"} You are here.</p>
       )}
 
+      {node.description && (node.state === "visited" || node.id === currentRoomId) && (
+        <p className="text-sm text-crypt-muted mb-2 italic leading-relaxed">{node.description}</p>
+      )}
+
       {node.id !== currentRoomId && node.enemies.length > 0 && !node.exit && (
         <div className="text-sm text-crypt-muted mb-2 leading-relaxed">
           {debugMode ? (
