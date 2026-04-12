@@ -72,5 +72,28 @@ export const AI_SCOUT_SEND_CHANCE = 0.6;
 export const RAT_CAP_PER_ROOM = 4;
 export const RAT_CAP_PER_AREA = 12;
 
+// Monster dungeon identity — occupation thresholds (turns in room before effect triggers)
+export const OCCUPATION_THRESHOLD_RAT = 3;
+export const OCCUPATION_THRESHOLD_ZOMBIE = 2;
+export const OCCUPATION_THRESHOLD_LARVA = 2;
+
+// Monster dungeon identity — decay counters (turns before effect fades after source leaves)
+export const DECAY_RAT_INFESTATION = 3;
+export const DECAY_STENCH = 3;
+export const DECAY_COLD_ZONE = 2;
+export const DECAY_SHADOW_DARKNESS = 4;
+export const DECAY_TRACKS = 3;
+export const DECAY_SALT_CRYSTALS = 5;
+export const DECAY_INFESTATION = 2;
+
+// Monster dungeon identity — zone radii (BFS hops from source)
+export const ZONE_WAIL_RADIUS = 3;
+export const ZONE_COMMAND_RADIUS = 2;
+
+// Monster dungeon identity — behavior thresholds
+export const ZOMBIE_TETHER_RANGE = 2;
+export const VAMPIRE_APPROACH_HP_RATIO = 0.4;
+export const VAMPIRE_AVOID_HP_RATIO = 0.6;
+
 // Limits
 export const DUNGEON_LOG_MAX = 200;

@@ -1,5 +1,6 @@
 import { getActiveProps } from "../../utils/props";
 import { ENEMY_TYPES } from "../../data/enemies";
+import { getActiveEffects } from "../../data/environment";
 import type { AreaNode, RoomProp, Player } from "../../types";
 
 /* ── Individual sound icon ── */
@@ -285,6 +286,38 @@ export function RoomLabels({
                   );
                 });
               })()}
+          </div>
+        );
+      })}
+
+      {/* Environmental effect icons for scouted/visited rooms */}
+      {area.map((n) => {
+        if (!n.bbox || (!n.scouted && n.state !== "visited")) return null;
+        const icons = getActiveEffects(n)
+          .map((e) => e.icon)
+          .filter((i): i is string => i !== undefined);
+        if (icons.length === 0) return null;
+
+        const { minRow, minCol, maxCol } = n.bbox;
+        const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
+        const topPct = ((minRow - 0.7) / gridHeight) * 100;
+
+        return (
+          <div
+            key={`env-${n.id}`}
+            style={{
+              position: "absolute",
+              left: `${cxPct}%`,
+              top: `${topPct}%`,
+              transform: "translate(-50%, -50%)",
+              fontSize: "0.5rem",
+              zIndex: 4,
+              pointerEvents: "none",
+              textShadow: "0 0 4px #000",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {icons.join("")}
           </div>
         );
       })}

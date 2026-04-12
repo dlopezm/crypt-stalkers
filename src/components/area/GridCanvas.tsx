@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from "react";
 import type { AreaNode, AreaGrid } from "../../types";
+import { ENVIRONMENTAL_EFFECTS } from "../../data/environment";
 
 export const CELL_PX = 16;
 const RENDER_SCALE = 4; // Internal render resolution multiplier
@@ -670,6 +671,32 @@ export function GridCanvas({
           const node = gridIdToNode.get(v);
           if (!node || !visible.has(node.id)) continue;
           ctx.fillStyle = roomColor(node, currentRoomId);
+          ctx.fillRect(x, y, R_CELL, R_CELL);
+        }
+      }
+    }
+
+    // ── Pass 3.5: Environmental effect tints (scouted/visited rooms only) ──
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        const v = cells[r][c];
+        if (v < 2) continue;
+        const node = gridIdToNode.get(v);
+        if (!node || !visible.has(node.id)) continue;
+        if (node.state !== "visited" && !node.scouted) continue;
+
+        const x = c * R_CELL;
+        const y = r * R_CELL;
+
+        for (const eff of ENVIRONMENTAL_EFFECTS) {
+          if (!eff.tint) continue;
+          const val = node[eff.field];
+          if (val === undefined || val === false || val === 0 || val === null) continue;
+          const [er, eg, eb, baseA] = eff.tint;
+          const a = typeof val === "number" && eff.field === "shadowDarkness"
+            ? Math.min(0.4, val * baseA)
+            : baseA;
+          ctx.fillStyle = `rgba(${er},${eg},${eb},${a})`;
           ctx.fillRect(x, y, R_CELL, R_CELL);
         }
       }

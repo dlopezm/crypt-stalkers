@@ -183,6 +183,8 @@ export interface AreaAIContext {
   neighbours: AreaNode[];
   noise: "quiet" | "medium" | "loud";
   byId: (id: string) => AreaNode | undefined;
+  playerHp?: number;
+  playerMaxHp?: number;
 }
 
 export type AreaAction =
@@ -195,7 +197,9 @@ export type AreaAction =
   | { type: "log"; text: string; volume: SoundVolume }
   | { type: "skip" }
   | { type: "begin_ritual"; typeId: string; turns: number; hpFraction: number }
-  | { type: "tick_ritual" };
+  | { type: "tick_ritual" }
+  | { type: "consume_vermin" }
+  | { type: "loot_room" };
 
 export interface OutOfCombatMechanics {
   onTick: (self: AreaEnemy, ctx: AreaAIContext) => AreaAction[];
@@ -222,6 +226,7 @@ export interface EnemyType {
   outOfCombatMechanics?: OutOfCombatMechanics;
   resistances?: Partial<Record<DamageType, number>>;
   vulnerabilities?: Partial<Record<DamageType, number>>;
+  deathHint?: string;
   /* ── CSV fields (descriptive, not used by game logic) ── */
   movement?: string;
   seesInDark?: boolean;
@@ -261,6 +266,10 @@ export interface AreaEnemy {
   uid: string; // unique instance id — carried into combat via makeEnemyData
   /** If set, overrides maxHp when this enemy enters combat (e.g. resurrected at reduced HP). */
   hpOverride?: number;
+  patrolRoute?: string[];
+  patrolIndex?: number;
+  tetheredTo?: string;
+  turnsInRoom?: number;
 }
 
 export type RoomState = "locked" | "reachable" | "visited";
@@ -408,6 +417,16 @@ export interface AreaNode {
   propStates?: Record<string, PropState>;
   /** Safe rooms heal more on rest and suppress ambushes. */
   safeRoom?: boolean;
+  ratInfested?: number;
+  stench?: number;
+  coldZone?: number;
+  shadowDarkness?: number;
+  wailZone?: boolean;
+  commanded?: boolean;
+  tracks?: number;
+  saltCrystals?: number;
+  looted?: string[];
+  infested?: number;
 }
 
 /** The raw grid + metadata produced by area generation */
@@ -459,6 +478,7 @@ export interface AreaLogEntry {
   source: "player" | "monster" | "system";
   roomId?: string;
   debugText?: string;
+  approaching?: boolean;
 }
 
 export type SoundVolume = "quiet" | "normal" | "loud";

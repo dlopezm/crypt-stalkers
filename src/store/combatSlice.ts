@@ -2,6 +2,10 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { EnemyData, CombatPlayer } from "../types";
 import { LIGHT_START } from "../data/constants";
 
+export interface DeathContext {
+  readonly enemyIds: readonly string[];
+}
+
 export interface CombatState {
   /** Serializable enemy data; hydrate to Enemy[] via hydrateEnemy() before use. */
   enemies: EnemyData[] | null;
@@ -12,6 +16,7 @@ export interface CombatState {
   surpriseRound: boolean;
   /** Changing this value forces CombatScreen to remount via key={combatKey}. */
   combatKey: number;
+  deathContext?: DeathContext;
 }
 
 const initialState: CombatState = {
@@ -50,9 +55,21 @@ const combatSlice = createSlice({
         Partial<Pick<CombatState, "enemies" | "combatPlayer" | "lightLevel" | "combatLog">>
       >,
     ) => ({ ...state, ...action.payload }),
-    clearCombat: (state) => ({ ...initialState, combatKey: state.combatKey }),
+    setDeathContext: (
+      state,
+      action: PayloadAction<DeathContext>,
+    ) => ({ ...state, deathContext: action.payload }),
+    clearDeathContext: (state) => {
+      const { deathContext: _, ...rest } = state;
+      return rest;
+    },
+    clearCombat: (state) => ({
+      ...initialState,
+      combatKey: state.combatKey,
+      deathContext: state.deathContext,
+    }),
   },
 });
 
-export const { startCombat, updateCombatState, clearCombat } = combatSlice.actions;
+export const { startCombat, updateCombatState, setDeathContext, clearDeathContext, clearCombat } = combatSlice.actions;
 export default combatSlice.reducer;

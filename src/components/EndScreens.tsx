@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { btnStyle } from "../styles";
+import { ENEMY_TYPES } from "../data/enemies";
 import type { Ending } from "../data/endings";
 
 export function VictoryScreen({
@@ -53,10 +54,31 @@ export function VictoryScreen({
 export function GameOverScreen({
   onRetryRoom,
   onRetryArea,
+  deathEnemyIds,
 }: {
   readonly onRetryRoom?: () => void;
   readonly onRetryArea?: () => void;
+  readonly deathEnemyIds?: readonly string[];
 }) {
+  const hints = useMemo(() => {
+    if (!deathEnemyIds || deathEnemyIds.length === 0) {
+      return [];
+    }
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const id of deathEnemyIds) {
+      if (seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      const hint = ENEMY_TYPES.find((e) => e.id === id)?.deathHint;
+      if (hint) {
+        result.push(hint);
+      }
+    }
+    return result;
+  }, [deathEnemyIds]);
+
   return (
     <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center justify-center gap-6 relative overflow-hidden p-4">
       <div className="vignette" />
@@ -69,6 +91,17 @@ export function GameOverScreen({
       </h1>
       <div className="panel max-w-sm text-center relative z-1">
         <p className="text-crypt-muted text-base mb-4">The darkness claims another soul.</p>
+
+        {hints.length > 0 && (
+          <div className="mb-4 text-left border-t border-crypt-muted/20 pt-3">
+            <p className="text-crypt-gold text-xs uppercase tracking-widest mb-2">From the grave, a whisper:</p>
+            {hints.map((hint, i) => (
+              <p key={i} className="text-crypt-muted text-sm italic mb-1">
+                {hint}
+              </p>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           {onRetryRoom && (

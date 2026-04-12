@@ -4,7 +4,7 @@ import type { AppDispatch, RootState } from "./index";
 import { setPlayer } from "./playerSlice";
 import { setScreen } from "./screenSlice";
 import { updateArea, addLogEntries, incrementTurn } from "./areaSlice";
-import { startCombat, updateCombatState, clearCombat } from "./combatSlice";
+import { startCombat, updateCombatState, setDeathContext, clearCombat } from "./combatSlice";
 import type { CombatPlayer, AreaLogEntry, AreaNode } from "../types";
 
 /* ── tickAI ─────────────────────────────────────────────────────────────────
@@ -17,7 +17,10 @@ export function tickAI(currentArea: AreaNode[], roomId: string, action: string) 
     getState: () => RootState,
   ): { newArea: AreaNode[]; arrivedInPlayerRoom: string[] } => {
     const turn = getState().area.areaTurn;
-    const { newArea, aiLog, arrivedInPlayerRoom } = runAreaAI(currentArea, roomId, action);
+    const player = getState().player;
+    const { newArea, aiLog, arrivedInPlayerRoom } = runAreaAI(
+      currentArea, roomId, action, player?.hp, player?.maxHp,
+    );
     dispatch(incrementTurn());
 
     if (aiLog.length) {
@@ -31,10 +34,12 @@ export function tickAI(currentArea: AreaNode[], roomId: string, action: string) 
       }));
       dispatch(addLogEntries({ entries: debugEntries }));
 
-      // Audible entries filtered by distance
+      // Audible entries filtered by distance + wail zone masking
+      const wailRooms = new Set(newArea.filter((r) => r.wailZone).map((r) => r.id));
       const maxRange: Record<string, number> = { quiet: 1, normal: 2, loud: Infinity };
       const dist = roomDistances(currentArea, roomId);
       const audible = aiLog.filter((e) => {
+        if (e.volume !== "loud" && wailRooms.has(e.roomId)) return false;
         const range = maxRange[e.volume] ?? 2;
         const d1 = dist.get(e.roomId) ?? Infinity;
         const d2 = e.toRoomId ? (dist.get(e.toRoomId) ?? Infinity) : Infinity;
@@ -45,7 +50,8 @@ export function tickAI(currentArea: AreaNode[], roomId: string, action: string) 
           const d1 = dist.get(e.roomId) ?? Infinity;
           const d2 = e.toRoomId ? (dist.get(e.toRoomId) ?? Infinity) : Infinity;
           const closestRoom = d2 < d1 ? e.toRoomId! : e.roomId;
-          return { turn, text: e.text, source: "monster", roomId: closestRoom };
+          const approaching = e.toRoomId !== undefined && d2 < d1;
+          return { turn, text: e.text, source: "monster" as const, roomId: closestRoom, approaching };
         });
         dispatch(addLogEntries({ entries: audibleEntries }));
       }
@@ -125,7 +131,10 @@ export function combatVictory(newPlayer: CombatPlayer) {
    Called by CombatScreen when the player's HP reaches 0.
 ────────────────────────────────────────────────────────────────────────────── */
 export function combatDefeat() {
-  return (dispatch: AppDispatch) => {
+  return (dispatch: AppDispatch, getState: () => RootState) => {
+    const enemies = getState().combat.enemies;
+    const enemyIds = enemies ? [...new Set(enemies.map((e) => e.id))] : [];
+    dispatch(setDeathContext({ enemyIds }));
     dispatch(clearCombat());
     dispatch(setScreen("gameover"));
   };

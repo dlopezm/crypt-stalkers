@@ -1,4 +1,18 @@
 import { ENEMY_TYPES } from "../data/enemies";
+import {
+  DECAY_COLD_ZONE,
+  DECAY_SHADOW_DARKNESS,
+  DECAY_RAT_INFESTATION,
+  DECAY_STENCH,
+  DECAY_TRACKS,
+  DECAY_SALT_CRYSTALS,
+  DECAY_INFESTATION,
+  OCCUPATION_THRESHOLD_RAT,
+  OCCUPATION_THRESHOLD_ZOMBIE,
+  OCCUPATION_THRESHOLD_LARVA,
+  ZONE_WAIL_RADIUS,
+  ZONE_COMMAND_RADIUS,
+} from "../data/constants";
 import type {
   AreaNode,
   AreaEnemy,
@@ -380,13 +394,60 @@ const ACTION_NOISE: Record<string, "quiet" | "medium" | "loud"> = {
   rest: "quiet",
 };
 
-export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "move") {
-  const rooms = area.map((r) => ({ ...r, enemies: [...r.enemies], corpses: { ...r.corpses } }));
+export function runAreaAI(
+  area: AreaNode[],
+  currentRoomId: string,
+  action = "move",
+  playerHp?: number,
+  playerMaxHp?: number,
+) {
+  const rooms = area.map((r) => ({
+    ...r,
+    enemies: r.enemies.map((e) => ({ ...e })),
+    corpses: { ...r.corpses },
+  }));
   const aiLog: AILogEntry[] = [];
   const arrivedInPlayerRoom: string[] = [];
 
   const noise = ACTION_NOISE[action] || "medium";
   const byId = (id: string) => rooms.find((r) => r.id === id);
+
+  // Pre-compute player distances for pathfinding-based movement
+  const playerDist = roomDistances(rooms, currentRoomId);
+
+  // Increment turnsInRoom for all enemies
+  for (const room of rooms) {
+    for (const e of room.enemies) {
+      e.turnsInRoom = (e.turnsInRoom ?? 0) + 1;
+    }
+  }
+
+  // Initialize patrol routes and tethers (lazy, first tick only)
+  for (const room of rooms) {
+    for (const e of room.enemies) {
+      if (e.typeId === "skeleton" && !e.patrolRoute) {
+        const connected = [...room.connections].sort((a, b) => {
+          const ra = byId(a);
+          const rb = byId(b);
+          return (ra?.gridRoomId ?? 0) - (rb?.gridRoomId ?? 0);
+        });
+        const route: string[] = [];
+        for (const c of connected) {
+          route.push(c);
+          route.push(room.id);
+        }
+        e.patrolRoute = route.length > 0 ? route : [room.id];
+        e.patrolIndex = route.length > 0 ? route.length - 1 : 0;
+      }
+
+      if (
+        (e.typeId === "zombie" || e.typeId === "boneguard" || e.typeId === "salt_revenant") &&
+        !e.tetheredTo
+      ) {
+        e.tetheredTo = room.id;
+      }
+    }
+  }
 
   function moveEnemy(
     enemy: AreaEnemy,
@@ -407,7 +468,7 @@ export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "mov
         `Tried to move from ${fromRoom.label} to ${toRoom.label}, which are not adjacent.`,
       );
     }
-    if (toRoom.blocked && !mechanics?.canPassDoor?.(enemy, toRoom)) {
+    if (toRoom.safeRoom || (toRoom.blocked && !mechanics?.canPassDoor?.(enemy, toRoom))) {
       const sounds = mechanics?.sounds?.blocked || {
         volume: "normal" as SoundVolume,
         texts: ["Something scrapes against a sealed door"],
@@ -420,7 +481,12 @@ export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "mov
       });
       return false;
     }
+    if (enemy.typeId === "bone_hound") {
+      fromRoom.tracks = DECAY_TRACKS;
+    }
+
     fromRoom.enemies = fromRoom.enemies.filter((e) => e.uid !== enemy.uid);
+    enemy.turnsInRoom = 0;
     toRoom.enemies = [...toRoom.enemies, enemy];
     if (toRoom.id === currentRoomId) arrivedInPlayerRoom.push(enemy.uid);
     const sounds = mechanics?.sounds?.move || {
@@ -450,17 +516,35 @@ export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "mov
       switch (action.type) {
         case "move_toward_player": {
           if (moved) break;
-          const target = neighbours.find((n) => n.id === currentRoomId);
-          if (target && !room.blocked) {
-            moved = moveEnemy(enemy, room, target, action.reason, mechanics);
+          const direct = neighbours.find((n) => n.id === currentRoomId);
+          if (direct && !room.blocked) {
+            moved = moveEnemy(enemy, room, direct, action.reason, mechanics);
+          } else {
+            const myDist = playerDist.get(room.id) ?? Infinity;
+            const closer = neighbours
+              .filter((n) => (playerDist.get(n.id) ?? Infinity) < myDist)
+              .sort((a, b) => (playerDist.get(a.id) ?? 0) - (playerDist.get(b.id) ?? 0));
+            if (closer.length > 0 && !room.blocked) {
+              moved = moveEnemy(enemy, room, closer[0], action.reason, mechanics);
+            }
           }
           break;
         }
         case "move_away_from_player": {
           if (moved) break;
-          const away = neighbours.find((n) => n.id !== currentRoomId && n.state !== "visited");
-          if (away) {
-            moved = moveEnemy(enemy, room, away, action.reason, mechanics);
+          const myDist = playerDist.get(room.id) ?? 0;
+          const farther = neighbours
+            .filter((n) => (playerDist.get(n.id) ?? 0) > myDist)
+            .sort((a, b) => (playerDist.get(b.id) ?? 0) - (playerDist.get(a.id) ?? 0));
+          if (farther.length > 0) {
+            moved = moveEnemy(enemy, room, farther[0], action.reason, mechanics);
+          } else {
+            const away = neighbours.find(
+              (n) => n.id !== currentRoomId && n.state !== "visited",
+            );
+            if (away) {
+              moved = moveEnemy(enemy, room, away, action.reason, mechanics);
+            }
           }
           break;
         }
@@ -481,7 +565,11 @@ export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "mov
           break;
         }
         case "reproduce": {
-          const newEnemy: AreaEnemy = { typeId: enemy.typeId, uid: uid(enemy.typeId) };
+          const newEnemy: AreaEnemy = {
+            typeId: enemy.typeId,
+            uid: uid(enemy.typeId),
+            turnsInRoom: 0,
+          };
           room.enemies = [...room.enemies, newEnemy];
           break;
         }
@@ -530,7 +618,7 @@ export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "mov
               const hpOverride = etype
                 ? Math.max(1, Math.floor(etype.maxHp * hpFraction))
                 : undefined;
-              const newEnemy: AreaEnemy = { typeId, uid: uid(typeId), hpOverride };
+              const newEnemy: AreaEnemy = { typeId, uid: uid(typeId), hpOverride, turnsInRoom: 0 };
               room.enemies = [...room.enemies, newEnemy];
               if (room.id === currentRoomId) arrivedInPlayerRoom.push(newEnemy.uid);
               aiLog.push({
@@ -540,6 +628,55 @@ export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "mov
                 roomId: room.id,
               });
             }
+          }
+          break;
+        }
+        case "consume_vermin": {
+          const consumed = room.enemies.filter(
+            (e) =>
+              e.uid !== enemy.uid &&
+              (e.typeId === "rat" || e.typeId === "gutborn_larva"),
+          );
+          if (consumed.length > 0) {
+            room.enemies = room.enemies.filter(
+              (e) =>
+                e.uid === enemy.uid ||
+                (e.typeId !== "rat" && e.typeId !== "gutborn_larva"),
+            );
+            aiLog.push({
+              text: "...silence falls.",
+              debugText: `🧛 [AI] ${enemy.typeId} (${enemy.uid}) consumed ${consumed.length} vermin in ${room.label}`,
+              volume: "quiet",
+              roomId: room.id,
+            });
+          }
+          break;
+        }
+        case "loot_room": {
+          if (!room.props) break;
+          const existing = new Set(room.looted ?? []);
+          const lootable = room.props
+            .filter((p) => !existing.has(p.id))
+            .filter((p) => !room.propStates?.[p.id]?.consumed)
+            .filter((p) =>
+              p.actions?.some((a) =>
+                a.effects.some(
+                  (e) =>
+                    e.type === "grant_salt" ||
+                    e.type === "grant_consumable" ||
+                    e.type === "grant_weapon",
+                ),
+              ),
+            )
+            .map((p) => p.id);
+          if (lootable.length > 0) {
+            room.looted = [...(room.looted ?? []), ...lootable];
+            aiLog.push({
+              text: "Greedy hands at work in the dark",
+              debugText: `🕵️ [AI] ${enemy.typeId} (${enemy.uid}) looted ${lootable.length} props in ${room.label}`,
+              volume: "quiet",
+              roomId: room.id,
+            });
           }
           break;
         }
@@ -563,13 +700,134 @@ export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "mov
       const mechanics = etype?.outOfCombatMechanics;
       if (!mechanics) continue;
 
-      const ctx: AreaAIContext = { rooms, currentRoomId, room, neighbours, noise, byId };
+      const ctx: AreaAIContext = {
+        rooms, currentRoomId, room, neighbours, noise, byId, playerHp, playerMaxHp,
+      };
       const actions = mechanics.onTick(enemy, ctx);
       executeAreaActions(actions, enemy, room, neighbours, mechanics);
     }
   });
 
+  propagateEnvironment(rooms);
+
   return { newArea: rooms, aiLog, arrivedInPlayerRoom };
+}
+
+/* ── Environmental effect propagation ── */
+
+function propagateEnvironment(rooms: AreaNode[]) {
+  const byId = (id: string) => rooms.find((r) => r.id === id);
+
+  for (const room of rooms) {
+    if (room.ratInfested !== undefined) {
+      room.ratInfested -= 1;
+      if (room.ratInfested <= 0) room.ratInfested = undefined;
+    }
+    if (room.stench !== undefined) {
+      room.stench -= 1;
+      if (room.stench <= 0) room.stench = undefined;
+    }
+    if (room.coldZone !== undefined) {
+      room.coldZone -= 1;
+      if (room.coldZone <= 0) room.coldZone = undefined;
+    }
+    if (room.shadowDarkness !== undefined) {
+      room.shadowDarkness -= 1;
+      if (room.shadowDarkness <= 0) room.shadowDarkness = undefined;
+    }
+    if (room.tracks !== undefined) {
+      room.tracks -= 1;
+      if (room.tracks <= 0) room.tracks = undefined;
+    }
+    if (room.saltCrystals !== undefined) {
+      room.saltCrystals -= 1;
+      if (room.saltCrystals <= 0) room.saltCrystals = undefined;
+    }
+    if (room.infested !== undefined) {
+      room.infested -= 1;
+      if (room.infested <= 0) room.infested = undefined;
+    }
+
+    room.wailZone = undefined;
+    room.commanded = undefined;
+  }
+
+  for (const room of rooms) {
+    for (const enemy of room.enemies) {
+      switch (enemy.typeId) {
+        case "ghost": {
+          room.coldZone = Math.max(room.coldZone ?? 0, DECAY_COLD_ZONE);
+          for (const nid of room.connections) {
+            const n = byId(nid);
+            if (n) {
+              n.coldZone = Math.max(n.coldZone ?? 0, DECAY_COLD_ZONE);
+            }
+          }
+          break;
+        }
+        case "shadow": {
+          room.shadowDarkness = Math.max(room.shadowDarkness ?? 0, DECAY_SHADOW_DARKNESS);
+          for (const nid of room.connections) {
+            const n = byId(nid);
+            if (n) {
+              n.shadowDarkness = Math.max(n.shadowDarkness ?? 0, DECAY_SHADOW_DARKNESS);
+            }
+          }
+          break;
+        }
+        case "banshee": {
+          const dist = roomDistances(rooms, room.id);
+          for (const [rid, d] of dist) {
+            if (d <= ZONE_WAIL_RADIUS) {
+              const r = byId(rid);
+              if (r) r.wailZone = true;
+            }
+          }
+          break;
+        }
+        case "necromancer": {
+          const dist = roomDistances(rooms, room.id);
+          for (const [rid, d] of dist) {
+            if (d <= ZONE_COMMAND_RADIUS) {
+              const r = byId(rid);
+              if (r) r.commanded = true;
+            }
+          }
+          break;
+        }
+        case "salt_revenant": {
+          room.saltCrystals = Math.max(room.saltCrystals ?? 0, DECAY_SALT_CRYSTALS);
+          break;
+        }
+      }
+    }
+
+    if (
+      room.enemies.some(
+        (e) => e.typeId === "rat" && (e.turnsInRoom ?? 0) >= OCCUPATION_THRESHOLD_RAT,
+      )
+    ) {
+      room.ratInfested = Math.max(room.ratInfested ?? 0, DECAY_RAT_INFESTATION);
+    }
+
+    if (
+      room.enemies.some(
+        (e) => e.typeId === "zombie" && (e.turnsInRoom ?? 0) >= OCCUPATION_THRESHOLD_ZOMBIE,
+      )
+    ) {
+      room.stench = Math.max(room.stench ?? 0, DECAY_STENCH);
+    }
+
+    if (
+      room.enemies.some(
+        (e) =>
+          e.typeId === "gutborn_larva" && (e.turnsInRoom ?? 0) >= OCCUPATION_THRESHOLD_LARVA,
+      ) &&
+      Object.keys(room.corpses).length > 0
+    ) {
+      room.infested = Math.max(room.infested ?? 0, DECAY_INFESTATION);
+    }
+  }
 }
 
 export function getScoutIntel(room: AreaNode, scoutLevel: number): string {

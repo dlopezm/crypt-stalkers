@@ -229,6 +229,36 @@ export function AreaMap({
             {"\u{1F5E1}\uFE0F"} {player.mainWeapon.name}
           </span>
         </div>
+        {(() => {
+          const visited = area.filter((n) => n.state === "visited").length;
+          const total = area.length;
+          const pct = Math.round((visited / total) * 100);
+          return (
+            <div className="flex items-center gap-2 text-xs text-crypt-dim">
+              <div
+                style={{
+                  width: "60px",
+                  height: "4px",
+                  background: "#1a1510",
+                  borderRadius: "2px",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${pct}%`,
+                    height: "100%",
+                    background: "#c8982a",
+                    transition: "width 0.3s",
+                  }}
+                />
+              </div>
+              <span>
+                {visited}/{total}
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       <div
@@ -284,6 +314,8 @@ export function AreaMap({
             scoutLevel={scoutLevel}
             scoutResult={scoutResult}
             player={player}
+            areaLog={areaLog}
+            currentTurn={areaTurn}
             onEnterRoom={handleEnterRoom}
             onScout={handleScout}
             onSetTrap={handleSetTrap}

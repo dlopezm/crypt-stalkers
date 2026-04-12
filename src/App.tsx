@@ -27,7 +27,7 @@ import {
   updatePropState,
 } from "./store/areaSlice";
 import { canPerformAction, evaluateEffects } from "./utils/props";
-import { startCombat, clearCombat } from "./store/combatSlice";
+import { startCombat, clearCombat, clearDeathContext } from "./store/combatSlice";
 import { toggleDebugMode, toggleShowDebug, setShowDebug } from "./store/debugSlice";
 import { saveRoomCheckpoint, saveAreaCheckpoint, type Checkpoint } from "./store/checkpointSlice";
 import { tickAI as tickAIThunk } from "./store/thunks";
@@ -46,6 +46,7 @@ export default function App() {
   const debugMode = useAppSelector((s) => s.debug.debugMode);
   const showDebug = useAppSelector((s) => s.debug.showDebug);
   const combatKey = useAppSelector((s) => s.combat.combatKey);
+  const deathContext = useAppSelector((s) => s.combat.deathContext);
   const roomCheckpoint = useAppSelector((s) => s.checkpoint.room);
   const areaCheckpoint = useAppSelector((s) => s.checkpoint.area);
   const visitedAreas = useAppSelector((s) => s.area.visitedAreas);
@@ -449,6 +450,7 @@ export default function App() {
           visitedAreas: cp.visitedAreas,
         }),
       );
+      dispatch(clearDeathContext());
       dispatch(clearCombat());
       dispatch(setScreen("map"));
     }
@@ -457,6 +459,7 @@ export default function App() {
       <GameOverScreen
         onRetryRoom={roomCheckpoint ? () => restoreCheckpoint(roomCheckpoint) : undefined}
         onRetryArea={areaCheckpoint ? () => restoreCheckpoint(areaCheckpoint) : undefined}
+        deathEnemyIds={deathContext?.enemyIds}
       />
     );
   }
