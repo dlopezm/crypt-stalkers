@@ -50,7 +50,7 @@ export function AreaMap({
   onToggleDebug: () => void;
   onReturnToTown: () => void;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(currentRoomId);
   const [scoutResult, setScoutResult] = useState<string | null>(null);
   const [scoutLevel, setScoutLevel] = useState(0);
   const [showWeaponPicker, setShowWeaponPicker] = useState(false);
@@ -169,7 +169,7 @@ export function AreaMap({
 
   function handleEnterRoom(id: string) {
     onEnterRoom(id);
-    setSelected(null);
+    setSelected(id);
   }
 
   function handleSetTrap(id: string, trap: string) {
