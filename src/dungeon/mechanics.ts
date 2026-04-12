@@ -114,9 +114,7 @@ export const skeletonDungeonMechanics: OutOfCombatMechanics = {
 
 export const zombieDungeonMechanics: OutOfCombatMechanics = {
   onTick(self, ctx) {
-    const necroAlive = ctx.rooms.some((r) =>
-      r.enemies.some((e) => e.typeId === "necromancer"),
-    );
+    const necroAlive = ctx.rooms.some((r) => r.enemies.some((e) => e.typeId === "necromancer"));
 
     if (!necroAlive) {
       return [];
@@ -209,9 +207,7 @@ export const vampireDungeonMechanics: OutOfCombatMechanics = {
     }
 
     const hpRatio =
-      ctx.playerHp !== undefined && ctx.playerMaxHp
-        ? ctx.playerHp / ctx.playerMaxHp
-        : 1;
+      ctx.playerHp !== undefined && ctx.playerMaxHp ? ctx.playerHp / ctx.playerMaxHp : 1;
 
     if (hpRatio > VAMPIRE_AVOID_HP_RATIO) {
       actions.push({ type: "move_away_from_player", reason: "avoiding strong prey" });
@@ -282,10 +278,7 @@ const RITUAL_START_TEXTS = [
   "A necromantic drone rises, then falls, then rises again",
 ] as const;
 
-const RITUAL_TICK_TEXTS = [
-  "The chanting intensifies",
-  "Dark energies coil and tighten",
-] as const;
+const RITUAL_TICK_TEXTS = ["The chanting intensifies", "Dark energies coil and tighten"] as const;
 
 export const necromancerDungeonMechanics: OutOfCombatMechanics = {
   onTick(_self, ctx) {

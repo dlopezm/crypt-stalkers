@@ -94,7 +94,9 @@ export function GameOverScreen({
 
         {hints.length > 0 && (
           <div className="mb-4 text-left border-t border-crypt-muted/20 pt-3">
-            <p className="text-crypt-gold text-xs uppercase tracking-widest mb-2">From the grave, a whisper:</p>
+            <p className="text-crypt-gold text-xs uppercase tracking-widest mb-2">
+              From the grave, a whisper:
+            </p>
             {hints.map((hint, i) => (
               <p key={i} className="text-crypt-muted text-sm italic mb-1">
                 {hint}

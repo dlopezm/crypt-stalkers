@@ -55,10 +55,10 @@ const combatSlice = createSlice({
         Partial<Pick<CombatState, "enemies" | "combatPlayer" | "lightLevel" | "combatLog">>
       >,
     ) => ({ ...state, ...action.payload }),
-    setDeathContext: (
-      state,
-      action: PayloadAction<DeathContext>,
-    ) => ({ ...state, deathContext: action.payload }),
+    setDeathContext: (state, action: PayloadAction<DeathContext>) => ({
+      ...state,
+      deathContext: action.payload,
+    }),
     clearDeathContext: (state) => {
       const { deathContext: _, ...rest } = state;
       return rest;
@@ -71,5 +71,6 @@ const combatSlice = createSlice({
   },
 });
 
-export const { startCombat, updateCombatState, setDeathContext, clearDeathContext, clearCombat } = combatSlice.actions;
+export const { startCombat, updateCombatState, setDeathContext, clearDeathContext, clearCombat } =
+  combatSlice.actions;
 export default combatSlice.reducer;

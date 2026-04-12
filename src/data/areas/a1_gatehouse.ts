@@ -53,7 +53,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
         id: "dead_robber_pack",
         label: "Corpse by the Threshold",
         icon: "\u{1F480}",
-        desc: "Bent wrong, skull caved - patrol work, not age. His pack burst on the flags: waxed torches, charcoal scrawl on scraped hide - the upper tunnels sketched quick, X's where he was afraid, circles where he thought treasure sat. Fifteen coins weight the belt pouch; he never spent them.",
+        desc: "Bent wrong, skull caved - patrol work, not age. His pack burst on the flags: waxed torches, charcoal scrawl on scraped hide - the upper tunnels sketched quick, X's where he was afraid, circles where he thought treasure sat. Salt crystals weight the belt pouch; he never spent them.",
         gridPosition: { row: 9, col: 5 },
         actions: [
           {
@@ -69,7 +69,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Fifteen coins, two torches, and another man's map of your inheritance. He died closer to the mouth than you did.",
+                  "Salt, two torches, and another man's map of your inheritance. He died closer to the mouth than you did.",
               },
             ],
           },
@@ -171,21 +171,21 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
         ],
       },
       {
-        id: "record_room_gold",
-        label: "Clerk's Purse",
+        id: "record_room_salt",
+        label: "Clerk's Salt Pouch",
         icon: "\u{1FA99}",
-        desc: "Leather pouch kicked under a leg, stiff with mildew on the outside, dry within. Six coins click together when you lift it.",
+        desc: "Leather pouch kicked under a desk leg, stiff with mildew on the outside, dry within. Six salt crystals, each wrapped in waxed paper - the clerk's emergency supply.",
         gridPosition: { row: 5, col: 12 },
         actions: [
           {
             id: "take",
-            label: "Empty the purse",
+            label: "Empty the pouch",
             effects: [
               { type: "grant_salt", amount: 6 },
               { type: "consume_prop" },
               {
                 type: "log",
-                message: "Six pieces. Small theft forgotten in a room full of bigger ones.",
+                message: "Six crystals. Small theft forgotten in a room full of bigger ones.",
               },
             ],
           },
@@ -227,7 +227,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
     hint: "steps fall toward iron rails and the rough cut your people made first.",
     description: "Steps down to iron rails and the rough first cut of the mine.",
     enemies: [],
-    exit: { toAreaId: "a1_mine_mouth", toRoomGridId: 2 },
+    exit: { toAreaId: "a1_mine_mouth", toRoomGridId: 3 },
   },
 };
 

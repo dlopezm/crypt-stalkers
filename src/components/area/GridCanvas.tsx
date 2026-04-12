@@ -693,9 +693,10 @@ export function GridCanvas({
           const val = node[eff.field];
           if (val === undefined || val === false || val === 0 || val === null) continue;
           const [er, eg, eb, baseA] = eff.tint;
-          const a = typeof val === "number" && eff.field === "shadowDarkness"
-            ? Math.min(0.4, val * baseA)
-            : baseA;
+          const a =
+            typeof val === "number" && eff.field === "shadowDarkness"
+              ? Math.min(0.4, val * baseA)
+              : baseA;
           ctx.fillStyle = `rgba(${er},${eg},${eb},${a})`;
           ctx.fillRect(x, y, R_CELL, R_CELL);
         }

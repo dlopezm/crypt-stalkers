@@ -19,7 +19,11 @@ export function tickAI(currentArea: AreaNode[], roomId: string, action: string) 
     const turn = getState().area.areaTurn;
     const player = getState().player;
     const { newArea, aiLog, arrivedInPlayerRoom } = runAreaAI(
-      currentArea, roomId, action, player?.hp, player?.maxHp,
+      currentArea,
+      roomId,
+      action,
+      player?.hp,
+      player?.maxHp,
     );
     dispatch(incrementTurn());
 
@@ -51,7 +55,13 @@ export function tickAI(currentArea: AreaNode[], roomId: string, action: string) 
           const d2 = e.toRoomId ? (dist.get(e.toRoomId) ?? Infinity) : Infinity;
           const closestRoom = d2 < d1 ? e.toRoomId! : e.roomId;
           const approaching = e.toRoomId !== undefined && d2 < d1;
-          return { turn, text: e.text, source: "monster" as const, roomId: closestRoom, approaching };
+          return {
+            turn,
+            text: e.text,
+            source: "monster" as const,
+            roomId: closestRoom,
+            approaching,
+          };
         });
         dispatch(addLogEntries({ entries: audibleEntries }));
       }

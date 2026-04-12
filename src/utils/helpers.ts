@@ -1,4 +1,5 @@
 import { WEAPONS, STARTER_WEAPON_ID } from "../data/weapons";
+import { CONSUMABLES, STARTER_CONSUMABLE_IDS } from "../data/consumables";
 import { ENEMY_TYPES } from "../data/enemies";
 import { PLAYER_START_HP, PLAYER_START_SALT, NECRO_SUMMON_COOLDOWN } from "../data/constants";
 import type { Enemy, EnemyData, Player, Statuses } from "../types";
@@ -73,7 +74,9 @@ export function makeStarterPlayer(): Player {
     mainWeapon: starterWeapon,
     offhandWeapon: null,
     ownedWeapons: [starterWeapon],
-    consumables: [],
+    consumables: STARTER_CONSUMABLE_IDS.map((id) => ({
+      ...CONSUMABLES.find((c) => c.id === id)!,
+    })),
     abilities: [],
     flags: {},
   };

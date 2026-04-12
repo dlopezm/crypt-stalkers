@@ -197,12 +197,14 @@ export function RoomPanel({
         </p>
       )}
 
-      {adjacentIds.has(node.id) && node.id !== currentRoomId && (() => {
-        const isScouted = node.scouted || node.state === "visited";
-        const threats = isScouted ? buildThreatSummary(node) : [];
-        const warnings = getApproachWarnings(areaLog, currentTurn);
-        return <ThreatPanel threats={threats} approachWarnings={warnings} />;
-      })()}
+      {adjacentIds.has(node.id) &&
+        node.id !== currentRoomId &&
+        (() => {
+          const isScouted = node.scouted || node.state === "visited";
+          const threats = isScouted ? buildThreatSummary(node) : [];
+          const warnings = getApproachWarnings(areaLog, currentTurn);
+          return <ThreatPanel threats={threats} approachWarnings={warnings} />;
+        })()}
 
       {node.id === currentRoomId &&
         (() => {

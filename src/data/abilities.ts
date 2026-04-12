@@ -207,6 +207,38 @@ const hook: Ability = {
 };
 
 /* ═══════════════════════════════════════════════════════
+   Mining Pick abilities
+   ═══════════════════════════════════════════════════════ */
+
+const crackBone: Ability = {
+  id: "crack_bone",
+  name: "Crack Bone",
+  icon: "\u26CF\uFE0F",
+  desc: "Focused blow. Stuns target for 1 turn.",
+  source: { type: "weapon", weaponId: "mining_pick" },
+  cooldown: 3,
+  needsTarget: true,
+  reach: "melee",
+  execute(ctx, targets) {
+    if (blindMiss(ctx)) {
+      return [
+        { type: "log", message: `\u{1F441}\uFE0F Blinded \u2014 miss!` },
+        { type: "end_turn" },
+      ];
+    }
+    const t = ctx.enemies[targets[0]];
+    if (!t || t.hp <= 0) return [{ type: "end_turn" }];
+    const dmg = weaponDmg(ctx);
+    return [
+      { type: "log", message: `\u26CF\uFE0F Crack Bone!` },
+      { type: "damage_enemy", targetUid: t.uid, amount: dmg, damageType: ctx.weapon.damageType },
+      { type: "apply_status_enemy", targetUid: t.uid, status: "stun", stacks: 1 },
+      { type: "end_turn" },
+    ];
+  },
+};
+
+/* ═══════════════════════════════════════════════════════
    Warhammer abilities
    ═══════════════════════════════════════════════════════ */
 
@@ -650,6 +682,8 @@ export const ABILITIES: Ability[] = [
   // Spear
   runThrough,
   hook,
+  // Mining Pick
+  crackBone,
   // Warhammer
   chargingBlow,
   groundSlam,

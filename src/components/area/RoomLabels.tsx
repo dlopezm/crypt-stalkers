@@ -260,10 +260,11 @@ export function RoomLabels({
                   if (!tile) return null;
                   const leftPct = ((tile.col + 0.5) / gridWidth) * 100;
                   const topPct = ((tile.row + 0.5) / gridHeight) * 100;
+                  const hasAction = !!(p.actions?.length || p.onExamine);
                   return (
                     <div
                       key={`${n.id}-prop-${p.id}`}
-                      title={p.label}
+                      title={`${p.label}${hasAction ? " \u2014 click to interact" : ""}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onExaminePropOnMap(n.id, p.id);
@@ -277,6 +278,7 @@ export function RoomLabels({
                         zIndex: 5,
                         pointerEvents: "auto",
                         cursor: "pointer",
+                        padding: "4px",
                         textShadow: "0 0 6px #000, 0 0 10px #000",
                         filter: "drop-shadow(0 0 3px rgba(255,220,120,0.5))",
                       }}

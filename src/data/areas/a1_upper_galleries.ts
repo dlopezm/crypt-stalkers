@@ -47,10 +47,11 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "green light tubes the ceiling like veins. iron shines slick and false; your shadow looks thin.",
     description:
       "Corridor opens wide - cracked plaster over older stone, green coldfire strips along the vault. Iron picks up the green glow. Footsteps echo; sometimes a faint buzz from the salt on the deep-facing walls.",
-    enemies: ["skeleton", "skeleton"],
+    enemies: ["skeleton"],
     isStart: true,
     notes:
       "R12. Era 1 + Era 2 plaster + Era 3 coldfire. COLDFIRE lit - NO PROTECTION vs true-light-sensitive threats. " +
+      "Single skeleton - player's FIRST skeleton fight. With axe: hard win (~21 HP cost). With dagger only: death (teaches 'get better gear'). " +
       "Patrol route: R12→R15→R17→R15→R12 (perpetual loop). " +
       "Core traffic; noise/light here pulls skeletons from adjacent rooms. " +
       "Deeper-facing walls carry wrong warmth and almost-tone in the salt - What Lies Below seed.",
@@ -63,7 +64,9 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     enemies: ["rat", "rat", "rat", "rat"],
     notes:
       "R13. Era 1. DARK. Dead end. " +
-      "Dark reward lane; clearing nests ties to rat breeding rules.",
+      "Dark reward lane; clearing nests ties to rat breeding rules. " +
+      "MINING PICK here - earned through dead-end exploration in skeleton territory. " +
+      "Connects bone lesson (R6 dead miner) to tool (pick) to test (skeletons in R15+).",
     props: [
       {
         id: "miner_graffiti",
@@ -88,7 +91,29 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
               {
                 type: "log",
                 message:
-                  "Ten coins in a dented lunch tin, wrapped in oilcloth. Whoever left it believed more in hiding than in saints.",
+                  "Ten salt crystals in a dented lunch tin, wrapped in oilcloth. Whoever left them believed more in hiding than in saints.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "abandoned_pick",
+        label: "Lodged Mining Pick",
+        icon: "\u26CF\uFE0F",
+        desc: "Iron head buried in the rock face where a miner was working the seam. The ash handle is cracked but holds. Heavy head, short swing - a tool for breaking rock. The miner who left it didn't plan on fighting bone. But rock and bone break the same way.",
+        gridPosition: { row: 6, col: 10 },
+        actions: [
+          {
+            id: "take",
+            label: "Wrench it free",
+            effects: [
+              { type: "grant_weapon", weaponId: "mining_pick" },
+              { type: "set_flag", flag: "has_blunt" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message: "Weight for weight, this will do what your edge can't.",
               },
             ],
           },

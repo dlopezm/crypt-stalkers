@@ -203,13 +203,10 @@ export default function App() {
       addLog([`\u{1F6AA} Stepped through to ${room.label}`], "player");
       // Build fresh area data; switchArea reducer will use it only if not already visited.
       const { nodes: freshNodes, grid: freshGrid } = generateArea(targetDef);
-      const targetNode = freshNodes.find((n) => n.gridRoomId === room.exit!.toRoomGridId);
-      const targetRoomId = targetNode?.id;
-      if (!targetRoomId) return;
       dispatch(
         switchArea({
           toAreaId: targetDef.id,
-          targetRoomId,
+          targetGridRoomId: room.exit!.toRoomGridId,
           fresh: { area: freshNodes, grid: freshGrid, def: targetDef },
         }),
       );

@@ -80,7 +80,7 @@ const areaSlice = createSlice({
       state,
       action: PayloadAction<{
         toAreaId: string;
-        targetRoomId: string;
+        targetGridRoomId: number;
         fresh: {
           area: AreaNode[];
           grid: AreaGrid;
@@ -88,7 +88,7 @@ const areaSlice = createSlice({
         };
       }>,
     ) => {
-      const { toAreaId, targetRoomId, fresh } = action.payload;
+      const { toAreaId, targetGridRoomId, fresh } = action.payload;
 
       // Snapshot the currently active area, if any
       if (state.area && state.areaGrid && state.areaDef && state.currentRoomId) {
@@ -117,10 +117,13 @@ const areaSlice = createSlice({
         state.areaLog = [];
         state.areaTurn = 0;
       }
-      state.currentRoomId = targetRoomId;
+
+      // Resolve target room ID from whichever node set is active
+      const targetRoomId = state.area?.find((n) => n.gridRoomId === targetGridRoomId)?.id;
+      state.currentRoomId = targetRoomId ?? null;
 
       // Mark the target room visited and unlock its neighbors
-      if (state.area) {
+      if (state.area && targetRoomId) {
         state.area = state.area.map((n) => {
           if (n.id === targetRoomId) return { ...n, state: "visited" as const };
           return n;

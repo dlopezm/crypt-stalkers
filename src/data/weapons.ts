@@ -24,6 +24,17 @@ export const WEAPONS: Weapon[] = [
     cost: 30,
   },
   {
+    id: "mining_pick",
+    name: "Mining Pick",
+    damage: 5,
+    damageType: "bludgeoning",
+    hand: "1",
+    reach: "melee",
+    icon: "\u26CF\uFE0F",
+    desc: "Heavy head, short swing. 5 bludgeoning damage.",
+    cost: 0,
+  },
+  {
     id: "shield",
     name: "Shield",
     damage: 0,

@@ -46,7 +46,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "front",
     combatMechanics: ratMechanics,
     outOfCombatMechanics: ratDungeonMechanics,
-    deathHint: "Rats swarm in numbers. Kill them fast before they breed \u2014 fire and area attacks thin the pack.",
+    deathHint:
+      "Rats swarm in numbers. Kill them fast before they breed \u2014 fire and area attacks thin the pack.",
     movement: "Frequent, random",
     seesInDark: false,
     reactsToLight: "No",
@@ -66,7 +67,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     vulnerabilities: { bludgeoning: 1.5 },
     combatMechanics: skeletonMechanics,
     outOfCombatMechanics: skeletonDungeonMechanics,
-    deathHint: "Skeletons reassemble after death. Use bludgeoning weapons to shatter them for good.",
+    deathHint:
+      "Skeletons reassemble after death. Use bludgeoning weapons to shatter them for good.",
     movement: "Scouts the dungeon",
     seesInDark: true,
     reactsToLight: "Investigates",
@@ -84,7 +86,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "front",
     combatMechanics: zombieMechanics,
     outOfCombatMechanics: zombieDungeonMechanics,
-    deathHint: "Zombies are slow but relentless. Kill the necromancer commanding them and they'll stop advancing.",
+    deathHint:
+      "Zombies are slow but relentless. Kill the necromancer commanding them and they'll stop advancing.",
     movement: "Goes where master commands; returns to master if under attack",
     seesInDark: false,
     reactsToLight: "Ignores",
@@ -104,7 +107,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     resistances: { slash: 0.5, pierce: 0.5 },
     combatMechanics: ghostMechanics,
     outOfCombatMechanics: ghostDungeonMechanics,
-    deathHint: "Ghosts phase through physical attacks. Use holy water or wait for them to manifest \u2014 they can't dodge while attacking.",
+    deathHint:
+      "Ghosts phase through physical attacks. Use holy water or wait for them to manifest \u2014 they can't dodge while attacking.",
     movement: "No",
     seesInDark: true,
     reactsToLight: "No",
@@ -122,7 +126,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "front",
     combatMechanics: vampireMechanics,
     outOfCombatMechanics: vampireDungeonMechanics,
-    deathHint: "Vampires heal by draining your blood. Keep your HP high \u2014 they retreat when you're strong and strike when you're weak.",
+    deathHint:
+      "Vampires heal by draining your blood. Keep your HP high \u2014 they retreat when you're strong and strike when you're weak.",
     seesInDark: true,
     corporeal: true,
   },
@@ -137,7 +142,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "back",
     combatMechanics: bansheeMechanics,
     outOfCombatMechanics: bansheeDungeonMechanics,
-    deathHint: "Banshees deafen everything nearby, masking other sounds. Approach cautiously \u2014 you won't hear what else lurks in wail zones.",
+    deathHint:
+      "Banshees deafen everything nearby, masking other sounds. Approach cautiously \u2014 you won't hear what else lurks in wail zones.",
     movement: "Occasional, random",
     seesInDark: true,
     reactsToLight: "No",
@@ -155,7 +161,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "back",
     combatMechanics: necromancerMechanics,
     outOfCombatMechanics: necromancerDungeonMechanics,
-    deathHint: "Necromancers are frail but dangerous. They resurrect the dead and command undead troops. Prioritize them in combat.",
+    deathHint:
+      "Necromancers are frail but dangerous. They resurrect the dead and command undead troops. Prioritize them in combat.",
     movement: "Stationary",
     seesInDark: false,
     reactsToLight: "Carries light; sends zombies to investigate",
@@ -173,7 +180,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "front",
     combatMechanics: ghoulMechanics,
     outOfCombatMechanics: ghoulDungeonMechanics,
-    deathHint: "Ghouls hide in dark rooms and ambush. Carry light to prevent surprise attacks \u2014 they flee from illumination.",
+    deathHint:
+      "Ghouls hide in dark rooms and ambush. Carry light to prevent surprise attacks \u2014 they flee from illumination.",
     movement: "Tends to hide, or moves to ambush if detecting victims",
     seesInDark: true,
     reactsToLight: "Moves away to hide",
@@ -191,7 +199,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "front",
     combatMechanics: shadowMechanics,
     outOfCombatMechanics: shadowDungeonMechanics,
-    deathHint: "Shadows spread darkness to adjacent rooms and drain your light. Keep backup light sources ready.",
+    deathHint:
+      "Shadows spread darkness to adjacent rooms and drain your light. Keep backup light sources ready.",
     seesInDark: true,
     corporeal: false,
     onClosedDoors: "Goes through",
@@ -222,7 +231,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "front",
     combatMechanics: { selectIntent: selectGraveRobberIntent },
     outOfCombatMechanics: graveRobberDungeonMechanics,
-    deathHint: "Grave robbers flee combat and steal dungeon resources. Corner them \u2014 they can't fight, but what they stole drops on death.",
+    deathHint:
+      "Grave robbers flee combat and steal dungeon resources. Corner them \u2014 they can't fight, but what they stole drops on death.",
     movement: "Away from any perceived danger, towards the exit",
     seesInDark: false,
     reactsToLight: "Carries it, evades other lights",
@@ -240,7 +250,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "front",
     combatMechanics: { selectIntent: selectGutbornLarvaIntent },
     outOfCombatMechanics: gutbornLarvaDungeonMechanics,
-    deathHint: "Larvae are fragile but infest corpses. Clear bodies from rooms or they'll multiply into something worse.",
+    deathHint:
+      "Larvae are fragile but infest corpses. Clear bodies from rooms or they'll multiply into something worse.",
     movement: "Towards any sign of life, to find a host",
     seesInDark: false,
     reactsToLight: "Flees",
@@ -263,7 +274,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     vulnerabilities: { bludgeoning: 1.5 },
     combatMechanics: boneguardMechanics,
     outOfCombatMechanics: boneguardDungeonMechanics,
-    deathHint: "Boneguards resist slashing and piercing. Use bludgeoning weapons \u2014 they're stationed sentinels, so you can plan your approach.",
+    deathHint:
+      "Boneguards resist slashing and piercing. Use bludgeoning weapons \u2014 they're stationed sentinels, so you can plan your approach.",
     movement: "Slow, stationary sentinel",
     seesInDark: true,
     reactsToLight: "Investigates",
@@ -282,7 +294,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     vulnerabilities: { bludgeoning: 1.5 },
     combatMechanics: boneHoundMechanics,
     outOfCombatMechanics: boneHoundDungeonMechanics,
-    deathHint: "Bone hounds track you by sound. Move quietly or they'll hunt you down. Bludgeoning shatters their skeletal frames.",
+    deathHint:
+      "Bone hounds track you by sound. Move quietly or they'll hunt you down. Bludgeoning shatters their skeletal frames.",
     movement: "Fast, tracks player",
     seesInDark: true,
     reactsToLight: "Investigates",
@@ -302,7 +315,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     vulnerabilities: { bludgeoning: 1.5 },
     combatMechanics: saltRevenantMechanics,
     outOfCombatMechanics: saltRevenantDungeonMechanics,
-    deathHint: "Salt revenants grapple and hold you in place. Break free quickly \u2014 they're territorial and won't chase far from their domain.",
+    deathHint:
+      "Salt revenants grapple and hold you in place. Break free quickly \u2014 they're territorial and won't chase far from their domain.",
     movement: "Slow, territorial",
     seesInDark: false,
     reactsToLight: "Ignores",
@@ -324,7 +338,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     resistances: { pierce: 0.75 },
     vulnerabilities: { bludgeoning: 1.25 },
     combatMechanics: skeletonMechanics,
-    deathHint: "The Skeleton Lord is heavily armored against piercing. Bring your heaviest bludgeoning weapon.",
+    deathHint:
+      "The Skeleton Lord is heavily armored against piercing. Bring your heaviest bludgeoning weapon.",
   },
   {
     id: "boss_vampire_lord",
@@ -337,7 +352,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     isBoss: true,
     defaultRow: "front",
     combatMechanics: vampireMechanics,
-    deathHint: "The Vampire Lord heals relentlessly. Burst damage and anti-heal items are essential.",
+    deathHint:
+      "The Vampire Lord heals relentlessly. Burst damage and anti-heal items are essential.",
   },
   {
     id: "boss_lich",
@@ -350,7 +366,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     isBoss: true,
     defaultRow: "back",
     combatMechanics: lichMechanics,
-    deathHint: "The Lich King commands all undead. Surviving his onslaught requires mastering every lesson the dungeon taught you.",
+    deathHint:
+      "The Lich King commands all undead. Surviving his onslaught requires mastering every lesson the dungeon taught you.",
     movement: "Static",
     seesInDark: true,
   },

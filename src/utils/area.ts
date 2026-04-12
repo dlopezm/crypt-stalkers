@@ -539,9 +539,7 @@ export function runAreaAI(
           if (farther.length > 0) {
             moved = moveEnemy(enemy, room, farther[0], action.reason, mechanics);
           } else {
-            const away = neighbours.find(
-              (n) => n.id !== currentRoomId && n.state !== "visited",
-            );
+            const away = neighbours.find((n) => n.id !== currentRoomId && n.state !== "visited");
             if (away) {
               moved = moveEnemy(enemy, room, away, action.reason, mechanics);
             }
@@ -633,15 +631,11 @@ export function runAreaAI(
         }
         case "consume_vermin": {
           const consumed = room.enemies.filter(
-            (e) =>
-              e.uid !== enemy.uid &&
-              (e.typeId === "rat" || e.typeId === "gutborn_larva"),
+            (e) => e.uid !== enemy.uid && (e.typeId === "rat" || e.typeId === "gutborn_larva"),
           );
           if (consumed.length > 0) {
             room.enemies = room.enemies.filter(
-              (e) =>
-                e.uid === enemy.uid ||
-                (e.typeId !== "rat" && e.typeId !== "gutborn_larva"),
+              (e) => e.uid === enemy.uid || (e.typeId !== "rat" && e.typeId !== "gutborn_larva"),
             );
             aiLog.push({
               text: "...silence falls.",
@@ -701,7 +695,14 @@ export function runAreaAI(
       if (!mechanics) continue;
 
       const ctx: AreaAIContext = {
-        rooms, currentRoomId, room, neighbours, noise, byId, playerHp, playerMaxHp,
+        rooms,
+        currentRoomId,
+        room,
+        neighbours,
+        noise,
+        byId,
+        playerHp,
+        playerMaxHp,
       };
       const actions = mechanics.onTick(enemy, ctx);
       executeAreaActions(actions, enemy, room, neighbours, mechanics);
@@ -820,8 +821,7 @@ function propagateEnvironment(rooms: AreaNode[]) {
 
     if (
       room.enemies.some(
-        (e) =>
-          e.typeId === "gutborn_larva" && (e.turnsInRoom ?? 0) >= OCCUPATION_THRESHOLD_LARVA,
+        (e) => e.typeId === "gutborn_larva" && (e.turnsInRoom ?? 0) >= OCCUPATION_THRESHOLD_LARVA,
       ) &&
       Object.keys(room.corpses).length > 0
     ) {

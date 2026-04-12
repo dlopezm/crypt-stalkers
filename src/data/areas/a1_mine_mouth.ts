@@ -1,14 +1,17 @@
 import type { AuthoredRoom, AreaDef } from "../../types";
 
 /*
- * Area 1 - The Pale Approach - Mine Mouth (R1–R6)
+ * Area 1 - The Pale Approach - Mine Mouth (R1–R7)
  * Encoding: 1 = wall, 0 = corridor, integers >= 2 = room IDs.
  *
- * Connectivity (per design doc):
- *  exit8(gatehouse) ↔ R1 ↔ R2 ↔ R3(hub) ↔ R4
- *                  ↔ R5
- *                  ↔ R6 ↔ exit9(upper galleries)
+ * Connectivity:
+ *  R1(entrance) ↔ R2(weighing) ↔ exit8(gatehouse)
+ *                              ↔ R3(hub) ↔ R4(foreman) ↔ R7(map niche)
+ *                                        ↔ R5(vent)
+ *                                        ↔ R6(threshold) ↔ exit9(upper galleries)
  *
+ * Player must pass through R2 before reaching the Gatehouse exit.
+ * Foreman's Office (R4) split into Office + Map Niche (R7).
  * Each corridor segment is isolated (no shared 0-cell components)
  * so the room graph matches the design exactly.
  */
@@ -17,10 +20,10 @@ import type { AuthoredRoom, AreaDef } from "../../types";
 export const A1_MINE_MOUTH_GRID: number[][] = [
  // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 0
- [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 1, 1, 1, 1, 1], // 1 R4 Foreman's Office
- [ 1, 8, 8, 1, 1, 1, 1, 1, 1, 5, 5, 5, 1, 1, 1, 1, 1], // 2 exit8 (gatehouse)
- [ 1, 8, 8, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1], // 3 R3→R4 corridor
- [ 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1], // 4 exit8→R1 corridor
+ [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 0,10,10, 1, 1, 1], // 1 R4 Foreman + corridor + R7 Map Niche
+ [ 1, 1, 1, 1, 8, 8, 1, 1, 1, 5, 5, 1,10,10, 1, 1, 1], // 2 exit8 (gatehouse, moved) + R4 + R7
+ [ 1, 1, 1, 1, 8, 8, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1], // 3 exit8 + R3→R4 corridor
+ [ 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1], // 4 R2→exit8 corridor + R3→R4 corridor
  [ 1, 2, 2, 2, 0, 3, 3, 0, 4, 4, 4, 4, 0, 6, 6, 1, 1], // 5 R1→R2→R3(hub)→R5
  [ 1, 2, 2, 2, 1, 3, 3, 1, 4, 4, 4, 4, 1, 6, 6, 1, 1], // 6
  [ 1, 2, 2, 2, 1, 3, 3, 1, 4, 4, 4, 4, 1, 1, 1, 1, 1], // 7
@@ -89,10 +92,10 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
         ],
       },
       {
-        id: "scattered_coins",
-        label: "Coins in the Grit",
+        id: "loose_salt",
+        label: "Salt in the Grit",
         icon: "\u{1FA99}",
-        desc: "Five pieces kicked into the corner, dull silver, thick enough to feel real in the palm.",
+        desc: "Pink-white crystals kicked into the corner, sharp-edged and heavy. Worth scraping out.",
         gridPosition: { row: 7, col: 6 },
         actions: [
           {
@@ -103,7 +106,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
               { type: "consume_prop" },
               {
                 type: "log",
-                message: "Five coins. Small luck - unless someone meant to come back for them.",
+                message: "Five crystals. Small luck - unless someone meant to come back for them.",
               },
             ],
           },
@@ -130,22 +133,22 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 6, col: 9 },
       },
       {
-        id: "cart_depot_gold",
-        label: "Spill from a Split Box",
+        id: "spilled_salt",
+        label: "Salt from a Split Crate",
         icon: "\u{1FA99}",
-        desc: "Splinters of paymaster's wood and eight coins rolled between the wheels. Someone's accounting ended in a hurry.",
+        desc: "Rough-cut salt blocks tumbled between the wheels when the crate split. Still good - the crystal doesn't rot.",
         gridPosition: { row: 7, col: 10 },
         actions: [
           {
             id: "take",
-            label: "Collect the coins",
+            label: "Collect the salt",
             effects: [
               { type: "grant_salt", amount: 8 },
               { type: "consume_prop" },
               {
                 type: "log",
                 message:
-                  "Eight pieces. Enough to eat for a while - or to remind you what this place used to pay.",
+                  "Eight blocks. The mine's currency, older than coin and harder to counterfeit.",
               },
             ],
           },
@@ -155,13 +158,14 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
   },
   5: {
     label: "Foreman's Office",
-    hint: "a crooked portrait - eyes gouged, GREED hacked across the coat. paper stacks choke the desk like snowfall.",
+    hint: "a crooked portrait - eyes gouged, GREED hacked across the coat. paper stacks choke the desk.",
     description:
-      "Desk, shelf, and filing niche cut straight into the seam - one person's footprint, tight layout. Plaster peels in sheets; heavy dust, no oil or smoke. Small room: ledgers and maps, not space to pace.",
+      "Desk and shelf cut straight into the seam - one person's footprint, tight layout. Plaster peels in sheets; heavy dust, no oil or smoke. A portrait stares down from the wall.",
     enemies: [],
     notes:
       "R4. Era 1 + Era 2 vandalism. DIM. " +
-      "First proof the heir's prosperity had a line item paid in someone else's life.",
+      "First proof the heir's prosperity had a line item paid in someone else's life. " +
+      "Connected to Map Niche (R7) through a cut in the rock.",
     props: [
       {
         id: "baron_portrait",
@@ -175,7 +179,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
         label: "Stack of Indentures",
         icon: "\u{1F4DC}",
         desc: "Paper that smells of ink and old sweat. Each line item nickels and dimes a life: bunk, lamp oil, shovel edge, bread - billed back to the signer so the tally never shrinks. The same names repeat until the handwriting changes generation to generation. Under the stack, petitions for timbering and air, corners bent, each stamped REVIEWED and filed beside silence.",
-        gridPosition: { row: 1, col: 10 },
+        gridPosition: { row: 2, col: 10 },
         onExamine: [
           { type: "set_flag", flag: "read_indentures" },
           {
@@ -185,31 +189,43 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
           },
         ],
       },
+    ],
+  },
+  10: {
+    label: "Map Niche",
+    hint: "vellum and pins; someone was planning deeper. a drawer that doesn't want to open.",
+    description:
+      "A slot cut behind the office - vellum pinned to stone, pencil ghosts tracing the deep galleries. A swollen drawer squats in the corner, brass lock green with age.",
+    enemies: [],
+    notes:
+      "R7. Era 1. DIM. Dead end off Foreman's Office. " +
+      "Maps and salt drawer - practical loot, rewards thorough exploration.",
+    props: [
       {
         id: "mine_maps",
         label: "Tacked Survey Maps",
         icon: "\u{1F5FA}\uFE0F",
         desc: "Vellum curling at the pins: drifts, pillars, galleries you haven't walked yet. Pencil ghosts another cut into the deep - started, crossed out, started again. Someone was in a hurry to reach something below.",
-        gridPosition: { row: 1, col: 11 },
+        gridPosition: { row: 1, col: 12 },
         onExamine: [{ type: "set_flag", flag: "has_mine_maps" }],
       },
       {
-        id: "locked_drawer_gold",
+        id: "locked_drawer_salt",
         label: "Rotten Drawer",
         icon: "\u{1F512}",
-        desc: "Brass lock, swollen wood. It gives when you wrench - splinters bite your hand. Inside, twelve coins in a cloth bundle and a receipt stamped PAID for emergency timbering and airworks. The timber above your head is still wrong; the receipt is a lie you can weigh.",
-        gridPosition: { row: 2, col: 10 },
+        desc: "Brass lock, swollen wood. It gives when you wrench - splinters bite your hand. Inside, twelve salt blocks in a cloth bundle and a receipt stamped PAID for emergency timbering and airworks. The timber above your head is still wrong; the receipt is a lie you can weigh.",
+        gridPosition: { row: 2, col: 13 },
         actions: [
           {
             id: "take",
-            label: "Take the coins",
+            label: "Take the salt",
             effects: [
               { type: "grant_salt", amount: 12 },
               { type: "consume_prop" },
               {
                 type: "log",
                 message:
-                  "Twelve pieces that were meant to buy breath for the tunnels. Someone pocketed the money and let the shafts cough.",
+                  "Twelve blocks that were meant to buy breath for the tunnels. Someone pocketed the salt and let the shafts cough.",
               },
             ],
           },
@@ -268,22 +284,64 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
   },
   7: {
     label: "Gallery Threshold",
-    hint: "sick green light runs the ribs of stone - bright, wrong, bloodless. when boots strike, the salt answers with a hum you feel in your teeth.",
+    hint: "sick green light runs the ribs of stone - bright, wrong, bloodless. a clicking rhythm echoes from deeper in, patient and mechanical.",
     description:
-      "Lower ceiling; cart tracks worn smooth underfoot. Green light strips along the vault - bright, wrong tint. Your boots set a faint buzz in the salt; the draft carries a bit of heat that is not from the sun.",
-    enemies: ["skeleton"],
+      "Lower ceiling; cart tracks worn smooth underfoot. Green light strips along the vault - bright, wrong tint. Cold air threads past your neck from deeper tunnels. " +
+      "A faint clicking rises and falls ahead - boots on stone, measured and mechanical, never pausing. " +
+      "Against the wall, a miner's skeleton sits where it fell.",
+    enemies: [],
     notes:
       "R6. Era 1 + first Era 3 coldfire. DIM → DARK. Ceiling drops; cart tracks continue. " +
       "FIRST COLDFIRE - bright, wrong, no protection vs true-light-sensitive threats. Coldfire reads as 'the mine is lit' but teaches: green glow is NOT safety. " +
-      "FIRST SKELETON - walks loop into R12 (perpetual shift). First undead fight; first place players may see REFORM if they lack blunt. " +
-      "Faint WARMTH threads the draft - wrong for a shallow mine. Salt in the seam HUMS almost below hearing when skeleton's boots strike stone. " +
+      "NO COMBAT - atmospheric transition room. Clicking sounds from Upper Galleries warn of skeleton patrols ahead. " +
+      "Dead miner prop teaches bone lesson (blunt > pierce on bone) before player encounters skeletons. " +
+      "Faint WARMTH threads the draft - wrong for a shallow mine. " +
       "Bridges Mine Mouth to Upper Galleries. Environmental teach: fake light visible ahead.",
+    props: [
+      {
+        id: "dead_miner",
+        label: "Miner's Remains",
+        icon: "\u{1F9B4}",
+        desc: "A miner's skeleton against the wall, still wearing the leather harness. The ribcage is scored where picks struck - shallow grooves, nothing broken through. But the skull tells a different story: one blow from above, heavy and blunt, and the bone caved clean. Whatever killed this man wasn't sharp. It was heavy.",
+        gridPosition: { row: 10, col: 10 },
+        onExamine: [
+          { type: "set_flag", flag: "seen_bone_lesson" },
+          {
+            type: "log",
+            message: "Sharp tools scratch bone. Heavy ones break it. You file that away.",
+          },
+        ],
+      },
+      {
+        id: "miner_salt_pouch",
+        label: "Belt Pouch",
+        icon: "\u{1FA99}",
+        desc: "Stiff leather on the miner's hip, still heavy. Inside: five rough salt crystals, each the size of a knuckle. He never spent them.",
+        gridPosition: { row: 11, col: 10 },
+        actions: [
+          {
+            id: "take",
+            label: "Take the salt",
+            effects: [
+              { type: "grant_salt", amount: 5 },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Five crystals. He earned them the hard way. You pocket them the easy way.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
   8: {
     label: "To the Gatehouse",
-    hint: "cut stone replaces raw tunnel - their blocks, their mortar, sky not far above.",
+    hint: "cut stone replaces raw tunnel - their blocks, their mortar, sky not far above. safer ground, and maybe better tools.",
     description:
-      "Cut stone blocks and hard mortar replace raw tunnel; steps rise toward open sky and the yard.",
+      "Cut stone blocks and hard mortar replace raw tunnel; steps rise toward open sky and the order's gatehouse. " +
+      "The air smells cleaner here. Whatever the order left behind, it's closer to the surface than the clicking in the deep.",
     enemies: [],
     safeRoom: true,
     exit: { toAreaId: "a1_gatehouse", toRoomGridId: 2 },
@@ -310,9 +368,10 @@ export const A1_MINE_MOUTH: AreaDef = {
   combatRooms: [],
   notes:
     "Area 1 theme: the cost of greed - greed has a price; it is rarely paid by the one who profits. " +
-    "Emotional arc: Recognition (crest, log, family door) → Discomfort (contracts, journals) → Triumph (return with blunt). " +
-    "Learning: skeleton reform (blunt kills); true light attracts patrols; coldfire = fake safety; dark = risk/reward; zombies follow fixed routes. " +
-    "What Lies Below seed: warmth and resonance in deep-facing salt (R3, R6, R29). " +
+    "Emotional arc: Recognition (crest, log, family door) → Discomfort (contracts, journals) → Preparation (bone lesson, Gatehouse gear). " +
+    "Learning: rats (trivial combat); props reward exploration; salt = currency; bone lesson (R6 dead miner: blunt > pierce); coldfire = fake safety. " +
+    "NO SKELETONS IN MINE MOUTH - skeleton territory begins in Upper Galleries. R6 teaches the lesson atmospherically. " +
+    "What Lies Below seed: warmth and resonance in deep-facing salt (R3, R6). " +
     "Family throughline: Ashvere crest (R1), surname in log (R2), contracts (R4), Baron's Wing (R24-R29). " +
     "Baron's arithmetic: debts to expand → surface veins thinned → deeper salt richer but costlier → creditors demanded → extraction deepened. Not villainy - arithmetic.",
 };
