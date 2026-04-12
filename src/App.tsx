@@ -4,6 +4,7 @@ import { makeStarterPlayer, makeEnemyData } from "./utils/helpers";
 import { generateArea } from "./utils/area";
 import { loadGame, clearSave, hasSave } from "./utils/save";
 import { TitleScreen } from "./components/TitleScreen";
+import { IntroScreen } from "./components/IntroScreen";
 import { TownScreen } from "./components/TownScreen";
 import { AuthoredAreaEditor } from "./components/editor/AuthoredAreaEditor";
 import { AreaMap } from "./components/area/AreaMap";
@@ -63,7 +64,7 @@ export default function App() {
   function startNewGame() {
     clearSave();
     dispatch(setPlayer(makeStarterPlayer()));
-    dispatch(setScreen("town"));
+    dispatch(setScreen("intro"));
   }
 
   /* ── Continue from Save ── */
@@ -338,6 +339,8 @@ export default function App() {
         onClearSave={hasSave() ? clearSave : undefined}
       />
     );
+
+  if (screen === "intro") return <IntroScreen onFinish={() => dispatch(setScreen("town"))} />;
 
   if (screen === "town" && player) {
     return (

@@ -15,7 +15,7 @@ store.subscribe(() => {
   const state = store.getState();
   const { player, area: a, combat, screen } = state;
 
-  if (screen === "title" || !player) return;
+  if (screen === "title" || screen === "intro" || !player) return;
   // Skip if screen requires area but it isn't set yet (mid-continueGame)
   if ((screen === "map" || screen === "combat") && !a.area) return;
 

@@ -1,4 +1,12 @@
-export type Screen = "title" | "town" | "map" | "combat" | "victory" | "gameover" | "editor";
+export type Screen =
+  | "title"
+  | "intro"
+  | "town"
+  | "map"
+  | "combat"
+  | "victory"
+  | "gameover"
+  | "editor";
 
 export type StatusKey = "bleed" | "weaken" | "blind" | "silence" | "poison" | "stun";
 export type Statuses = Partial<Record<StatusKey, number>>;
