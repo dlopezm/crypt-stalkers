@@ -1,4 +1,5 @@
 import { getActiveProps } from "../../utils/props";
+import { ENEMY_TYPES } from "../../data/enemies";
 import type { AreaNode, RoomProp, Player } from "../../types";
 
 /* ── Individual sound icon ── */
@@ -9,11 +10,11 @@ function SoundIcon({
   gridHeight,
   onSelectRoom,
 }: {
-  icon: { roomId: string; texts: string[]; key: number };
-  area: AreaNode[];
-  gridWidth: number;
-  gridHeight: number;
-  onSelectRoom: (id: string) => void;
+  readonly icon: { roomId: string; texts: string[]; key: number };
+  readonly area: AreaNode[];
+  readonly gridWidth: number;
+  readonly gridHeight: number;
+  readonly onSelectRoom: (id: string) => void;
 }) {
   const room = area.find((n) => n.id === icon.roomId);
   if (!room?.bbox) return null;
@@ -95,6 +96,93 @@ export function resolvePropTiles(
     }
   }
   return map;
+}
+
+/* ── Threat indicator for scouted rooms ── */
+function ThreatIndicator({
+  node,
+  gridWidth,
+  gridHeight,
+}: {
+  readonly node: AreaNode;
+  readonly gridWidth: number;
+  readonly gridHeight: number;
+}) {
+  if (!node.bbox || !node.scouted || node.enemies.length === 0) return null;
+
+  const { maxRow, minCol, maxCol } = node.bbox;
+  const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
+  const bottomPct = ((maxRow + 1.3) / gridHeight) * 100;
+
+  const types = node.enemies.map((e) => ENEMY_TYPES.find((t) => t.id === e.typeId));
+  const maxAtk = Math.max(0, ...types.map((t) => t?.atk ?? 0));
+
+  const color = maxAtk >= 6 ? "#c41c1c" : maxAtk >= 3 ? "#d4a017" : "#6a8a3a";
+  const asciiIcons = types
+    .filter((t): t is NonNullable<typeof t> => t != null)
+    .slice(0, 3)
+    .map((t) => t.ascii)
+    .join("");
+  const tooltip = node.enemies
+    .map((e) => ENEMY_TYPES.find((t) => t.id === e.typeId)?.name ?? e.typeId)
+    .join(", ");
+
+  return (
+    <div
+      title={tooltip}
+      style={{
+        position: "absolute",
+        left: `${cxPct}%`,
+        top: `${bottomPct}%`,
+        transform: "translate(-50%, -50%)",
+        fontSize: "0.55rem",
+        color,
+        zIndex: 4,
+        pointerEvents: "none",
+        whiteSpace: "nowrap",
+        textShadow: "0 0 4px #000",
+      }}
+    >
+      {asciiIcons}
+      {node.enemies.length > 3 && `+${node.enemies.length - 3}`}
+    </div>
+  );
+}
+
+/* ── Safe room icon ── */
+function SafeRoomIcon({
+  node,
+  gridWidth,
+  gridHeight,
+}: {
+  readonly node: AreaNode;
+  readonly gridWidth: number;
+  readonly gridHeight: number;
+}) {
+  if (!node.bbox || !node.safeRoom) return null;
+  if (node.state !== "visited" && node.state !== "reachable") return null;
+
+  const { minRow, minCol, maxCol } = node.bbox;
+  const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
+  const topPct = ((minRow - 0.3) / gridHeight) * 100;
+
+  return (
+    <div
+      title="Safe room - enhanced rest, no ambushes"
+      style={{
+        position: "absolute",
+        left: `${cxPct}%`,
+        top: `${topPct}%`,
+        transform: "translate(-50%, -50%)",
+        fontSize: "0.6rem",
+        zIndex: 4,
+        pointerEvents: "none",
+        textShadow: "0 0 6px rgba(100,200,255,0.6)",
+      }}
+    >
+      ☀️
+    </div>
+  );
 }
 
 /* ── Room labels overlay ── */
@@ -200,6 +288,21 @@ export function RoomLabels({
           </div>
         );
       })}
+
+      {/* Threat indicators for scouted rooms */}
+      {area.map((n) => (
+        <ThreatIndicator
+          key={`threat-${n.id}`}
+          node={n}
+          gridWidth={gridWidth}
+          gridHeight={gridHeight}
+        />
+      ))}
+
+      {/* Safe room icons */}
+      {area.map((n) => (
+        <SafeRoomIcon key={`safe-${n.id}`} node={n} gridWidth={gridWidth} gridHeight={gridHeight} />
+      ))}
 
       {/* Sound icons */}
       {soundIcons.map((icon) => (

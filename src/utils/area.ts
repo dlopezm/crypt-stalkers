@@ -575,19 +575,38 @@ export function runAreaAI(area: AreaNode[], currentRoomId: string, action = "mov
 export function getScoutIntel(room: AreaNode, scoutLevel: number): string {
   if (!room) return "Nothing unusual.";
   const count = room.enemies.length;
+
   if (count === 0) {
+    if (room.safeRoom) {
+      return scoutLevel >= 2 ? "☀️ The room is safe and empty." : "...warm silence.";
+    }
     return scoutLevel >= 2 ? "The room appears empty." : "...silence.";
   }
+
   if (scoutLevel === 1) {
     return room.hint || "You hear something. Hard to tell what.";
   }
+
   if (scoutLevel === 2) {
     const rough = count === 1 ? "one creature" : count <= 3 ? "a few creatures" : "many creatures";
     const firstType = ENEMY_TYPES.find((e) => e.id === room.enemies[0].typeId);
-    return `${rough} inside. ${firstType ? `Something ${firstType.ascii}...` : ""}`;
+    return `${rough} inside. ${firstType ? `${firstType.ascii} ${firstType.name}...` : ""}`;
   }
-  const names = room.enemies
-    .map((e) => ENEMY_TYPES.find((t) => t.id === e.typeId)?.name || e.typeId)
-    .join(", ");
-  return `Full scout: ${names}.`;
+
+  const typeCounts = new Map<string, { type: (typeof ENEMY_TYPES)[number]; count: number }>();
+  for (const e of room.enemies) {
+    const t = ENEMY_TYPES.find((et) => et.id === e.typeId);
+    if (!t) continue;
+    const existing = typeCounts.get(t.id);
+    if (existing) {
+      existing.count++;
+    } else {
+      typeCounts.set(t.id, { type: t, count: 1 });
+    }
+  }
+
+  const parts = [...typeCounts.values()].map(
+    ({ type, count }) => `${type.ascii} ${type.name}${count > 1 ? ` ×${count}` : ""}`,
+  );
+  return `Full scout: ${parts.join(", ")}`;
 }

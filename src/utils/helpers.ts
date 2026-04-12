@@ -46,8 +46,9 @@ export function toEnemyData({
   summonCooldown,
   row,
   hidden,
+  intent,
 }: Enemy): EnemyData {
-  return { id, uid, hp, block, statuses, reassembled, summonCooldown, row, hidden };
+  return { id, uid, hp, block, statuses, reassembled, summonCooldown, row, hidden, intent };
 }
 
 export function makeEnemy(id: string): Enemy {

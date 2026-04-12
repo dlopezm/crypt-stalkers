@@ -65,6 +65,7 @@ export type Action =
       row?: "front" | "back";
       reassembled?: boolean;
       summonCooldown?: number;
+      hpOverride?: number;
     }
   // Light
   | { type: "drain_light"; amount: number }
@@ -121,6 +122,16 @@ export interface Ability {
   execute: (ctx: ActionContext, targets: number[]) => Action[];
 }
 
+/* ── Monster Intents ── */
+
+export interface MonsterIntent {
+  readonly id: string;
+  readonly label: string;
+  readonly icon: string;
+  readonly damage?: number;
+  readonly tooltip?: string;
+}
+
 /* ── Enemies ── */
 
 /* ── Combat Mechanics ── */
@@ -160,6 +171,7 @@ export interface CombatMechanics {
     hit: { damage: number; damageType: DamageType; holy: boolean },
   ) => HitResponse;
   onDeath?: (self: Enemy, ctx: CombatContext, killingHit: { damageType: DamageType }) => Action[];
+  selectIntent?: (self: Enemy, ctx: CombatContext) => MonsterIntent;
 }
 
 /* ── Out-of-Combat (Area AI) Mechanics ── */
@@ -229,6 +241,7 @@ export interface EnemyData {
   summonCooldown: number;
   row: "front" | "back";
   hidden: boolean;
+  intent?: MonsterIntent;
 }
 
 export interface Enemy extends EnemyType, EnemyData {}

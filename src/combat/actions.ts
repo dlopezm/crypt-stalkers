@@ -4,6 +4,12 @@ import { STATUS_ICONS } from "../data/status";
 import { LIGHT_MAX } from "../data/constants";
 import type { Action, Enemy, CombatPlayer, DamageType, AnimationEvent } from "../types";
 
+const DMG_TYPE_NAMES: Record<DamageType, string> = {
+  slash: "slash",
+  pierce: "pierce",
+  bludgeoning: "blunt",
+};
+
 export interface ResolveResult {
   player: CombatPlayer;
   enemies: Enemy[];
@@ -38,14 +44,30 @@ export function resolveActions(
     return enems.find((e) => e.uid === uid);
   }
 
-  function applyResistances(amount: number, damageType: DamageType, target: Enemy): number {
-    const type = ENEMY_TYPES.find((t) => t.id === target.id);
-    if (!type) return amount;
-    const resist = type.resistances?.[damageType];
-    if (resist !== undefined) amount = Math.floor(amount * resist);
-    const vuln = type.vulnerabilities?.[damageType];
-    if (vuln !== undefined) amount = Math.floor(amount * vuln);
-    return amount;
+  function applyResistances(
+    amount: number,
+    damageType: DamageType,
+    target: Enemy,
+  ): { final: number; resisted: boolean; effective: boolean } {
+    const enemyType = ENEMY_TYPES.find((t) => t.id === target.id);
+    let resisted = false;
+    let effective = false;
+
+    if (enemyType) {
+      const resist = enemyType.resistances?.[damageType];
+      if (resist !== undefined && resist < 1) {
+        amount = Math.floor(amount * resist);
+        resisted = true;
+      }
+
+      const vuln = enemyType.vulnerabilities?.[damageType];
+      if (vuln !== undefined && vuln > 1) {
+        amount = Math.floor(amount * vuln);
+        effective = true;
+      }
+    }
+
+    return { final: amount, resisted, effective };
   }
 
   function processDeath(target: Enemy) {
@@ -68,10 +90,10 @@ export function resolveActions(
           const t = findEnemy(action.targetUid);
           if (!t || t.hp <= 0) break;
 
-          let dmg = applyResistances(action.amount, action.damageType, t);
+          const resistResult = applyResistances(action.amount, action.damageType, t);
+          let dmg = resistResult.final;
           lastDamageType = action.damageType;
 
-          // Call onReceiveHit mechanic
           const mechanics = t.combatMechanics;
           if (mechanics?.onReceiveHit) {
             const ctx = { enemies: enems, player: p, lightLevel: { value: light } };
@@ -81,7 +103,7 @@ export function resolveActions(
               holy: !!action.holy,
             });
             if (response.evade) {
-              lines.push(`\u{1F47B} ${t.name} phases through the attack!`);
+              lines.push(`👻 ${t.name} phases through the attack!`);
               anim.push({ type: "phase", targetUid: t.uid });
               break;
             }
@@ -90,18 +112,26 @@ export function resolveActions(
             }
           }
 
-          // Apply block (unless pierceArmor)
+          const dtLabel = DMG_TYPE_NAMES[action.damageType];
+          const resistTag = resistResult.resisted ? " (resisted!)" : "";
+          const effectiveTag = resistResult.effective ? " (effective!)" : "";
+          const holyTag = action.holy ? " holy" : "";
+
           if (!action.pierceArmor) {
             const bl = Math.min(t.block, dmg);
             t.block = Math.max(0, t.block - bl);
             const dealt = dmg - bl;
             t.hp -= dealt;
-            lines.push(`\u2694 ${dealt} dmg\u2192${t.name}${bl > 0 ? ` (${bl} blocked)` : ""}`);
+            lines.push(
+              `⚔ ${dealt} ${dtLabel}${holyTag}→${t.name}${resistTag}${effectiveTag}${bl > 0 ? ` (${bl} blocked)` : ""}`,
+            );
             anim.push({ type: "damage_enemy", targetUid: t.uid, amount: dealt });
             if (bl > 0) anim.push({ type: "block", targetUid: t.uid, amount: bl });
           } else {
             t.hp -= dmg;
-            lines.push(`\u2694 ${dmg} dmg\u2192${t.name} (armor pierced)`);
+            lines.push(
+              `⚔ ${dmg} ${dtLabel}${holyTag}→${t.name} (armor pierced)${resistTag}${effectiveTag}`,
+            );
             anim.push({ type: "damage_enemy", targetUid: t.uid, amount: dmg });
           }
 
@@ -170,6 +200,7 @@ export function resolveActions(
           if (action.row) e.row = action.row;
           if (action.reassembled) e.reassembled = true;
           if (action.summonCooldown !== undefined) e.summonCooldown = action.summonCooldown;
+          if (action.hpOverride !== undefined) e.hp = action.hpOverride;
           enems.push(e);
           anim.push({
             type: "spawn",

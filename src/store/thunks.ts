@@ -92,7 +92,9 @@ export function combatVictory(newPlayer: CombatPlayer) {
         return { ...n, state: "reachable" as const };
       return n;
     });
-    dispatch(updateArea(newArea));
+    // Combat is loud — tick area AI so nearby enemies react
+    const { newArea: afterAI } = dispatch(tickAI(newArea, currentRoomId, "combat"));
+    dispatch(updateArea(afterAI));
 
     const {
       block: _b,
@@ -106,9 +108,6 @@ export function combatVictory(newPlayer: CombatPlayer) {
       ...playerState
     } = newPlayer;
 
-    // Only fire the victory screen if this area defines a boss room and the
-    // defeated room is that boss. Areas without a boss (transit/ring segments)
-    // are left in the map view — the player exits via inter-area doors.
     if (curRoom?.boss && areaDef?.bossRoom) {
       dispatch(setPlayer({ ...playerState, hp: playerState.maxHp }));
       dispatch(clearCombat());

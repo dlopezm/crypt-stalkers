@@ -31,6 +31,9 @@ export const DARKNESS_DAMAGE = 3;
 // Skeleton
 export const SKELETON_REASSEMBLE_HP = 5;
 
+// Ghost
+export const GHOST_PHASE_CHANCE = 0.3;
+
 // Ambush
 export const AMBUSH_DMG_MULT = 3;
 
@@ -44,6 +47,18 @@ export const NECRO_REVIVE_HP_FRAC = 0.5;
 // Lich
 export const LICH_REVIVE_HP_FRAC = 0.3;
 
+// Shadow
+export const SHADOW_DARKNESS_DAMAGE = 5;
+
+// Boneguard
+export const BONEGUARD_RESIST_MULT = 0.5;
+
+// Bone Hound
+export const BONE_HOUND_HOWL_COOLDOWN = 3;
+
+// Salt Revenant
+export const SALT_REVENANT_HP_THRESHOLD = 0.5;
+
 // Economy (traps and doors are free — they cost a dungeon turn instead)
 
 // Dungeon AI
@@ -52,6 +67,10 @@ export const AI_NOISE_ATTRACT_CHANCE = 0.55;
 export const AI_LIGHT_FLEE_CHANCE = 0.45;
 export const AI_ROAM_CHANCE = 0.2;
 export const AI_SCOUT_SEND_CHANCE = 0.6;
+
+// Population caps (per-monster-type, per-room / per-area)
+export const RAT_CAP_PER_ROOM = 4;
+export const RAT_CAP_PER_AREA = 12;
 
 // Limits
 export const DUNGEON_LOG_MAX = 200;

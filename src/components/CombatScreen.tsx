@@ -9,9 +9,9 @@ import {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { btnStyle } from "../styles";
-import { WEAKEN_DMG_MULT, LIGHT_MAX } from "../data/constants";
+import { LIGHT_MAX } from "../data/constants";
 import { CombatEngine, type CombatSnapshot, type CombatCallbacks } from "../combat/CombatEngine";
-import type { AreaNode, Enemy, Ability, Weapon } from "../types";
+import type { AreaNode, Enemy, Ability, Weapon, DamageType } from "../types";
 import { useAppDispatch, useAppSelector } from "../store";
 import { updateCombatState } from "../store/combatSlice";
 import { combatVictory, combatDefeat, fleeToMap } from "../store/thunks";
@@ -22,6 +22,112 @@ import { StatusBadges, HpBar } from "./shared";
 
 type SubAction = "none" | "pick_weapon" | "pick_target";
 
+/* ── Damage type display helpers ── */
+
+const DMG_TYPE_ICONS: Record<DamageType, string> = {
+  slash: "🗡️",
+  pierce: "🏹",
+  bludgeoning: "🔨",
+};
+
+const DMG_TYPE_LABELS: Record<DamageType, string> = {
+  slash: "Slash",
+  pierce: "Pierce",
+  bludgeoning: "Blunt",
+};
+
+const DAMAGE_TYPES: readonly DamageType[] = ["slash", "pierce", "bludgeoning"];
+
+function ResistVulnBadges({ enemy }: { readonly enemy: Enemy }) {
+  const badges: { icon: string; label: string; type: "resist" | "vuln" }[] = [];
+
+  if (enemy.resistances) {
+    for (const dt of DAMAGE_TYPES) {
+      const val = enemy.resistances[dt];
+      if (val !== undefined && val < 1) {
+        badges.push({
+          icon: DMG_TYPE_ICONS[dt],
+          label: `${DMG_TYPE_LABELS[dt]} ×${val}`,
+          type: "resist",
+        });
+      }
+    }
+  }
+
+  if (enemy.vulnerabilities) {
+    for (const dt of DAMAGE_TYPES) {
+      const val = enemy.vulnerabilities[dt];
+      if (val !== undefined && val > 1) {
+        badges.push({
+          icon: DMG_TYPE_ICONS[dt],
+          label: `${DMG_TYPE_LABELS[dt]} ×${val}`,
+          type: "vuln",
+        });
+      }
+    }
+  }
+
+  if (badges.length === 0) return null;
+
+  return (
+    <div className="flex gap-1 justify-center flex-wrap mt-0.5">
+      {badges.map((b) => (
+        <span
+          key={b.label}
+          className={`text-[0.55rem] px-1 py-px rounded ${
+            b.type === "resist" ? "bg-blue-900/40 text-blue-300" : "bg-red-900/40 text-red-300"
+          }`}
+          title={b.type === "resist" ? `Resists ${b.label}` : `Weak to ${b.label}`}
+        >
+          {b.type === "resist" ? "🛡" : "💥"} {b.icon} {b.type === "resist" ? "Resist" : "Weak"}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+const INTENT_COLOR_CLASSES: Record<string, string> = {
+  hidden: "bg-gray-800/60 text-gray-400",
+  dormant: "bg-gray-800/40 text-gray-500",
+  idle: "bg-gray-800/40 text-gray-500",
+  shamble: "bg-gray-800/40 text-gray-500",
+  stunned: "bg-yellow-900/40 text-yellow-400",
+  flee: "bg-gray-800/40 text-gray-400",
+  retreat: "bg-gray-800/40 text-gray-400",
+  hide: "bg-gray-800/40 text-gray-400",
+  shield_wall: "bg-blue-900/40 text-blue-300",
+  weep: "bg-purple-900/40 text-purple-300",
+};
+
+function intentColorClass(id: string, hasAttackDamage: boolean): string {
+  const fixed = INTENT_COLOR_CLASSES[id];
+  if (fixed) {
+    return fixed;
+  }
+  if (hasAttackDamage) {
+    return "bg-red-900/50 text-red-300";
+  }
+  return "bg-purple-900/40 text-purple-300";
+}
+
+function IntentDisplay({ enemy }: { readonly enemy: Enemy }) {
+  const intent = enemy.intent;
+  if (!intent) return null;
+
+  const isAttack = intent.damage !== undefined && intent.damage > 0;
+  const colorClass = intentColorClass(intent.id, isAttack);
+
+  return (
+    <div
+      className={`text-[0.6rem] text-center mt-1 py-0.5 px-1 rounded ${colorClass}`}
+      title={intent.tooltip || intent.label}
+    >
+      {intent.icon} {intent.label}
+      {isAttack && <span className="font-bold ml-0.5">{intent.damage}</span>}
+    </div>
+  );
+}
+
 /* ── Enemy Panel ── */
 
 const EnemyPanel = memo(function EnemyPanel({
@@ -31,11 +137,11 @@ const EnemyPanel = memo(function EnemyPanel({
   panelRef,
   animState,
 }: {
-  enemy: Enemy;
-  targeted: boolean;
-  onClick: () => void;
-  panelRef?: (el: HTMLDivElement | null) => void;
-  animState?: string;
+  readonly enemy: Enemy;
+  readonly targeted: boolean;
+  readonly onClick: () => void;
+  readonly panelRef?: (el: HTMLDivElement | null) => void;
+  readonly animState?: string;
 }) {
   const stunned = (enemy.statuses?.stun || 0) > 0;
   let animClass = "";
@@ -76,6 +182,9 @@ const EnemyPanel = memo(function EnemyPanel({
       <div className="text-[0.6rem] text-crypt-dim text-center mb-0.5">
         {enemy.row === "back" ? "\u{1F6E1} Back Row" : "\u2694 Front Row"}
       </div>
+
+      <ResistVulnBadges enemy={enemy} />
+
       {enemy.mechanic && enemy.mechanic !== "boss" && (
         <div className="text-[0.6rem] text-crypt-dim text-center mb-0.5 cursor-help border-b border-dotted border-crypt-border-dim pb-0.5">
           {"\u2699"} {enemy.mechanic.replace("_", " ")} {"\u2139"}
@@ -91,13 +200,8 @@ const EnemyPanel = memo(function EnemyPanel({
         </div>
       )}
       <StatusBadges statuses={enemy.statuses} />
-      <div className="text-[0.6rem] text-crypt-dim text-center mt-0.5 italic">
-        {stunned
-          ? "Skip turn"
-          : enemy.atk === 0
-            ? "No attack"
-            : `ATK ${(enemy.statuses?.weaken || 0) > 0 ? Math.floor(enemy.atk * WEAKEN_DMG_MULT) : enemy.atk}`}
-      </div>
+
+      <IntentDisplay enemy={enemy} />
     </motion.div>
   );
 });

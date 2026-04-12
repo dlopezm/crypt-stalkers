@@ -4,6 +4,8 @@ import {
   AI_LIGHT_FLEE_CHANCE,
   AI_ROAM_CHANCE,
   AI_SCOUT_SEND_CHANCE,
+  RAT_CAP_PER_ROOM,
+  RAT_CAP_PER_AREA,
 } from "../data/constants";
 import type { AreaAction, OutOfCombatMechanics } from "../types";
 
@@ -23,7 +25,17 @@ export const ratDungeonMechanics: OutOfCombatMechanics = {
   onTick(_self, ctx) {
     const actions: AreaAction[] = [];
 
-    if (Math.random() < AI_REPRODUCE_CHANCE) {
+    const ratsInRoom = ctx.room.enemies.filter((e) => e.typeId === "rat").length;
+    const ratsInArea = ctx.rooms.reduce(
+      (sum, r) => sum + r.enemies.filter((e) => e.typeId === "rat").length,
+      0,
+    );
+
+    if (
+      Math.random() < AI_REPRODUCE_CHANCE &&
+      ratsInRoom < RAT_CAP_PER_ROOM &&
+      ratsInArea < RAT_CAP_PER_AREA
+    ) {
       actions.push({ type: "reproduce" });
       actions.push({ type: "log", text: pick(RAT_REPRODUCE_TEXTS), volume: "quiet" });
     }
@@ -320,22 +332,18 @@ export const graveRobberDungeonMechanics: OutOfCombatMechanics = {
 
 export const gutbornLarvaDungeonMechanics: OutOfCombatMechanics = {
   onTick(_self, ctx) {
-    // Flees from loud disturbances
     if (ctx.noise === "loud" && Math.random() < AI_LIGHT_FLEE_CHANCE) {
       return [{ type: "move_away_from_player", reason: "fleeing the light" }];
     }
-    // Actively seeks out life — attracted to any noise
     if (ctx.noise !== "quiet" && Math.random() < AI_NOISE_ATTRACT_CHANCE) {
       return [{ type: "move_toward_player", reason: "seeking a host" }];
     }
-    // Otherwise crawls through the dungeon
     if (Math.random() < AI_ROAM_CHANCE) {
       return [{ type: "move_random", reason: "searching for a host" }];
     }
     return [];
   },
   canPassDoor() {
-    // Squeezes under closed doors
     return true;
   },
   sounds: {
@@ -348,5 +356,75 @@ export const gutbornLarvaDungeonMechanics: OutOfCombatMechanics = {
       ],
     },
     blocked: { volume: "quiet", texts: ["Scratching from beneath a door"] },
+  },
+};
+
+/* ── Boneguard ── */
+/* Slow, stationary sentinel that guards an area. Investigates noise. */
+
+export const boneguardDungeonMechanics: OutOfCombatMechanics = {
+  onTick(_self, ctx) {
+    if (ctx.noise !== "quiet" && Math.random() < AI_NOISE_ATTRACT_CHANCE) {
+      return [{ type: "move_toward_player", reason: "investigating disturbance" }];
+    }
+    return [];
+  },
+  sounds: {
+    move: {
+      volume: "normal",
+      texts: [
+        "Heavy, deliberate footsteps of bone on stone",
+        "The grinding of a massive shield dragging on the floor",
+      ],
+    },
+    blocked: { volume: "normal", texts: ["A massive weight presses against a sealed passage"] },
+  },
+};
+
+/* ── Bone Hound ── */
+/* Fast tracker that follows the player's path. Actively hunts. */
+
+export const boneHoundDungeonMechanics: OutOfCombatMechanics = {
+  onTick(_self, ctx) {
+    if (ctx.noise !== "quiet") {
+      return [{ type: "move_toward_player", reason: "tracking prey" }];
+    }
+    if (Math.random() < AI_ROAM_CHANCE * 2) {
+      return [{ type: "move_random", reason: "patrolling" }];
+    }
+    return [];
+  },
+  sounds: {
+    move: {
+      volume: "normal",
+      texts: [
+        "Rapid clicking of bony claws on stone",
+        "A skeletal snarl echoes through the corridor",
+        "The scrape of bone paws, moving fast",
+      ],
+    },
+    blocked: { volume: "normal", texts: ["Frantic scratching and snarling at a barred door"] },
+  },
+};
+
+/* ── Salt Revenant ── */
+/* Slow, territorial. Stays near salt deposits. Doesn't chase. */
+
+export const saltRevenantDungeonMechanics: OutOfCombatMechanics = {
+  onTick() {
+    if (Math.random() < AI_ROAM_CHANCE * 0.5) {
+      return [{ type: "move_random", reason: "drifting between salt veins" }];
+    }
+    return [];
+  },
+  sounds: {
+    move: {
+      volume: "quiet",
+      texts: [
+        "A faint crystalline tinkling, like wind chimes made of salt",
+        "Something crunches softly - crystals forming, or breaking",
+      ],
+    },
+    blocked: { volume: "quiet", texts: ["Crystals creak against the sealed door"] },
   },
 };

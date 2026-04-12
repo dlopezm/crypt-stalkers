@@ -16,6 +16,7 @@ import {
 } from "../data/constants";
 import { resolveActions } from "./actions";
 import { animationDelay } from "./animTiming";
+import { defaultSelectIntent } from "./intents";
 import type {
   AreaNode,
   Enemy,
@@ -153,6 +154,8 @@ export class CombatEngine {
       this._state = { player: combatPlayer, enemies: enems, lightLevel };
     }
 
+    this._selectIntents();
+
     if (opts?.surpriseRound && !opts?.restored) {
       this._log = ["⚠️ Ambush! Enemies burst into the room!"];
       this._pendingSurpriseRound = true;
@@ -223,6 +226,21 @@ export class CombatEngine {
       weapon: this._state.player.mainWeapon,
       offhandWeapon: this._state.player.offhandWeapon,
     };
+  }
+
+  private _selectIntents() {
+    const { enemies, player, lightLevel } = this._state;
+    const ctx: CombatContext = {
+      enemies,
+      player,
+      lightLevel: { value: lightLevel },
+    };
+
+    for (const enemy of enemies) {
+      if (enemy.hp <= 0) continue;
+      const selector = enemy.combatMechanics?.selectIntent;
+      enemy.intent = selector ? selector(enemy, ctx) : defaultSelectIntent(enemy);
+    }
   }
 
   private _checkVictory(): boolean {
@@ -698,6 +716,7 @@ export class CombatEngine {
     }
 
     commit();
+    this._selectIntents();
     this._phase = "player_turn";
     this._notify();
   }
