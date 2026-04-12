@@ -431,7 +431,7 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
         <div className="w-[260px] shrink-0 border-r border-[#2a1f15] p-3 overflow-y-auto flex flex-col gap-3">
           <div>
             <button style={btnStyle("#3a2f25")} className="w-full" onClick={onBack}>
-              ← Back to Town
+              ← Back to Map
             </button>
           </div>
 

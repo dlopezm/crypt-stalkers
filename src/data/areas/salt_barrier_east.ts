@@ -96,5 +96,4 @@ export const SALT_BARRIER_EAST: AreaDef = {
     rooms: SALT_BARRIER_EAST_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

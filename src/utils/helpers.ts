@@ -1,9 +1,7 @@
 import { WEAPONS, STARTER_WEAPON_ID } from "../data/weapons";
-import { CONSUMABLES, STARTER_CONSUMABLE_IDS } from "../data/consumables";
 import { ENEMY_TYPES } from "../data/enemies";
-import { BUILDINGS } from "../data/buildings";
-import { PLAYER_START_HP, PLAYER_START_GOLD, NECRO_SUMMON_COOLDOWN } from "../data/constants";
-import type { Enemy, EnemyData, Player, Statuses, BuildingState } from "../types";
+import { PLAYER_START_HP, PLAYER_START_SALT, NECRO_SUMMON_COOLDOWN } from "../data/constants";
+import type { Enemy, EnemyData, Player, Statuses } from "../types";
 
 export function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -66,24 +64,16 @@ export function cloneEnemies(enemies: Enemy[]): Enemy[] {
 
 export function makeStarterPlayer(): Player {
   const starterWeapon = { ...WEAPONS.find((w) => w.id === STARTER_WEAPON_ID)! };
-  const starterConsumables = STARTER_CONSUMABLE_IDS.map((id) => ({
-    ...CONSUMABLES.find((c) => c.id === id)!,
-  }));
-  const buildings: Record<string, BuildingState> = {};
-  BUILDINGS.forEach((b) => {
-    buildings[b.id] = { unlocked: b.initiallyUnlocked, level: b.initiallyUnlocked ? 1 : 0 };
-  });
   return {
     hp: PLAYER_START_HP,
     maxHp: PLAYER_START_HP,
-    gold: PLAYER_START_GOLD,
+    salt: PLAYER_START_SALT,
     statuses: {},
     mainWeapon: starterWeapon,
     offhandWeapon: null,
     ownedWeapons: [starterWeapon],
-    consumables: starterConsumables,
+    consumables: [],
     abilities: [],
-    buildings,
     flags: {},
   };
 }

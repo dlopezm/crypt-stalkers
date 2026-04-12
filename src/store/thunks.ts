@@ -125,10 +125,8 @@ export function combatVictory(newPlayer: CombatPlayer) {
 /* ── combatDefeat ────────────────────────────────────────────────────────────
    Called by CombatScreen when the player's HP reaches 0.
 ────────────────────────────────────────────────────────────────────────────── */
-export function combatDefeat(gold: number) {
-  return (dispatch: AppDispatch, getState: () => RootState) => {
-    const player = getState().player;
-    if (player) dispatch(setPlayer({ ...player, gold }));
+export function combatDefeat() {
+  return (dispatch: AppDispatch) => {
     dispatch(clearCombat());
     dispatch(setScreen("gameover"));
   };

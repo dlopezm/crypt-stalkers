@@ -201,6 +201,7 @@ export const A3_SORTING_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 12, col: 19 },
         onExamine: [
           { type: "set_flag", flag: "examined_r83_conveyor" },
+          { type: "grant_ability", abilityId: "stealth" },
           {
             type: "log",
             message: "You could move under this roar in ways you could not in silence.",
@@ -230,7 +231,7 @@ export const A3_SORTING_ROOMS: Record<number, AuthoredRoom> = {
             label: "Work the coins free",
             desc: "Cold metal between splinters - someone's hidden purse, or someone's last bribe.",
             effects: [
-              { type: "grant_gold", amount: 12 },
+              { type: "grant_salt", amount: 12 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -324,7 +325,7 @@ export const A3_SORTING_ROOMS: Record<number, AuthoredRoom> = {
             label: "Pry out the coins",
             desc: "Skim or wage - metal that jingles the same either way.",
             effects: [
-              { type: "grant_gold", amount: 18 },
+              { type: "grant_salt", amount: 18 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -415,7 +416,6 @@ export const A3_SORTING: AreaDef = {
     ],
     hint: "a floor of bone and moving shadow; something on a raised platform shouts until the dead obey.",
   },
-  hiddenFromTown: true,
   notes:
     "Ossuary subarea 2: industrial bone processing; lantern-shutter rhythm vs patrols. " +
     "Environmental drift toward lower exits; necromancers snap workers back on task.",

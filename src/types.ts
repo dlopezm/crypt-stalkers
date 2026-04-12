@@ -1,12 +1,4 @@
-export type Screen =
-  | "title"
-  | "intro"
-  | "town"
-  | "map"
-  | "combat"
-  | "victory"
-  | "gameover"
-  | "editor";
+export type Screen = "title" | "intro" | "map" | "combat" | "victory" | "gameover" | "editor";
 
 export type StatusKey = "bleed" | "weaken" | "blind" | "silence" | "poison" | "stun";
 export type Statuses = Partial<Record<StatusKey, number>>;
@@ -127,23 +119,6 @@ export interface Ability {
   needsTarget: boolean;
   reach?: "melee" | "ranged";
   execute: (ctx: ActionContext, targets: number[]) => Action[];
-}
-
-/* ── Town Buildings ── */
-
-export interface BuildingDef {
-  id: string;
-  name: string;
-  icon: string;
-  desc: string;
-  initiallyUnlocked: boolean;
-  unlockCost: number;
-  upgradeCost: number;
-}
-
-export interface BuildingState {
-  unlocked: boolean;
-  level: number;
 }
 
 /* ── Enemies ── */
@@ -295,17 +270,20 @@ export interface RoomExit {
 export interface PropRequirements {
   flags?: string[];
   notFlags?: string[];
-  gold?: number;
+  salt?: number;
 }
 
 export type PropEffect =
   | { type: "set_flag"; flag: string; value?: boolean | number }
-  | { type: "grant_gold"; amount: number }
-  | { type: "remove_gold"; amount: number }
+  | { type: "grant_salt"; amount: number }
+  | { type: "remove_salt"; amount: number }
   | { type: "damage_player"; amount: number }
   | { type: "heal_player"; amount: number }
   | { type: "log"; message: string }
-  | { type: "consume_prop" };
+  | { type: "consume_prop" }
+  | { type: "grant_weapon"; weaponId: string }
+  | { type: "grant_consumable"; consumableId: string }
+  | { type: "grant_ability"; abilityId: string };
 
 export interface PropAction {
   id: string;
@@ -354,6 +332,8 @@ export interface AuthoredRoom {
   exit?: RoomExit;
   /** Interactable props placed within this room. */
   props?: RoomProp[];
+  /** Safe rooms heal more on rest and suppress ambushes (sunlit, warded, brazier-lit). */
+  safeRoom?: boolean;
 }
 
 export interface AuthoredLayout {
@@ -371,13 +351,6 @@ export interface AreaDef {
   bossRoom?: RoomTemplate;
   generator?: "stamp" | "authored";
   authored?: AuthoredLayout;
-  /** If true, this area is not shown as an entry in the town dungeon menu. */
-  hiddenFromTown?: boolean;
-  /**
-   * Optional display name shown in the town menu (instead of `name`). Used when
-   * an entry area represents a larger multi-area dungeon in the UI.
-   */
-  townName?: string;
   /**
    * Author-only notes for the area as a whole. Scratchpad for things that
    * should exist somewhere in this area (clues, set pieces, hook-ups, etc.)
@@ -420,6 +393,8 @@ export interface AreaNode {
   props?: RoomProp[];
   /** Runtime state per prop id (examined / actions used / consumed). */
   propStates?: Record<string, PropState>;
+  /** Safe rooms heal more on rest and suppress ambushes. */
+  safeRoom?: boolean;
 }
 
 /** The raw grid + metadata produced by area generation */
@@ -434,14 +409,13 @@ export interface AreaGrid {
 export interface Player {
   hp: number;
   maxHp: number;
-  gold: number;
+  salt: number;
   statuses: Statuses;
   mainWeapon: Weapon;
   offhandWeapon: Weapon | null;
   ownedWeapons: Weapon[];
   consumables: Consumable[];
-  abilities: string[]; // building ability IDs the player has unlocked
-  buildings: Record<string, BuildingState>;
+  abilities: string[];
   /** Narrative flags set by room-prop interactions. Values are boolean or number. */
   flags: Record<string, boolean | number>;
 }
@@ -460,11 +434,10 @@ export interface CombatPlayer extends Player {
 /* ── Misc ── */
 
 export interface TrapInfo {
-  label: string;
-  icon: string;
-  desc: string;
-  cost: number;
-  color: string;
+  readonly label: string;
+  readonly icon: string;
+  readonly desc: string;
+  readonly color: string;
 }
 
 export interface AreaLogEntry {

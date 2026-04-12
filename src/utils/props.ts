@@ -10,7 +10,7 @@ function flagSet(flags: Flags, key: string): boolean {
 export function checkRequirements(
   req: PropRequirements | undefined,
   flags: Flags,
-  gold: number,
+  salt: number,
 ): { readonly ok: boolean; readonly reason?: string } {
   if (!req) return { ok: true };
   if (req.flags) {
@@ -23,8 +23,8 @@ export function checkRequirements(
       if (flagSet(flags, f)) return { ok: false, reason: `Blocked by: ${f}` };
     }
   }
-  if (req.gold != null && gold < req.gold) {
-    return { ok: false, reason: `Needs ${req.gold} gold` };
+  if (req.salt != null && salt < req.salt) {
+    return { ok: false, reason: `Needs ${req.salt} salt` };
   }
   return { ok: true };
 }
@@ -32,13 +32,13 @@ export function checkRequirements(
 export function canPerformAction(
   action: PropAction,
   flags: Flags,
-  gold: number,
+  salt: number,
   propState: PropState | undefined,
 ): { readonly ok: boolean; readonly reason?: string } {
   if (propState?.actionsUsed.includes(action.id)) {
     return { ok: false, reason: "Already done" };
   }
-  return checkRequirements(action.requires, flags, gold);
+  return checkRequirements(action.requires, flags, salt);
 }
 
 export function isPropActive(
@@ -61,31 +61,37 @@ export function getActiveProps(
 }
 
 export interface EffectOutcome {
-  goldDelta: number;
-  hpDelta: number;
-  flagSets: { flag: string; value: boolean | number }[];
-  logMessages: string[];
-  consumed: boolean;
+  readonly saltDelta: number;
+  readonly hpDelta: number;
+  readonly flagSets: readonly { readonly flag: string; readonly value: boolean | number }[];
+  readonly logMessages: readonly string[];
+  readonly consumed: boolean;
+  readonly grantedWeapons: readonly string[];
+  readonly grantedConsumables: readonly string[];
+  readonly grantedAbilities: readonly string[];
 }
 
-/** Pure evaluator — caller dispatches the resulting deltas. */
+/** Pure evaluator - caller dispatches the resulting deltas. */
 export function evaluateEffects(effects: PropEffect[]): EffectOutcome {
-  let goldDelta = 0;
+  let saltDelta = 0;
   let hpDelta = 0;
   const flagSets: { flag: string; value: boolean | number }[] = [];
   const logMessages: string[] = [];
   let consumed = false;
+  const grantedWeapons: string[] = [];
+  const grantedConsumables: string[] = [];
+  const grantedAbilities: string[] = [];
 
   for (const e of effects) {
     switch (e.type) {
       case "set_flag":
         flagSets.push({ flag: e.flag, value: e.value ?? true });
         break;
-      case "grant_gold":
-        goldDelta += e.amount;
+      case "grant_salt":
+        saltDelta += e.amount;
         break;
-      case "remove_gold":
-        goldDelta -= e.amount;
+      case "remove_salt":
+        saltDelta -= e.amount;
         break;
       case "heal_player":
         hpDelta += e.amount;
@@ -99,8 +105,26 @@ export function evaluateEffects(effects: PropEffect[]): EffectOutcome {
       case "consume_prop":
         consumed = true;
         break;
+      case "grant_weapon":
+        grantedWeapons.push(e.weaponId);
+        break;
+      case "grant_consumable":
+        grantedConsumables.push(e.consumableId);
+        break;
+      case "grant_ability":
+        grantedAbilities.push(e.abilityId);
+        break;
     }
   }
 
-  return { goldDelta, hpDelta, flagSets, logMessages, consumed };
+  return {
+    saltDelta,
+    hpDelta,
+    flagSets,
+    logMessages,
+    consumed,
+    grantedWeapons,
+    grantedConsumables,
+    grantedAbilities,
+  };
 }

@@ -136,6 +136,22 @@ export const A4_ABANDONED_DIG_ROOMS: Record<number, AuthoredRoom> = {
           { type: "set_flag", flag: "examined_coldfire_strips_r125" },
           { type: "log", message: "The strips hiss faintly. They are not your friend." },
         ],
+        actions: [
+          {
+            id: "take_packed_torch_r125",
+            label: "Take a waxed torch from the crate lid",
+            desc: "Someone wedged honest tinder beside the wrong-light strips - habit from older shifts.",
+            requires: { notFlags: ["took_supply_torch_r125"] },
+            effects: [
+              { type: "set_flag", flag: "took_supply_torch_r125" },
+              { type: "grant_consumable", consumableId: "torch" },
+              {
+                type: "log",
+                message: "Waxed wrap, dry fiber - small mercy next to the hissing strips.",
+              },
+            ],
+          },
+        ],
       },
     ],
   },
@@ -413,7 +429,6 @@ export const A4_ABANDONED_DIG: AreaDef = {
     rooms: A4_ABANDONED_DIG_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     "Area 4 Subarea 3 - Mira 3, halt-order lore, rope gate for Area 5. " +
     "Branches: graffiti + ancestor fingerprints (R129), linear ancestor emotional arc (R130–R134), Shadow depths + lantern craft (R135–R140).",

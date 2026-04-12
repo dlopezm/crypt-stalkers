@@ -66,9 +66,9 @@ export const A2_CHAPTER_HOUSE_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Empty the coffer",
             effects: [
-              { type: "grant_gold", amount: 20 },
+              { type: "grant_salt", amount: 20 },
               { type: "consume_prop" },
-              { type: "log", message: "20 gold - operational budget written in metal." },
+              { type: "log", message: "20 salt - operational budget written in metal." },
             ],
           },
         ],
@@ -84,6 +84,7 @@ export const A2_CHAPTER_HOUSE_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R57. COLDFIRE. Room design ref R57. Cultist ×1 not in enemy list. " + "Connects: R56 only.",
+    safeRoom: true,
     props: [
       {
         id: "surface_supply_calendar",
@@ -140,9 +141,9 @@ export const A2_CHAPTER_HOUSE_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the strongbox contents",
             effects: [
-              { type: "grant_gold", amount: 30 },
+              { type: "grant_salt", amount: 30 },
               { type: "consume_prop" },
-              { type: "log", message: "30 gold - the study's true sermon." },
+              { type: "log", message: "30 salt - the study's true sermon." },
             ],
           },
         ],
@@ -199,6 +200,7 @@ export const A2_CHAPTER_HOUSE_ROOMS: Record<number, AuthoredRoom> = {
       "Climate-cool and faintly acrid - wax solvent, metal polish, old velvet gone bald on display boards. Cases line the walls under coldfire hoods; brass catches light in disciplined gleam. " +
       "The room is quiet except for the tick of cooling metal - a treasury of signatures that outlived the hands that owned them.",
     enemies: [],
+    safeRoom: true,
     notes: "R59. COLDFIRE. Room design ref R59. Connects: R56 only.",
     props: [
       {
@@ -328,5 +330,4 @@ export const A2_CHAPTER_HOUSE: AreaDef = {
     rooms: A2_CHAPTER_HOUSE_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

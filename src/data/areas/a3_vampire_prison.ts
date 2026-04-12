@@ -91,6 +91,7 @@ export const A3_VAMPIRE_PRISON_ROOMS: Record<number, AuthoredRoom> = {
             desc: "Blessed water - a tool, a threat, or a mercy; it will not pretend which.",
             effects: [
               { type: "set_flag", flag: "has_holy_water_vial_r107" },
+              { type: "grant_consumable", consumableId: "holy_water" },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -135,6 +136,7 @@ export const A3_VAMPIRE_PRISON_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 9, col: 7 },
         onExamine: [
           { type: "set_flag", flag: "read_binding_hall_inscriptions_r108" },
+          { type: "set_flag", flag: "binding_knowledge" },
           {
             type: "log",
             message:
@@ -204,6 +206,7 @@ export const A3_VAMPIRE_PRISON_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "damage_player", amount: 3 },
               { type: "set_flag", flag: "castellane_bargain_terms_heard" },
+              { type: "grant_ability", abilityId: "counter_stance" },
               {
                 type: "log",
                 message:
@@ -289,7 +292,7 @@ export const A3_VAMPIRE_PRISON_ROOMS: Record<number, AuthoredRoom> = {
             label: "Sweep the coins into your pack",
             desc: "Soft old money - edges worn smooth by hands long dead.",
             effects: [
-              { type: "grant_gold", amount: 40 },
+              { type: "grant_salt", amount: 40 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -330,7 +333,6 @@ export const A3_VAMPIRE_PRISON: AreaDef = {
     enemies: ["boss_vampire_lord"],
     hint: "salt-crystal bars; something ancient listens for your pulse.",
   },
-  hiddenFromTown: true,
   notes:
     "Ossuary subarea 6: Castellane, salt-iron dagger for R99, Vampire's Bargain as greed-in-miniature.",
 };

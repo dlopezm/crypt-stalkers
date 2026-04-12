@@ -136,8 +136,8 @@ function CombatScreenInner({ room }: { room: AreaNode }) {
       onVictory: (combatPlayer) => {
         dispatch(combatVictory(combatPlayer));
       },
-      onDefeat: (gold) => {
-        dispatch(combatDefeat(gold));
+      onDefeat: () => {
+        dispatch(combatDefeat());
       },
       onFlee: (combatPlayer) => {
         dispatch(fleeToMap(combatPlayer));
@@ -530,7 +530,7 @@ function CombatScreenInner({ room }: { room: AreaNode }) {
           {"\u2694"} <span className="text-crypt-red font-bold">{room.label.toUpperCase()}</span>
         </div>
         <div className="text-crypt-gold text-sm">
-          {"\u{1FA99}"} {p.gold}
+          {"\u{1FA99}"} {p.salt}
         </div>
         <div
           className={`text-sm ${lightLevel > 2 ? "text-crypt-gold" : lightLevel > 0 ? "text-orange-400" : "text-crypt-red"}`}

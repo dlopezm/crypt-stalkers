@@ -97,5 +97,4 @@ export const BARRACKS: AreaDef = {
     enemies: ["skeleton", "skeleton", "necromancer"],
     hint: "the captain of the watch stands alone at the center, patient, waiting.",
   },
-  hiddenFromTown: true,
 };

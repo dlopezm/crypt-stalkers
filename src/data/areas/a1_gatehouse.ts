@@ -38,6 +38,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
       "Open sky through a broken wall ring - flagstones, grit in the wind. Two salt pillars carved with flames and gaping mouths.",
     enemies: [],
     isStart: true,
+    safeRoom: true,
     notes:
       "R7. Era 2 + ruin. LIT (open sky). " + "Foreshadows Grave Robber behavior and patrol danger.",
     props: [
@@ -59,7 +60,10 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
             id: "loot",
             label: "Turn out the pack",
             effects: [
-              { type: "grant_gold", amount: 15 },
+              { type: "grant_salt", amount: 15 },
+              { type: "grant_consumable", consumableId: "heal_sm" },
+              { type: "grant_consumable", consumableId: "torch" },
+              { type: "grant_consumable", consumableId: "torch" },
               { type: "set_flag", flag: "has_area1_map" },
               { type: "consume_prop" },
               {
@@ -102,7 +106,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Belt the blade",
             effects: [
-              { type: "set_flag", flag: "has_rusted_shortsword" },
+              { type: "grant_weapon", weaponId: "axe" },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -177,7 +181,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Empty the purse",
             effects: [
-              { type: "grant_gold", amount: 6 },
+              { type: "grant_salt", amount: 6 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -195,6 +199,7 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Narrow stone ledge over open air; low parapet, wind on your chest. Below: cracked flags, yard, tunnel mouth - you can judge distance and cover from here.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R11. Era 2. LIT (open air). Dead end. " +
       "Observation tutorial: learn patrol path before engaging. " +
@@ -237,7 +242,6 @@ export const A1_GATEHOUSE: AreaDef = {
     rooms: A1_GATEHOUSE_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     "Fortified order entrance over the mine mouth. Era 2 architecture; Era 3 neglect and surface-facing undead activity. " +
     "Frescoes (R9) seed singing motif for R17 resonance lock. " +

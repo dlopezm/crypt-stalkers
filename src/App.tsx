@@ -1,11 +1,14 @@
 import { TRAP_INFO, AREAS } from "./data/rooms";
-import { REST_HEAL_FRACTION, BLOCK_DOOR_COST, GAME_OVER_GOLD_KEEP } from "./data/constants";
+import { REST_HEAL_FRACTION, SAFE_REST_HEAL_FRACTION } from "./data/constants";
+import { WEAPONS } from "./data/weapons";
+import { CONSUMABLES } from "./data/consumables";
+import { ABILITIES } from "./data/abilities";
+import { determineEnding } from "./data/endings";
 import { makeStarterPlayer, makeEnemyData } from "./utils/helpers";
 import { generateArea } from "./utils/area";
 import { loadGame, clearSave, hasSave } from "./utils/save";
 import { TitleScreen } from "./components/TitleScreen";
 import { IntroScreen } from "./components/IntroScreen";
-import { TownScreen } from "./components/TownScreen";
 import { AuthoredAreaEditor } from "./components/editor/AuthoredAreaEditor";
 import { AreaMap } from "./components/area/AreaMap";
 import { CombatScreen } from "./components/CombatScreen";
@@ -26,6 +29,7 @@ import {
 import { canPerformAction, evaluateEffects } from "./utils/props";
 import { startCombat, clearCombat } from "./store/combatSlice";
 import { toggleDebugMode, toggleShowDebug, setShowDebug } from "./store/debugSlice";
+import { saveRoomCheckpoint, saveAreaCheckpoint, type Checkpoint } from "./store/checkpointSlice";
 import { tickAI as tickAIThunk } from "./store/thunks";
 
 export default function App() {
@@ -42,6 +46,9 @@ export default function App() {
   const debugMode = useAppSelector((s) => s.debug.debugMode);
   const showDebug = useAppSelector((s) => s.debug.showDebug);
   const combatKey = useAppSelector((s) => s.combat.combatKey);
+  const roomCheckpoint = useAppSelector((s) => s.checkpoint.room);
+  const areaCheckpoint = useAppSelector((s) => s.checkpoint.area);
+  const visitedAreas = useAppSelector((s) => s.area.visitedAreas);
 
   function addLog(
     entries: { text: string; roomId?: string }[] | string[],
@@ -104,36 +111,46 @@ export default function App() {
     dispatch(setScreen(save.screen));
   }
 
-  /* ── Town: update player (unlock, buy, upgrade) ── */
-  function updatePlayerAndSave(p: Player) {
-    dispatch(setPlayer(p));
-  }
-
-  /* ── Enter Area from Town ── */
+  /* ── Enter Area ── */
   function enterArea(def: AreaDef) {
     if (!player) return;
     const { nodes, grid } = generateArea(def);
     const startNode = nodes.find((n) => n.slot === "start") ?? nodes[0];
+    const startRoomId = startNode?.id ?? "start";
+
     dispatch(
       setAreaFull({
         area: nodes,
         areaGrid: grid,
         areaDef: def,
-        currentRoomId: startNode?.id ?? "start",
+        currentRoomId: startRoomId,
         areaLog: [],
         areaTurn: 0,
       }),
     );
     dispatch(clearCombat());
+
+    const cp: Checkpoint = {
+      player,
+      area: nodes,
+      areaGrid: grid,
+      areaDef: def,
+      currentRoomId: startRoomId,
+      areaLog: [],
+      areaTurn: 0,
+      visitedAreas,
+    };
+    dispatch(saveAreaCheckpoint(cp));
+    dispatch(saveRoomCheckpoint(cp));
+
     dispatch(setScreen("map"));
   }
 
-  /* ── Return to Town ── */
-  function returnToTown(p?: Player) {
-    if (p) dispatch(setPlayer(p));
+  function returnToTitle() {
+    clearSave();
     dispatch(clearArea());
     dispatch(clearCombat());
-    dispatch(setScreen("town"));
+    dispatch(setScreen("title"));
   }
 
   /* ── Check if the player's room has enemies after an AI tick ── */
@@ -158,12 +175,25 @@ export default function App() {
 
   /* ── Area Navigation ── */
   function enterRoom(roomId: string) {
-    if (!area || !currentRoomId) return;
+    if (!area || !currentRoomId || !player || !areaGrid || !areaDef) return;
     const room = area.find((n) => n.id === roomId);
     if (!room) return;
     if (room.blocked) return;
     const currentRoom = area.find((n) => n.id === currentRoomId);
     if (!debugMode && currentRoom && !currentRoom.connections.includes(roomId)) return;
+
+    dispatch(
+      saveRoomCheckpoint({
+        player,
+        area,
+        areaGrid,
+        areaDef,
+        currentRoomId,
+        areaLog,
+        areaTurn,
+        visitedAreas,
+      }),
+    );
 
     // Cross-area exit pseudo-room
     if (room.exit) {
@@ -220,12 +250,19 @@ export default function App() {
   /* ── Map actions ── */
   function onRestOnMap() {
     if (!area || !currentRoomId || !player) return;
-    const healAmt = Math.floor(player.maxHp * REST_HEAL_FRACTION);
+    const curRoom = area.find((n) => n.id === currentRoomId);
+    const isSafe = curRoom?.safeRoom === true;
+    const fraction = isSafe ? SAFE_REST_HEAL_FRACTION : REST_HEAL_FRACTION;
+    const healAmt = Math.floor(player.maxHp * fraction);
     const newPlayer = { ...player, hp: Math.min(player.maxHp, player.hp + healAmt) };
     dispatch(setPlayer(newPlayer));
-    addLog([`\u{1FA79} Rested (+${healAmt} HP)`], "player");
+
+    const safeLabel = isSafe ? " (safe)" : "";
+    addLog([`\u{1FA79} Rested${safeLabel} (+${healAmt} HP)`], "player");
+
     const { newArea: afterAI } = tickAI(area, currentRoomId, "rest");
-    if (!checkAmbush(afterAI, currentRoomId, { player: newPlayer })) {
+    const ambushed = !isSafe && checkAmbush(afterAI, currentRoomId, { player: newPlayer });
+    if (!ambushed) {
       dispatch(updateArea(afterAI));
     }
   }
@@ -239,25 +276,29 @@ export default function App() {
   }
 
   function onSetTrap(roomId: string, trapKey: string) {
-    if (!player) return;
-    dispatch(setPlayer({ ...player, gold: player.gold - TRAP_INFO[trapKey].cost }));
-    if (area)
-      dispatch(updateArea(area.map((n) => (n.id === roomId ? { ...n, trap: trapKey } : n))));
+    if (!area || !currentRoomId) return;
+    const trapped = area.map((n) => (n.id === roomId ? { ...n, trap: trapKey } : n));
     addLog(
-      [`\u{1FAA4} Trap set in ${area?.find((n) => n.id === roomId)?.label || roomId}`],
+      [`\u{1FAA4} Trap set in ${area.find((n) => n.id === roomId)?.label || roomId}`],
       "player",
     );
+    const { newArea: afterAI } = tickAI(trapped, currentRoomId, "trap");
+    if (!checkAmbush(afterAI, currentRoomId)) {
+      dispatch(updateArea(afterAI));
+    }
   }
 
   function onBlockDoor(roomId: string) {
-    if (!player) return;
-    dispatch(setPlayer({ ...player, gold: player.gold - BLOCK_DOOR_COST }));
-    if (area)
-      dispatch(updateArea(area.map((n) => (n.id === roomId ? { ...n, blocked: true } : n))));
+    if (!area || !currentRoomId) return;
+    const blocked = area.map((n) => (n.id === roomId ? { ...n, blocked: true } : n));
     addLog(
-      [`\u{1F6A7} Door blocked in ${area?.find((n) => n.id === roomId)?.label || roomId}`],
+      [`\u{1F6A7} Door blocked in ${area.find((n) => n.id === roomId)?.label || roomId}`],
       "player",
     );
+    const { newArea: afterAI } = tickAI(blocked, currentRoomId, "block");
+    if (!checkAmbush(afterAI, currentRoomId)) {
+      dispatch(updateArea(afterAI));
+    }
   }
 
   /* ── Prop interactions ──
@@ -267,24 +308,53 @@ export default function App() {
   function applyEffects(effects: PropEffect[], roomId: string, propId: string) {
     if (!player) return;
     const outcome = evaluateEffects(effects);
-    if (outcome.goldDelta !== 0 || outcome.hpDelta !== 0) {
-      dispatch(
-        setPlayer({
-          ...player,
-          gold: Math.max(0, player.gold + outcome.goldDelta),
-          hp: Math.max(0, Math.min(player.maxHp, player.hp + outcome.hpDelta)),
-        }),
-      );
+
+    let updated = player;
+
+    if (outcome.saltDelta !== 0 || outcome.hpDelta !== 0) {
+      updated = {
+        ...updated,
+        salt: Math.max(0, updated.salt + outcome.saltDelta),
+        hp: Math.max(0, Math.min(updated.maxHp, updated.hp + outcome.hpDelta)),
+      };
     }
+
+    for (const wId of outcome.grantedWeapons) {
+      const weapon = WEAPONS.find((w) => w.id === wId);
+      if (weapon && !updated.ownedWeapons.some((w) => w.id === wId)) {
+        updated = { ...updated, ownedWeapons: [...updated.ownedWeapons, { ...weapon }] };
+      }
+    }
+
+    for (const cId of outcome.grantedConsumables) {
+      const consumable = CONSUMABLES.find((c) => c.id === cId);
+      if (consumable) {
+        updated = { ...updated, consumables: [...updated.consumables, { ...consumable }] };
+      }
+    }
+
+    for (const aId of outcome.grantedAbilities) {
+      const ability = ABILITIES.find((a) => a.id === aId);
+      if (ability && !updated.abilities.includes(aId)) {
+        updated = { ...updated, abilities: [...updated.abilities, aId] };
+      }
+    }
+
+    if (updated !== player) {
+      dispatch(setPlayer(updated));
+    }
+
     for (const f of outcome.flagSets) {
       dispatch(setFlag({ flag: f.flag, value: f.value }));
     }
+
     if (outcome.logMessages.length > 0) {
       addLog(
         outcome.logMessages.map((text) => ({ text, roomId })),
         "player",
       );
     }
+
     if (outcome.consumed) {
       dispatch(updatePropState({ roomId, propId, patch: { consumed: true } }));
     }
@@ -313,7 +383,7 @@ export default function App() {
     const action = prop?.actions?.find((a) => a.id === actionId);
     if (!prop || !action) return;
     const state = room?.propStates?.[propId];
-    const check = canPerformAction(action, player.flags, player.gold, state);
+    const check = canPerformAction(action, player.flags, player.salt, state);
     if (!check.ok) return;
     const nextUsed = [...(state?.actionsUsed ?? []), actionId];
     dispatch(updatePropState({ roomId, propId, patch: { actionsUsed: nextUsed } }));
@@ -340,37 +410,53 @@ export default function App() {
       />
     );
 
-  if (screen === "intro") return <IntroScreen onFinish={() => dispatch(setScreen("town"))} />;
-
-  if (screen === "town" && player) {
+  if (screen === "intro") {
     return (
-      <TownScreen
-        player={player}
-        onUpdatePlayer={updatePlayerAndSave}
-        onEnterDungeon={enterArea}
-        onOpenEditor={() => dispatch(setScreen("editor"))}
+      <IntroScreen
+        onFinish={() => {
+          const startArea = AREAS.find((a) => a.id === "a1_mine_mouth");
+          if (startArea) {
+            enterArea(startArea);
+          }
+        }}
       />
     );
   }
 
   if (screen === "editor") {
-    return <AuthoredAreaEditor onBack={() => dispatch(setScreen("town"))} />;
+    return <AuthoredAreaEditor onBack={() => dispatch(setScreen("map"))} />;
   }
 
   if (screen === "victory") {
-    return <VictoryScreen gold={player?.gold || 0} onReturn={() => returnToTown()} />;
+    const ending = determineEnding({
+      salt: player?.salt || 0,
+      flags: player?.flags || {},
+    });
+    return <VictoryScreen ending={ending} onReturn={() => returnToTitle()} />;
   }
 
   if (screen === "gameover") {
-    const penaltyGold = Math.floor((player?.gold || 0) * GAME_OVER_GOLD_KEEP);
+    function restoreCheckpoint(cp: Checkpoint) {
+      dispatch(setPlayer(cp.player));
+      dispatch(
+        setAreaFull({
+          area: cp.area,
+          areaGrid: cp.areaGrid,
+          areaDef: cp.areaDef,
+          currentRoomId: cp.currentRoomId,
+          areaLog: cp.areaLog,
+          areaTurn: cp.areaTurn,
+          visitedAreas: cp.visitedAreas,
+        }),
+      );
+      dispatch(clearCombat());
+      dispatch(setScreen("map"));
+    }
+
     return (
       <GameOverScreen
-        gold={penaltyGold}
-        onReturn={() => {
-          if (player)
-            dispatch(setPlayer({ ...player, gold: penaltyGold, hp: player.maxHp, statuses: {} }));
-          returnToTown();
-        }}
+        onRetryRoom={roomCheckpoint ? () => restoreCheckpoint(roomCheckpoint) : undefined}
+        onRetryArea={areaCheckpoint ? () => restoreCheckpoint(areaCheckpoint) : undefined}
       />
     );
   }
@@ -466,7 +552,13 @@ export default function App() {
           onExamineProp={onExamineProp}
           onPropAction={onPropAction}
           onToggleDebug={() => dispatch(toggleDebugMode())}
-          onReturnToTown={() => returnToTown()}
+          onReturnToTitle={() => returnToTitle()}
+          onOpenEditor={() => dispatch(setScreen("editor"))}
+          onAddSalt={() => {
+            if (player) {
+              dispatch(setPlayer({ ...player, salt: player.salt + 500 }));
+            }
+          }}
         />
       </>
     );

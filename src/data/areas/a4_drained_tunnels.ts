@@ -52,7 +52,8 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
             id: "loot_pack",
             label: "Empty the pack",
             effects: [
-              { type: "grant_gold", amount: 8 },
+              { type: "grant_salt", amount: 8 },
+              { type: "grant_consumable", consumableId: "heal_sm" },
               { type: "set_flag", flag: "read_waterlogged_pack_r112" },
               { type: "consume_prop" },
               {
@@ -204,6 +205,7 @@ export const A4_DRAINED_TUNNELS_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 1, col: 23 },
         onExamine: [
           { type: "set_flag", flag: "examined_first_regrowth_crystals_r116" },
+          { type: "set_flag", flag: "regrowing_salt_discovered" },
           {
             type: "log",
             message:
@@ -240,7 +242,6 @@ export const A4_DRAINED_TUNNELS: AreaDef = {
     rooms: A4_DRAINED_TUNNELS_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     "Area 4 Subarea 1 - transition from order works to raw mine. " +
     "Theme hook: treasure and danger same substance; pumping reveals older headings. " +

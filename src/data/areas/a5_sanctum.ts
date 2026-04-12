@@ -62,6 +62,7 @@ export const A5_SANCTUM_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Large crystal altar slab - grown and cut flat, cracked face. Old hymn notation on the facets; newer channels gouged through for necromantic reroutes. Extinguished iron brazier stand beside it, thin ash in the bowl. High ceiling, walls feel close.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R158. Coldfire. No enemies. Massive salt-crystal altar; cracked; stained with centuries of rite residue. Era 2: Vigil Hymn notation. Era 3: necromantic reroute into lich power grid. Sacred brazier stand (extinguished). " +
       "World-state - optional brazier: relight with hymn ritual → true light floods altar + adjacent spaces → weakens lich light suppression in Crystal Throne subarea. " +
@@ -114,6 +115,7 @@ export const A5_SANCTUM_ROOMS: Record<number, AuthoredRoom> = {
             requires: { flags: ["read_full_brazier_relighting_rite", "knows_hymn_fragment"] },
             effects: [
               { type: "set_flag", flag: "sanctum_altar_brazier_relit_r158" },
+              { type: "set_flag", flag: "hymn_learned" },
               {
                 type: "log",
                 message:
@@ -131,6 +133,7 @@ export const A5_SANCTUM_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Glass cases on the walls, most empty - dust swept outward from where objects sat. Clipboard on the wall; smell of old cloth and salt. One case still strapped with bands and seal-glyphs on crystal.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R159. Coldfire. Display cases emptied by lich; one consecration-locked case remains. " +
       "Cross-ref: R158, R160, R165 combat prep.",
@@ -233,6 +236,7 @@ export const A5_SANCTUM_ROOMS: Record<number, AuthoredRoom> = {
             },
             effects: [
               { type: "set_flag", flag: "deep_brazier_relit_r160" },
+              { type: "set_flag", flag: "hymn_learned" },
               {
                 type: "log",
                 message:
@@ -313,5 +317,4 @@ export const A5_SANCTUM: AreaDef = {
     rooms: A5_SANCTUM_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

@@ -147,6 +147,7 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
             requires: { notFlags: ["demon_seal_studied_r143", "demon_seal_broken_r143"] },
             effects: [
               { type: "set_flag", flag: "demon_seal_studied_r143" },
+              { type: "set_flag", flag: "demon_seal_studied" },
               { type: "set_flag", flag: "lich_dialogue_deep_geology_unlocked" },
               {
                 type: "log",
@@ -180,6 +181,7 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
             requires: { notFlags: ["demon_seal_broken_r143"] },
             effects: [
               { type: "set_flag", flag: "demon_seal_broken_r143" },
+              { type: "set_flag", flag: "demon_seal_broken" },
               { type: "set_flag", flag: "demon_released_from_seal_r143" },
               { type: "set_flag", flag: "ending_return_seal_intact_locked" },
               {
@@ -250,6 +252,7 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Small watch room. Narrow slit into the round chamber - you see columns, sigil, heat shimmer; almost no sound through the wall. Salt crust on the walls. Warmth bleeds through the rock from the seal side.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R145. DARK. Era 2 + lich annotations. Slit view toward R143. " +
       "Player synthesis (esp. after seal Study + Crystal Galleries): barrier thins when mine eaten, eases when taking stops; lich maintenance buys time while undeath frays seal; R143 cracks rhyme with log. " +
@@ -281,9 +284,9 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the coins",
             effects: [
-              { type: "grant_gold", amount: 10 },
+              { type: "grant_salt", amount: 10 },
               { type: "consume_prop" },
-              { type: "log", message: "Ten gold - hazard pay never collected." },
+              { type: "log", message: "Ten salt - hazard pay never collected." },
             ],
           },
         ],
@@ -330,7 +333,6 @@ export const A4_SEALED_CHAMBER: AreaDef = {
     rooms: A4_SEALED_CHAMBER_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     "Area 4 Subarea 6 - demon seal decision; observation log; descent to Area 5 R146. " +
     "Ties regrowing salt (R121), ancestor letter (R134), and lich arithmetic into one moral-geometry puzzle.",

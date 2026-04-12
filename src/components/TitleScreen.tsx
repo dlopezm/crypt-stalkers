@@ -42,7 +42,7 @@ export function TitleScreen({
           <em className="text-crypt-dim">Every monster is a puzzle. Learn or perish.</em>
         </p>
         <div className="text-sm text-crypt-dim mb-6 leading-loose text-left space-y-0.5">
-          <div>{"\u{1F3F0}"} Visit the town to prepare for your descent</div>
+          <div>{"\u{1F3F0}"} Enter the mine and claim your birthright</div>
           <div>{"\u2694\uFE0F"} Choose your weapon and fight strategically</div>
           <div>
             {"\u{1F5FA}"} Explore the dungeon map {"\u2014"} scout and set traps

@@ -83,7 +83,7 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
             id: "search",
             label: "Reach behind the figure",
             effects: [
-              { type: "grant_gold", amount: 10 },
+              { type: "grant_salt", amount: 10 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -177,6 +177,7 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Lift it from the rack",
             effects: [
+              { type: "grant_weapon", weaponId: "warhammer" },
               { type: "set_flag", flag: "has_blunt" },
               { type: "consume_prop" },
               {
@@ -314,6 +315,7 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "air turns a fraction warmer toward the sun-cut entrance.",
     description: "Air warms slightly toward the sunlit entrance.",
     enemies: [],
+    safeRoom: true,
     exit: { toAreaId: "a1_mine_mouth", toRoomGridId: 7 },
   },
   10: {
@@ -350,7 +352,6 @@ export const A1_UPPER_GALLERIES: AreaDef = {
     rooms: A1_UPPER_GALLERIES_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     "Main mine corridors; skeleton patrols; Era 1 tunnels under cracking Era 2 plaster; Era 3 coldfire overhead. " +
     "R15 Junction Hall is the central chokepoint - all western branches (warrens, baron's wing) and deeper access (gate, patrol) route through it. " +

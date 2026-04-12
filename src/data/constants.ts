@@ -2,10 +2,11 @@
 
 // Player defaults
 export const PLAYER_START_HP = 40;
-export const PLAYER_START_GOLD = 0;
+export const PLAYER_START_SALT = 0;
 
 // Rest & Recovery
 export const REST_HEAL_FRACTION = 0.05;
+export const SAFE_REST_HEAL_FRACTION = 0.15;
 
 // Combat multipliers
 export const WEAKEN_DMG_MULT = 0.75;
@@ -43,9 +44,7 @@ export const NECRO_REVIVE_HP_FRAC = 0.5;
 // Lich
 export const LICH_REVIVE_HP_FRAC = 0.3;
 
-// Economy
-export const BLOCK_DOOR_COST = 10;
-export const GAME_OVER_GOLD_KEEP = 0.75;
+// Economy (traps and doors are free — they cost a dungeon turn instead)
 
 // Dungeon AI
 export const AI_REPRODUCE_CHANCE = 0.25;

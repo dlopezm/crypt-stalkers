@@ -89,9 +89,9 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the offerings",
             effects: [
-              { type: "grant_gold", amount: 18 },
+              { type: "grant_salt", amount: 18 },
               { type: "consume_prop" },
-              { type: "log", message: "18 gold lifted from the bowls." },
+              { type: "log", message: "18 salt lifted from the bowls." },
             ],
           },
         ],
@@ -104,6 +104,7 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 7, col: 12 },
         onExamine: [
           { type: "set_flag", flag: "knows_hymn_fragment" },
+          { type: "grant_ability", abilityId: "heal" },
           {
             type: "log",
             message: "You commit the cadence to memory. It tastes like a note you've always known.",
@@ -158,11 +159,11 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
             id: "open",
             label: "Pry it open",
             effects: [
-              { type: "grant_gold", amount: 15 },
+              { type: "grant_salt", amount: 15 },
               { type: "consume_prop" },
               {
                 type: "log",
-                message: "15 gold - the choir's wages, outlasting every throat that earned them.",
+                message: "15 salt - the choir's wages, outlasting every throat that earned them.",
               },
             ],
           },
@@ -182,6 +183,7 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
       "Small raised platform for lead singer. Rosetta for singing + fire + faith - ties brazier system to order practice. " +
       "Combine with R39 sheet, R53 ritual texts, Rennic (R49) for full relighting procedure. " +
       "Connects: R38 only.",
+    safeRoom: true,
     props: [
       {
         id: "cantor_stand_inscription",
@@ -192,6 +194,7 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
         onExamine: [
           { type: "set_flag", flag: "read_cantors_stand_inscription" },
           { type: "set_flag", flag: "knows_cantor_brazier_strike_rite" },
+          { type: "grant_ability", abilityId: "holy_smite" },
           {
             type: "log",
             message:
@@ -312,9 +315,14 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Empty the box",
             effects: [
-              { type: "grant_gold", amount: 8 },
+              { type: "grant_salt", amount: 8 },
+              { type: "grant_consumable", consumableId: "holy_water" },
               { type: "consume_prop" },
-              { type: "log", message: "8 gold - alms that outlived the almsgivers." },
+              {
+                type: "log",
+                message:
+                  "8 salt - and beneath the coin, a wax-stoppered ampulla still cloudy with old blessing. Alms that outlived the almsgivers.",
+              },
             ],
           },
         ],
@@ -364,5 +372,4 @@ export const A2_CHAPEL: AreaDef = {
     rooms: A2_CHAPEL_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

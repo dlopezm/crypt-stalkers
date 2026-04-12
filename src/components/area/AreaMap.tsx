@@ -29,7 +29,9 @@ export function AreaMap({
   onExamineProp,
   onPropAction,
   onToggleDebug,
-  onReturnToTown,
+  onReturnToTitle,
+  onOpenEditor,
+  onAddSalt,
 }: {
   area: AreaNode[];
   areaGrid: AreaGrid | null;
@@ -48,7 +50,9 @@ export function AreaMap({
   onExamineProp: (roomId: string, propId: string) => void;
   onPropAction: (roomId: string, propId: string, actionId: string) => void;
   onToggleDebug: () => void;
-  onReturnToTown: () => void;
+  onReturnToTitle: () => void;
+  onOpenEditor?: () => void;
+  onAddSalt?: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(currentRoomId);
   const [scoutResult, setScoutResult] = useState<string | null>(null);
@@ -219,7 +223,7 @@ export function AreaMap({
             {"\u2764"} {player.hp}/{player.maxHp}
           </span>
           <span className="text-crypt-gold">
-            {"\u{1FA99}"} {player.gold}
+            {"\u{1FA99}"} {player.salt}
           </span>
           <span className="text-crypt-muted">
             {"\u{1F5E1}\uFE0F"} {player.mainWeapon.name}
@@ -373,8 +377,8 @@ export function AreaMap({
             </div>
           </div>
 
-          <button onClick={onReturnToTown} style={btnStyle("#3a2f25")} className="text-xs!">
-            {"\u{1F3F0}"} Abandon Dungeon
+          <button onClick={onReturnToTitle} style={btnStyle("#3a2f25")} className="text-xs!">
+            {"\u{1F3F0}"} Abandon Run
           </button>
 
           <button
@@ -384,6 +388,18 @@ export function AreaMap({
           >
             {"\u{1F6E0}"} Debug {debugMode ? "ON" : "OFF"}
           </button>
+
+          {debugMode && onOpenEditor && (
+            <button onClick={onOpenEditor} style={btnStyle("#2a1f40")} className="text-xs!">
+              {"\u{1F4DD}"} Editor
+            </button>
+          )}
+
+          {debugMode && onAddSalt && (
+            <button onClick={onAddSalt} style={btnStyle("#2a1f40")} className="text-xs!">
+              +500 {"\u{1FA99}"}
+            </button>
+          )}
         </div>
       </div>
 

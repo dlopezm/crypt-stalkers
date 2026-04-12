@@ -82,6 +82,7 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Wider stop: packed grit floor, salt benches along the walls. Small niche with coins, crystals, dry petals - miners' altar, untouched-looking. Faint warmth from deeper salt. No drip, no picks.",
     enemies: [],
+    safeRoom: true,
     notes: "R132. DARK. Era 1. Wider halt space; salt benches. " + "Connects R131 ↔ R133.",
     props: [
       {
@@ -111,7 +112,7 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Pocket the coins",
             effects: [
-              { type: "grant_gold", amount: 3 },
+              { type: "grant_salt", amount: 3 },
               { type: "set_flag", flag: "took_folk_altar_coins_r132" },
               { type: "consume_prop" },
               { type: "log", message: "Three copper - light in the hand, heavy in the chest." },
@@ -141,6 +142,7 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "One wall carved with a rough house, garden, two figures holding hands - bad perspective, clear intent. Under it, cut deep: HOME. Small space. Very quiet.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R133. DARK. Era 1. Dominant wall piece. " +
       "Player recognizes baron stories / letters. Pure human beat - no fight, no loot required. " +
@@ -169,6 +171,7 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Side pocket from a fall-in - low ceiling, tight. Air barely moves. Surrounding salt is warm; the pocket is a little cooler. Skeleton, paper, small carved toy on the ground. Room is small.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R134. DARK. Dead end; emotional climax of Area 4 - quiet, no combat. Era 1. " +
       "Collapsed side into small alcove. " +
@@ -196,6 +199,7 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
         onExamine: [
           { type: "set_flag", flag: "read_ancestor_letter_r134" },
           { type: "set_flag", flag: "ancestor_letter_ending4_evidence" },
+          { type: "set_flag", flag: "ancestor_letter_found" },
           {
             type: "log",
             message:
@@ -259,7 +263,6 @@ export const A4_ANCESTORS_TRAIL: AreaDef = {
     rooms: A4_ANCESTORS_TRAIL_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     'Area 4 Subarea 4 - linear intimate arc; R134 letter is thematic keystone with "The salt keeps its own." ' +
     "Pairs with Crystal Galleries revelation and Sealed Chamber observation log.",

@@ -120,6 +120,7 @@ export const A1_BARONS_WING_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Claim the maul",
             effects: [
+              { type: "grant_weapon", weaponId: "warhammer" },
               { type: "set_flag", flag: "has_blunt" },
               { type: "set_flag", flag: "has_mining_maul" },
               { type: "consume_prop" },
@@ -243,6 +244,7 @@ export const A1_BARONS_WING_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Lift it from the stand",
             effects: [
+              { type: "grant_weapon", weaponId: "warhammer" },
               { type: "set_flag", flag: "has_pick_hammer" },
               { type: "set_flag", flag: "has_blunt" },
               { type: "consume_prop" },
@@ -267,7 +269,7 @@ export const A1_BARONS_WING_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Load the coins out",
             effects: [
-              { type: "grant_gold", amount: 80 },
+              { type: "grant_salt", amount: 80 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -373,7 +375,6 @@ export const A1_BARONS_WING: AreaDef = {
     rooms: A1_BARONS_WING_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     "Sealed family enclave. Era 1 workmanship at its best; order sealed it; lich ignored. " +
     "~400 years of dust; no coldfire inside - DARK until the player brings flame. " +

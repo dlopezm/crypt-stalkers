@@ -65,8 +65,8 @@ export interface CombatCallbacks {
   onStateChange: () => void;
   /** Called on victory with the combat player state and loot */
   onVictory: (player: CombatPlayer, loot: number) => void;
-  /** Called on defeat with remaining gold */
-  onDefeat: (gold: number) => void;
+  /** Called on defeat */
+  onDefeat: () => void;
   /** Called on successful flee */
   onFlee: (player: CombatPlayer) => void;
 }
@@ -232,7 +232,7 @@ export class CombatEngine {
         (s, e) => s + (ENEMY_TYPES.find((t) => t.id === e.typeId)?.loot || 0),
         0,
       );
-      this._addLog(`🏆 Victory! +${loot} gold`);
+      this._addLog(`🏆 Victory! +${loot} salt`);
       this._victoryLoot = loot;
       this._phase = "victory";
       this._notify();
@@ -612,7 +612,7 @@ export class CombatEngine {
         commit();
         this._phase = "defeat";
         this._notify();
-        this._cb.onDefeat(state.player.gold);
+        this._cb.onDefeat();
         return;
       }
     }
@@ -657,7 +657,7 @@ export class CombatEngine {
       commit();
       this._phase = "defeat";
       this._notify();
-      this._cb.onDefeat(state.player.gold);
+      this._cb.onDefeat();
       return;
     }
 
@@ -705,12 +705,12 @@ export class CombatEngine {
   /** Confirm victory — called by React after the victory loot display */
   confirmVictory() {
     const p = this._state.player;
-    this._cb.onVictory({ ...p, gold: p.gold + this._victoryLoot, block: 0 }, this._victoryLoot);
+    this._cb.onVictory({ ...p, salt: p.salt + this._victoryLoot, block: 0 }, this._victoryLoot);
   }
 
   /** Confirm defeat — called by React after the defeat display */
   confirmDefeat() {
-    this._cb.onDefeat(this._state.player.gold);
+    this._cb.onDefeat();
   }
 
   /* ── Cleanup ── */

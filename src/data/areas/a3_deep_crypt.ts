@@ -90,6 +90,7 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Small chapel-sized room. One sarcophagus, whole floor to itself. Bronze plaque green with age; letters still readable. Colder than the outer hall. Breath fogs near the lid.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R102. Era 2. DARK. Single sarcophagus; founding symbol. Remains of first knight-commander. " +
       "Pair with Area 2 R53 ritual text; activate at R105. Honor guard does not pursue into this room.",
@@ -216,6 +217,7 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Concentric rings cut in the floor, pale salt-white grooves. Swept bare inside the outer band. Slow air. Faint beeswax and old paper smell - no bone meal. When you move the light, the grooves catch a soft glow - not coldfire, not forge light.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R105. Era 2. DARK. Intact order consecration circle. " +
       "Circle faint glows when player enters with relic. Theme - anti-greed: consecration inverts extraction; you give up a room's loot permanently to make ground unusable to the undead cycle - safety by refusing to take. " +
@@ -238,6 +240,7 @@ export const A3_DEEP_CRYPT_ROOMS: Record<number, AuthoredRoom> = {
             },
             effects: [
               { type: "set_flag", flag: "consecration_rite_performed_r105" },
+              { type: "set_flag", flag: "has_consecration" },
               {
                 type: "log",
                 message:
@@ -283,7 +286,6 @@ export const A3_DEEP_CRYPT: AreaDef = {
     enemies: ["boss_skeleton_lord", "boss_skeleton_lord", "boss_skeleton_lord"],
     hint: "knight-effigy lids; you feel watched before anything moves.",
   },
-  hiddenFromTown: true,
   notes:
     "Ossuary subarea 5: CONSECRATION origin; contrast to Era 3 factory. R102 relic + Area 2 R53 text → R105 activation.",
 };

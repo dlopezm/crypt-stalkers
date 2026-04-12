@@ -83,6 +83,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 7, col: 3 },
         onExamine: [
           { type: "set_flag", flag: "examined_blackened_crystals_r136" },
+          { type: "grant_ability", abilityId: "smoke_bomb_ability" },
           {
             type: "log",
             message: "Proof of hunger - the wall paid for your trespass in color.",
@@ -149,6 +150,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Work alcove: polish wheels, brass jigs, mounts for lantern shells. Tools on pegs; bench worn at the front edge where people leaned. Wall salt warms the wood. Smells like metal dust and oil.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R138. DARK. Era 1. Miner workshop alcove: bench, polish, mounts. " +
       "CRAFT CRYSTAL LANTERN - requires: self-luminous crystal (R137), shuttered lantern, knowledge (R137 note OR Area 2 R48 mining/reflector docs OR reflector work R119–R120). " +
@@ -177,6 +179,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
             },
             effects: [
               { type: "set_flag", flag: "has_crystal_lantern" },
+              { type: "set_flag", flag: "crystal_lantern" },
               { type: "set_flag", flag: "has_shuttered_lantern", value: false },
               { type: "set_flag", flag: "has_self_luminous_salt_crystal", value: false },
               { type: "set_flag", flag: "crafted_crystal_lantern_r138" },
@@ -201,6 +204,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
             },
             effects: [
               { type: "set_flag", flag: "has_crystal_lantern" },
+              { type: "set_flag", flag: "crystal_lantern" },
               { type: "set_flag", flag: "has_shuttered_lantern", value: false },
               { type: "set_flag", flag: "has_self_luminous_salt_crystal", value: false },
               { type: "set_flag", flag: "crafted_crystal_lantern_r138" },
@@ -225,6 +229,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
             },
             effects: [
               { type: "set_flag", flag: "has_crystal_lantern" },
+              { type: "set_flag", flag: "crystal_lantern" },
               { type: "set_flag", flag: "has_shuttered_lantern", value: false },
               { type: "set_flag", flag: "has_self_luminous_salt_crystal", value: false },
               { type: "set_flag", flag: "crafted_crystal_lantern_r138" },
@@ -249,6 +254,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
             },
             effects: [
               { type: "set_flag", flag: "has_crystal_lantern" },
+              { type: "set_flag", flag: "crystal_lantern" },
               { type: "set_flag", flag: "has_shuttered_lantern", value: false },
               { type: "set_flag", flag: "has_self_luminous_salt_crystal", value: false },
               { type: "set_flag", flag: "crafted_crystal_lantern_r138" },
@@ -273,6 +279,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
             },
             effects: [
               { type: "set_flag", flag: "has_crystal_lantern" },
+              { type: "set_flag", flag: "crystal_lantern" },
               { type: "set_flag", flag: "has_shuttered_lantern", value: false },
               { type: "set_flag", flag: "has_self_luminous_salt_crystal", value: false },
               { type: "set_flag", flag: "crafted_crystal_lantern_r138" },
@@ -356,6 +363,7 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
             label: "Bottle the tar",
             effects: [
               { type: "set_flag", flag: "has_shadow_essence_alchemy" },
+              { type: "grant_ability", abilityId: "acid_flask" },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -395,7 +403,6 @@ export const A4_SHADOW_DEPTHS: AreaDef = {
     rooms: A4_SHADOW_DEPTHS_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     "Area 4 Subarea 5 - Shadow territory; crystal lantern craft (R138); Master Array leg R139. " +
     "Light table: coldfire/bioluminescence fake; true flame vulnerable; crystal lantern = sunlight vs drain.",

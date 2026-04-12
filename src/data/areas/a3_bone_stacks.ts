@@ -85,6 +85,7 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 6, col: 10 },
         onExamine: [
           { type: "set_flag", flag: "examined_r94_femur_columns" },
+          { type: "grant_ability", abilityId: "stealth" },
           {
             type: "log",
             message:
@@ -100,6 +101,7 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Skulls on shelves wall to floor. Rows of hollow eye sockets in the lantern light. Very quiet. Cold, dry dust smell.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R95. Era 3. DARK. Profound silence. Ancestors statistically present - tag in R81 names one of thousands. No loot - atmosphere only. Connects R94 ↔ R97.",
     props: [
@@ -158,7 +160,7 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
             label: "Empty the paymaster's chest",
             desc: "Iron and coin - whoever hid it behind bone hoped no honest eye would look.",
             effects: [
-              { type: "grant_gold", amount: 30 },
+              { type: "grant_salt", amount: 30 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -231,6 +233,7 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Huge femurs set vertical, bound with iron and salt-glass. Bright coldfire ahead - haze at the doorway, cold on the face. Swept stone floor. Wide space before the door.",
     enemies: [],
+    safeRoom: true,
     notes:
       'Staging before R99 proper. COLDFIRE implied from ward nearby. No combat here - return from Area 5 Outer Ward lands grid 8 (pair: a5_outer_ward "To Lich\'s Ward"). ' +
       "Connects stack core to R99 Lich's Ward Door. Beyond R99 → Area 5 R146 uses separate exit room (grid 12).",
@@ -407,7 +410,6 @@ export const A3_BONE_STACKS: AreaDef = {
     enemies: ["boss_skeleton_lord", "boss_skeleton_lord"],
     hint: "coldfire on iron and salt-block; two armored shapes wait as if cast for this threshold alone.",
   },
-  hiddenFromTown: true,
   notes:
     "Ossuary subarea 4: mass storage toward Area 5. Grid 8 = a5 return; grid 14 = R99 combat; grid 12 = exit to a5. " +
     "What Lies Below drift in stacks; patrols correct vectors toward R99.",

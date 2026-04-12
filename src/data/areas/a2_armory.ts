@@ -63,6 +63,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R70. COLDFIRE. Era 2. Room design ref R70. RANGED capability from crossbow pickup. " +
       "Connects: R69, R71 armor storage (dead end).",
+    safeRoom: true,
     props: [
       {
         id: "overlooked_crossbow",
@@ -77,6 +78,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "set_flag", flag: "has_crossbow" },
               { type: "set_flag", flag: "has_twelve_bolts" },
+              { type: "grant_weapon", weaponId: "crossbow" },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -99,6 +101,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
             label: "Take the halberd",
             effects: [
               { type: "set_flag", flag: "has_halberd" },
+              { type: "grant_weapon", weaponId: "spear" },
               { type: "consume_prop" },
               { type: "log", message: "Reach and heft. The dead do not respect fair distance." },
             ],
@@ -133,6 +136,7 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
       "Damp leather and oil smell. Tap a hanging helm: rings loud and sharp.",
     enemies: [],
     notes: "R71. COLDFIRE. Era 2+3. Room design ref R71. Connects: R70 only.",
+    safeRoom: true,
     props: [
       {
         id: "light_chain_mail",
@@ -181,9 +185,9 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the coin",
             effects: [
-              { type: "grant_gold", amount: 15 },
+              { type: "grant_salt", amount: 15 },
               { type: "consume_prop" },
-              { type: "log", message: "15 gold - armor budget that never reached the smith." },
+              { type: "log", message: "15 salt - armor budget that never reached the smith." },
             ],
           },
         ],
@@ -243,6 +247,8 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
             label: "Study the drills",
             effects: [
               { type: "set_flag", flag: "studied_armory_training_manual" },
+              { type: "grant_ability", abilityId: "counter_stance" },
+              { type: "grant_ability", abilityId: "aimed_shot" },
               { type: "heal_player", amount: 2 },
               { type: "consume_prop" },
               {
@@ -260,6 +266,21 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
         icon: "\u{2694}\uFE0F",
         desc: "Blunted steel and wicker shields, splintered from use. Plentiful; weak - but better than empty hands if you need a decoy.",
         gridPosition: { row: 7, col: 7 },
+        actions: [
+          {
+            id: "take_shield",
+            label: "Pull free a strapped shield",
+            effects: [
+              { type: "grant_weapon", weaponId: "shield" },
+              { type: "consume_prop" },
+              {
+                type: "log",
+                message:
+                  "Leather, wood, and a rim of steel salvaged from the pile - parade drill metal, still honest enough to catch a first blow.",
+              },
+            ],
+          },
+        ],
         onExamine: [
           {
             type: "log",
@@ -311,5 +332,4 @@ export const A2_ARMORY: AreaDef = {
     rooms: A2_ARMORY_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

@@ -116,9 +116,9 @@ export const A2_CLOISTER_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the coins",
             effects: [
-              { type: "grant_gold", amount: 12 },
+              { type: "grant_salt", amount: 12 },
               { type: "consume_prop" },
-              { type: "log", message: "12 gold. The niche gapes empty." },
+              { type: "log", message: "12 salt. The niche gapes empty." },
             ],
           },
         ],
@@ -178,9 +178,9 @@ export const A2_CLOISTER_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Pocket the beads",
             effects: [
-              { type: "grant_gold", amount: 3 },
+              { type: "grant_salt", amount: 3 },
               { type: "consume_prop" },
-              { type: "log", message: "A few beads still trade as oddities. 3 gold worth." },
+              { type: "log", message: "A few beads still trade as oddities. 3 salt worth." },
             ],
           },
         ],
@@ -211,9 +211,9 @@ export const A2_CLOISTER_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the coin",
             effects: [
-              { type: "grant_gold", amount: 25 },
+              { type: "grant_salt", amount: 25 },
               { type: "consume_prop" },
-              { type: "log", message: "25 gold. The locker smells of sweat and incense." },
+              { type: "log", message: "25 salt. The locker smells of sweat and incense." },
             ],
           },
         ],
@@ -280,9 +280,9 @@ export const A2_CLOISTER_ROOMS: Record<number, AuthoredRoom> = {
             id: "gather",
             label: "Gather a few to sell",
             effects: [
-              { type: "grant_gold", amount: 6 },
+              { type: "grant_salt", amount: 6 },
               { type: "consume_prop" },
-              { type: "log", message: "6 gold in oddities - delicate, worthless to the dead." },
+              { type: "log", message: "6 salt in oddities - delicate, worthless to the dead." },
             ],
           },
         ],
@@ -372,6 +372,7 @@ export const A2_CLOISTER_ROOMS: Record<number, AuthoredRoom> = {
       "Small garden court. Ceiling opens to a rough shaft; grey daylight on dead herb beds. No coldfire. " +
       "Thin draft. Bitter dried-plant smell. One pillar re-carved over older chisel marks.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R36. DIM (ventilation shaft). Era 1+2. Room design ref R36. Dead end off R35 only. " +
       "Former herb garden; weak daylight through shaft. Plants dead to husks; higher ceiling, hush unlike coldfire. Era 1 pillar carved to Era 2 devotional column. " +
@@ -472,5 +473,4 @@ export const A2_CLOISTER: AreaDef = {
     rooms: A2_CLOISTER_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

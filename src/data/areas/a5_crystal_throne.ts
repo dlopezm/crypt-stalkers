@@ -114,6 +114,7 @@ export const A5_CRYSTAL_THRONE_ROOMS: Record<number, AuthoredRoom> = {
             },
             effects: [
               { type: "set_flag", flag: "formation_full_illumination_r164" },
+              { type: "set_flag", flag: "crystal_array_restored" },
               {
                 type: "log",
                 message:
@@ -257,6 +258,7 @@ export const A5_CRYSTAL_THRONE_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "set_flag", flag: "presented_serevic_journal_at_throne_r165" },
               { type: "set_flag", flag: "serevic_journal_release_evidence_secured" },
+              { type: "set_flag", flag: "serevic_journal_found" },
               {
                 type: "log",
                 message:
@@ -477,5 +479,4 @@ export const A5_CRYSTAL_THRONE: AreaDef = {
     enemies: ["boss_lich"],
     hint: "coldfire paints a desiccated face; the eyes still wait for my numbers to confess before I do.",
   },
-  hiddenFromTown: true,
 };

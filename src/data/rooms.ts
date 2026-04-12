@@ -289,22 +289,19 @@ export const TRAP_INFO: Record<string, TrapInfo> = {
   snare: {
     label: "Snare",
     icon: "\u{1FAA4}",
-    desc: "Enemy skips first attack turn.",
-    cost: 15,
+    desc: "Enemy skips first attack turn. Costs a turn.",
     color: "#e67e22",
   },
   flash: {
     label: "Flash",
     icon: "\u{1F4A1}",
-    desc: "High light burst \u2014 damages all enemies.",
-    cost: 20,
+    desc: "High light burst \u2014 damages all enemies. Costs a turn.",
     color: "#f0c040",
   },
   noise: {
     label: "Noise Lure",
     icon: "\u{1F514}",
-    desc: "Draws enemies to adjacent room (reduces count).",
-    cost: 20,
+    desc: "Draws enemies to adjacent room. Costs a turn.",
     color: "#2980b9",
   },
 };

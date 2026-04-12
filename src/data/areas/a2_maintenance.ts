@@ -99,9 +99,14 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the stash",
             effects: [
-              { type: "grant_gold", amount: 8 },
+              { type: "grant_salt", amount: 8 },
+              { type: "grant_consumable", consumableId: "antidote" },
               { type: "consume_prop" },
-              { type: "log", message: "8 gold - hazard pay the cook never spent." },
+              {
+                type: "log",
+                message:
+                  "8 salt and a stoppered vial from the cook's own pocket - against bad meat, bad air, bad luck. Hazard pay the cook never spent.",
+              },
             ],
           },
         ],
@@ -152,9 +157,9 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the coin",
             effects: [
-              { type: "grant_gold", amount: 10 },
+              { type: "grant_salt", amount: 10 },
               { type: "consume_prop" },
-              { type: "log", message: "10 gold - maintenance skim, unmaintained." },
+              { type: "log", message: "10 salt - maintenance skim, unmaintained." },
             ],
           },
         ],
@@ -226,9 +231,9 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the coin",
             effects: [
-              { type: "grant_gold", amount: 5 },
+              { type: "grant_salt", amount: 5 },
               { type: "consume_prop" },
-              { type: "log", message: "5 gold - cook's joke on whoever audited the pantry." },
+              { type: "log", message: "5 salt - cook's joke on whoever audited the pantry." },
             ],
           },
         ],
@@ -258,11 +263,12 @@ export const A2_MAINTENANCE_ROOMS: Record<number, AuthoredRoom> = {
             label: "Take the lantern",
             effects: [
               { type: "set_flag", flag: "has_shuttered_lantern" },
+              { type: "grant_consumable", consumableId: "torch" },
               { type: "consume_prop" },
               {
                 type: "log",
                 message:
-                  "Weight and balance right. This is the first honest fire you've held since the coldfire halls.",
+                  "Weight and balance right - and a spare torch from the wick drawer, waxed for the dark pipes. This is the first honest fire you've held since the coldfire halls.",
               },
             ],
           },
@@ -399,5 +405,4 @@ export const A2_MAINTENANCE: AreaDef = {
     rooms: A2_MAINTENANCE_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

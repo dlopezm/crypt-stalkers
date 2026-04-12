@@ -60,6 +60,7 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Cavern lined with large warm salt crystals. They glow faintly on their own - enough to keep color if you shade your flame. Touch a face and you feel a low vibration in your jaw. The roof is black; you only catch glints off distant facets.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R118. DARK. Era 1. Natural cavern; massive geode split by mining - deep salt in miniature. " +
       "Crystals warm to touch, faintly self-luminous; struck crystals resonate (low hum). " +
@@ -92,11 +93,12 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
             id: "gather",
             label: "Gather loose shards",
             effects: [
-              { type: "grant_gold", amount: 15 },
+              { type: "grant_salt", amount: 15 },
               { type: "consume_prop" },
               {
                 type: "log",
-                message: "Fifteen gold in splinters - warm in the palm, gone from the wall.",
+                message:
+                  "Fifteen salt in crystal splinters - warm in the palm, gone from the wall.",
               },
             ],
           },
@@ -209,6 +211,7 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 4, col: 14 },
         onExamine: [
           { type: "set_flag", flag: "read_regrowth_survey_mark_r121" },
+          { type: "set_flag", flag: "regrowing_salt_discovered" },
           {
             type: "log",
             message:
@@ -242,12 +245,12 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
             id: "collect",
             label: "Collect the fragments",
             effects: [
-              { type: "grant_gold", amount: 25 },
+              { type: "grant_salt", amount: 25 },
               { type: "consume_prop" },
               {
                 type: "log",
                 message:
-                  "Twenty-five gold in luminous splinters - beautiful enough to make you forget the teeth in the dark.",
+                  "Twenty-five salt in luminous splinters - beautiful enough to make you forget the teeth in the dark.",
               },
             ],
           },
@@ -304,6 +307,7 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 4, col: 17 },
         onExamine: [
           { type: "set_flag", flag: "examined_secondary_growth_r123" },
+          { type: "set_flag", flag: "regrowing_salt_discovered" },
           {
             type: "log",
             message: "The stone healed bluntly - no jagged theft-line, only patience.",
@@ -380,7 +384,6 @@ export const A4_CRYSTAL_GALLERIES: AreaDef = {
     rooms: A4_CRYSTAL_GALLERIES_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     "Area 4 Subarea 2 - regrowing salt proof, reflector puzzles, Master Array bonus. " +
     "Light system: sunlight/crystal arrays full protection; crystal lantern (R138) counts as sunlight vs Shadow drain. " +

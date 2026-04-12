@@ -36,6 +36,7 @@ export const A5_OUTER_WARD_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Coldfire runs through the salt-block in thin green lines. Raw mine cut, dressed masonry, and necromantic patchwork sit in one view. The air is still and feels charged.",
     enemies: [],
+    safeRoom: true,
     isStart: true,
     notes:
       "R146. Always. Dark (coldfire flickers). No enemies. Era 1 raw mine + Era 2 salt-block + Era 3 coldfire - all three in one glance. " +
@@ -67,7 +68,7 @@ export const A5_OUTER_WARD_ROOMS: Record<number, AuthoredRoom> = {
               { type: "set_flag", flag: "looted_mira_body_r146" },
               { type: "set_flag", flag: "mira_r127_received_map" },
               { type: "set_flag", flag: "has_mira_area4_map" },
-              { type: "grant_gold", amount: 12 },
+              { type: "grant_salt", amount: 12 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -145,6 +146,7 @@ export const A5_OUTER_WARD_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "set_flag", flag: "took_ceremonial_shield_r147" },
               { type: "set_flag", flag: "has_ceremonial_order_shield" },
+              { type: "grant_weapon", weaponId: "shield" },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -167,9 +169,9 @@ export const A5_OUTER_WARD_ROOMS: Record<number, AuthoredRoom> = {
             label: "Pry it open and take the coin",
             effects: [
               { type: "set_flag", flag: "took_guard_hall_pay_r147" },
-              { type: "grant_gold", amount: 30 },
+              { type: "grant_salt", amount: 30 },
               { type: "consume_prop" },
-              { type: "log", message: "30 gold - wages for three knights who forgot how to quit." },
+              { type: "log", message: "30 salt - wages for three knights who forgot how to quit." },
             ],
           },
         ],
@@ -245,6 +247,7 @@ export const A5_OUTER_WARD_ROOMS: Record<number, AuthoredRoom> = {
               { type: "set_flag", flag: "took_heavy_crossbow_r148" },
               { type: "set_flag", flag: "has_heavy_crossbow" },
               { type: "set_flag", flag: "has_heavy_crossbow_bolts", value: 8 },
+              { type: "grant_weapon", weaponId: "crossbow" },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -267,9 +270,9 @@ export const A5_OUTER_WARD_ROOMS: Record<number, AuthoredRoom> = {
             label: "Empty the bag",
             effects: [
               { type: "set_flag", flag: "took_armory_gold_r148" },
-              { type: "grant_gold", amount: 20 },
+              { type: "grant_salt", amount: 20 },
               { type: "consume_prop" },
-              { type: "log", message: "20 gold." },
+              { type: "log", message: "20 salt." },
             ],
           },
         ],
@@ -364,9 +367,11 @@ export const A5_OUTER_WARD_ROOMS: Record<number, AuthoredRoom> = {
             label: "Take the coin",
             effects: [
               { type: "set_flag", flag: "took_staging_gold_r150" },
-              { type: "grant_gold", amount: 15 },
+              { type: "grant_salt", amount: 15 },
+              { type: "grant_consumable", consumableId: "heal_lg" },
+              { type: "grant_consumable", consumableId: "throwing_knife" },
               { type: "consume_prop" },
-              { type: "log", message: "15 gold - bloodless logistics, for once." },
+              { type: "log", message: "15 salt - bloodless logistics, for once." },
             ],
           },
         ],
@@ -451,5 +456,4 @@ export const A5_OUTER_WARD: AreaDef = {
     rooms: A5_OUTER_WARD_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

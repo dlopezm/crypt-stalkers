@@ -63,7 +63,7 @@ export function PropDialog({
         {prop.actions && prop.actions.length > 0 && (
           <div className="flex flex-col gap-2 mt-3 pt-3" style={{ borderTop: "1px solid #2a2015" }}>
             {prop.actions.map((action) => {
-              const check = canPerformAction(action, player.flags, player.gold, propState);
+              const check = canPerformAction(action, player.flags, player.salt, propState);
               const used = propState?.actionsUsed.includes(action.id) ?? false;
               const disabled = !check.ok || used;
               return (

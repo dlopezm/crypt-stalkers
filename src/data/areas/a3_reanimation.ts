@@ -113,7 +113,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
             label: "Empty the dish",
             desc: "Stipend for whoever kept the sigils fed - thin silver, a few thick disks of gold.",
             effects: [
-              { type: "grant_gold", amount: 15 },
+              { type: "grant_salt", amount: 15 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -131,6 +131,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Smaller circle. Sigils only lit in thin lines - enough to read by. Tools, crates, chair shoved aside. Old reagents, cold stone smell.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R88. Era 3. COLDFIRE (dim). Inactive circle; dark sigils; prior maintainer lost. Dead end. Study aids CONSECRATION (know your counter).",
     props: [
@@ -162,6 +163,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
             desc: "Spare pins, etched disks - enough to mock their work or unmake a span of it.",
             effects: [
               { type: "set_flag", flag: "has_circle_components_r88" },
+              { type: "grant_consumable", consumableId: "poison_flask" },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -180,6 +182,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 3, col: 5 },
         onExamine: [
           { type: "set_flag", flag: "read_reanimation_notes_r88" },
+          { type: "set_flag", flag: "binding_knowledge" },
           {
             type: "log",
             message:
@@ -199,7 +202,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
             label: "Take the strongbox contents",
             desc: "Coin and ingot stubs - payment for silence on the delivery road.",
             effects: [
-              { type: "grant_gold", amount: 20 },
+              { type: "grant_salt", amount: 20 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -230,6 +233,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 9, col: 10 },
         onExamine: [
           { type: "set_flag", flag: "read_soul_binding_texts_r89" },
+          { type: "set_flag", flag: "binding_knowledge" },
           {
             type: "log",
             message:
@@ -249,7 +253,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
             label: "Claim the coffered coin and salts",
             desc: "Wax splits; inside, coin and powders that hum against your knuckles.",
             effects: [
-              { type: "grant_gold", amount: 25 },
+              { type: "grant_salt", amount: 25 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -284,7 +288,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
             label: "Cut the pouches down",
             desc: "Petty coin hung like uniforms waiting for owners who no longer eat.",
             effects: [
-              { type: "grant_gold", amount: 10 },
+              { type: "grant_salt", amount: 10 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -329,6 +333,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Coldfire lamp - sick green on everything. Shelves: folios, jars, pinned notes. Smell of ink, alcohol, bone dust. Far wall covered by a big map - doors and tunnels inked, crossed out, redrawn.",
     enemies: [],
+    safeRoom: true,
     notes: "R92. Era 3. COLDFIRE. Senior research space; occupant often at R87. Dead end.",
     props: [
       {
@@ -369,6 +374,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
         gridPosition: { row: 10, col: 21 },
         onExamine: [
           { type: "set_flag", flag: "read_experimental_notes_r92" },
+          { type: "grant_ability", abilityId: "acid_flask" },
           {
             type: "log",
             message:
@@ -388,7 +394,7 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
             label: "Take the purse",
             desc: "Fine stitching - dropped as if the owner meant to return within the hour.",
             effects: [
-              { type: "grant_gold", amount: 12 },
+              { type: "grant_salt", amount: 12 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -444,7 +450,6 @@ export const A3_REANIMATION: AreaDef = {
     rooms: A3_REANIMATION_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
   notes:
     "Ossuary subarea 3: industrial necromancy; drift toward bone stacks / deep connections. " +
     "R87 circle destruction reduces skeleton pressure in Areas 1–3 permanently.",

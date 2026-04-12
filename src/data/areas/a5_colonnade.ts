@@ -23,6 +23,7 @@ export const A5_COLONNADE_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Salt-crystal columns from floor to vault, carved with text on every face. In coldfire alone the glyphs stay hard to read; a real torch or lantern pins prayer-lines and geometry together. Sound bounces between the shafts.",
     enemies: [],
+    safeRoom: true,
     isStart: true,
     notes:
       "R152. Coldfire. No enemies. Salt-crystal columns floor to ceiling; text on every surface. " +
@@ -148,6 +149,7 @@ export const A5_COLONNADE_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Last column before the exit: deep carved lines, smaller lines cut underneath. Dry air; salt dust in the grooves. Coldfire shows both layers on the crystal.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R155. Coldfire. No enemies. Era 2 prayers + Era 3 necromantic overlay; lich handwriting beside order scribes. " +
       "Cross-ref: R156, R165 voice.",
@@ -226,5 +228,4 @@ export const A5_COLONNADE: AreaDef = {
     rooms: A5_COLONNADE_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

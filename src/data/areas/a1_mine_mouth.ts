@@ -40,6 +40,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
       "Sunlight through a broken gap overhead - rough stone, peeling plaster, grit on the floor. Iron cart tracks run straight into shadow.",
     enemies: [],
     isStart: true,
+    safeRoom: true,
     notes:
       "R1. Era 1 + Era 2 plaster. SUNLIT - safe, no combat. " +
       "Era layering visible: raw stone → plaster → neglect. " +
@@ -98,7 +99,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Gather them",
             effects: [
-              { type: "grant_gold", amount: 5 },
+              { type: "grant_salt", amount: 5 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -139,7 +140,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Collect the coins",
             effects: [
-              { type: "grant_gold", amount: 8 },
+              { type: "grant_salt", amount: 8 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -203,7 +204,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take the coins",
             effects: [
-              { type: "grant_gold", amount: 12 },
+              { type: "grant_salt", amount: 12 },
               { type: "consume_prop" },
               {
                 type: "log",
@@ -222,6 +223,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Vertical shaft to a slit of sky. Wrought-iron brazier bowl at the foot, packed grey ash - cold even in the sunbeam. Draft on your neck; when it drops, warmth threads off the salt toward the deep tunnels.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R5. Era 1 + Era 2. SUNLIT - safe room (sunlight blocks most monster entry; rest/plan spot). " +
       "Vertical shaft; too narrow to climb. When brazier lit: true-light zone here.",
@@ -283,6 +285,7 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Cut stone blocks and hard mortar replace raw tunnel; steps rise toward open sky and the yard.",
     enemies: [],
+    safeRoom: true,
     exit: { toAreaId: "a1_gatehouse", toRoomGridId: 2 },
   },
   9: {
@@ -305,7 +308,6 @@ export const A1_MINE_MOUTH: AreaDef = {
     rooms: A1_MINE_MOUTH_ROOMS,
   },
   combatRooms: [],
-  townName: "The Pale Vault",
   notes:
     "Area 1 theme: the cost of greed - greed has a price; it is rarely paid by the one who profits. " +
     "Emotional arc: Recognition (crest, log, family door) → Discomfort (contracts, journals) → Triumph (return with blunt). " +

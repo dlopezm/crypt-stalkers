@@ -58,6 +58,7 @@ export const A5_MORTAL_QUARTERS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Small chamber, low ceiling, dust in the corners - plain after the huge salt halls. Bed still made; gray dust on the linen. Writing desk, dry inkwell, papers squared at the edges; smells like old paper. Left as-is, not staged.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R169. Always. Dark. No enemies. Serevic's bedroom before transformation - preserved by inaction, not care. " +
       "No shrine logic; stopped time as bureaucracy. " +
@@ -103,6 +104,7 @@ export const A5_MORTAL_QUARTERS_ROOMS: Record<number, AuthoredRoom> = {
             effects: [
               { type: "set_flag", flag: "serevic_journal_placed_desk_r169" },
               { type: "set_flag", flag: "serevic_journal_release_evidence_secured" },
+              { type: "set_flag", flag: "serevic_journal_found" },
               { type: "set_flag", flag: "has_serevic_pretransformation_journal", value: false },
               {
                 type: "log",
@@ -149,6 +151,7 @@ export const A5_MORTAL_QUARTERS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Bookshelves close together - duty, sacrifice, barony procedure. Dust on the top shelves; cool steady air. Footsteps and breath sound loud on the stone.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R170. Always. Dark. No enemies. Philosophy shelves emphasize duty, sacrifice, competence - not soft-loss poetry as primary key. " +
       "Teaching: complicates easy judgment without demanding forgiveness. Cross-ref: R165 dialogue, Baron's ring trigger.",
@@ -190,6 +193,7 @@ export const A5_MORTAL_QUARTERS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Small niche. Mirror covered with pinned sackcloth; dust in the cloth folds. Shelf with tarnished comb, razor, silver - unused, never cleared out.",
     enemies: [],
+    safeRoom: true,
     notes:
       "R171. Always. Dark. No enemies. Dead end. " +
       "If player removes cloth: living reflection (warm, breathing) in a place built for the dead - no mechanical reward; evidence / dungeon's last question: what does a living person do here - take, hold, break, or walk away? " +
@@ -287,5 +291,4 @@ export const A5_MORTAL_QUARTERS: AreaDef = {
     rooms: A5_MORTAL_QUARTERS_ROOMS,
   },
   combatRooms: [],
-  hiddenFromTown: true,
 };

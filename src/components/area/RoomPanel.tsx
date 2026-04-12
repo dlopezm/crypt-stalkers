@@ -1,6 +1,5 @@
 import { btnStyle } from "../../styles";
 import { TRAP_INFO } from "../../data/rooms";
-import { BLOCK_DOOR_COST } from "../../data/constants";
 import { getActiveProps } from "../../utils/props";
 import type { AreaNode, Player } from "../../types";
 
@@ -171,14 +170,11 @@ export function RoomPanel({
                 <button
                   key={key}
                   title={t.desc}
-                  disabled={player.gold < t.cost}
-                  style={btnStyle(t.color, player.gold < t.cost)}
+                  style={btnStyle(t.color)}
                   className="text-xs! px-2! py-1!"
                   onClick={() => onSetTrap(node.id, key)}
                 >
-                  {t.icon}
-                  {t.cost}
-                  {"\u{1FA99}"}
+                  {t.icon} {t.label}
                 </button>
               ))}
             </div>
@@ -189,13 +185,11 @@ export function RoomPanel({
           !node.exit &&
           !node.blocked && (
             <button
-              style={btnStyle("#2980b9", player.gold < BLOCK_DOOR_COST)}
+              style={btnStyle("#2980b9")}
               className="text-xs! px-2! py-1!"
-              disabled={player.gold < BLOCK_DOOR_COST}
               onClick={() => onBlockDoor(node.id)}
             >
-              {"\u{1F6A7}"} Block ({BLOCK_DOOR_COST}
-              {"\u{1FA99}"})
+              {"\u{1F6A7}"} Block Door
             </button>
           )}
 
