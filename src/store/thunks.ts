@@ -1,185 +1,69 @@
-import { roomDistances, runAreaAI } from "../utils/area";
-import { makeEnemyData } from "../utils/helpers";
+import { applyGridCombatResult } from "../utils/grid-helpers";
 import type { AppDispatch, RootState } from "./index";
 import { setPlayer } from "./playerSlice";
 import { setScreen } from "./screenSlice";
-import { updateArea, addLogEntries, incrementTurn } from "./areaSlice";
-import { startCombat, updateCombatState, setDeathContext, clearCombat } from "./combatSlice";
-import type { CombatPlayer, AreaLogEntry, AreaNode } from "../types";
+import { updateArea, incrementTurn } from "./areaSlice";
+import { setDeathContext, clearCombat, startGridCombat } from "./combatSlice";
+import type { AreaNode } from "../types";
+import type { GridPlayerState } from "../grid-combat/types";
 
-/* ── tickAI ─────────────────────────────────────────────────────────────────
-   Runs one area AI tick. Dispatches incrementTurn + log entries.
-   Returns { newArea, arrivedInPlayerRoom } for callers to use.
-────────────────────────────────────────────────────────────────────────────── */
-export function tickAI(currentArea: AreaNode[], roomId: string, action: string) {
-  return (
-    dispatch: AppDispatch,
-    getState: () => RootState,
-  ): { newArea: AreaNode[]; arrivedInPlayerRoom: string[] } => {
-    const turn = getState().area.areaTurn;
-    const player = getState().player;
-    const { newArea, aiLog, arrivedInPlayerRoom } = runAreaAI(
-      currentArea,
-      roomId,
-      action,
-      player?.hp,
-      player?.maxHp,
-    );
+/* ── tickAI — STUB (area AI not yet ported to grid combat) ── */
+export function tickAI(currentArea: AreaNode[], _roomId: string, _action: string) {
+  return (dispatch: AppDispatch): { newArea: AreaNode[] } => {
     dispatch(incrementTurn());
-
-    if (aiLog.length) {
-      // Debug entries (always logged, visible in debug overlay)
-      const debugEntries: AreaLogEntry[] = aiLog.map((e) => ({
-        turn,
-        text: e.debugText,
-        source: "monster",
-        roomId: e.roomId,
-        debugText: e.debugText,
-      }));
-      dispatch(addLogEntries({ entries: debugEntries }));
-
-      // Audible entries filtered by distance + wail zone masking
-      const wailRooms = new Set(newArea.filter((r) => r.wailZone).map((r) => r.id));
-      const maxRange: Record<string, number> = { quiet: 1, normal: 2, loud: Infinity };
-      const dist = roomDistances(currentArea, roomId);
-      const audible = aiLog.filter((e) => {
-        if (e.volume !== "loud" && wailRooms.has(e.roomId)) return false;
-        const range = maxRange[e.volume] ?? 2;
-        const d1 = dist.get(e.roomId) ?? Infinity;
-        const d2 = e.toRoomId ? (dist.get(e.toRoomId) ?? Infinity) : Infinity;
-        return Math.min(d1, d2) <= range;
-      });
-      if (audible.length) {
-        const audibleEntries: AreaLogEntry[] = audible.map((e) => {
-          const d1 = dist.get(e.roomId) ?? Infinity;
-          const d2 = e.toRoomId ? (dist.get(e.toRoomId) ?? Infinity) : Infinity;
-          const closestRoom = d2 < d1 ? e.toRoomId! : e.roomId;
-          const approaching = e.toRoomId !== undefined && d2 < d1;
-          return {
-            turn,
-            text: e.text,
-            source: "monster" as const,
-            roomId: closestRoom,
-            approaching,
-          };
-        });
-        dispatch(addLogEntries({ entries: audibleEntries }));
-      }
-    }
-
-    return { newArea, arrivedInPlayerRoom };
+    return { newArea: currentArea };
   };
 }
 
-/* ── combatVictory ───────────────────────────────────────────────────────────
-   Called by CombatScreen when all enemies are dead.
-────────────────────────────────────────────────────────────────────────────── */
-export function combatVictory(newPlayer: CombatPlayer) {
-  return (dispatch: AppDispatch, getState: () => RootState) => {
-    const { area: areaState, combat: combatState } = getState();
-    const { area, areaDef, currentRoomId } = areaState;
-    if (!area || !currentRoomId) return;
+export { startGridCombat };
 
-    // Tally dead enemies as corpses (exclude bosses and internal types like heap_of_bones)
-    const SKIP_CORPSE = new Set([
-      "heap_of_bones",
-      "boss_skeleton_lord",
-      "boss_vampire_lord",
-      "boss_lich",
-    ]);
-    const newCorpses: Record<string, number> = {};
-    for (const e of combatState.enemies ?? []) {
-      if (!SKIP_CORPSE.has(e.id)) {
-        newCorpses[e.id] = (newCorpses[e.id] ?? 0) + 1;
-      }
+export function gridCombatVictory(result: GridPlayerState, loot: number) {
+  return (dispatch: AppDispatch, getState: () => RootState) => {
+    const { area: areaState, player: currentPlayer } = getState();
+    const { area, areaDef, currentRoomId } = areaState;
+    if (!area || !currentRoomId || !currentPlayer) {
+      return;
     }
 
-    const base = area.map((n) => {
-      if (n.id !== currentRoomId) return n;
-      const merged: Record<string, number> = { ...n.corpses };
-      for (const [id, count] of Object.entries(newCorpses)) {
-        merged[id] = (merged[id] ?? 0) + count;
-      }
-      return { ...n, state: "visited" as const, enemies: [], corpses: merged };
-    });
     const curRoom = area.find((r) => r.id === currentRoomId);
+
+    const base = area.map((n) => {
+      if (n.id !== currentRoomId) {
+        return n;
+      }
+      return { ...n, state: "visited" as const, enemies: [] };
+    });
+
     const newArea = base.map((n) => {
-      if (n.state === "locked" && curRoom?.connections.includes(n.id))
+      if (n.state === "locked" && curRoom?.connections.includes(n.id)) {
         return { ...n, state: "reachable" as const };
+      }
       return n;
     });
-    // Combat is loud — tick area AI so nearby enemies react
+
     const { newArea: afterAI } = dispatch(tickAI(newArea, currentRoomId, "combat"));
     dispatch(updateArea(afterAI));
 
-    const {
-      block: _b,
-      stealthActive: _st,
-      counterActive: _c,
-      abilityCooldowns: _ac,
-      chargingAbility: _ca,
-      chargingTurnsLeft: _ct,
-      chargingTargetUid: _ctu,
-      blockReduction: _br,
-      ...playerState
-    } = newPlayer;
+    const updated = applyGridCombatResult(currentPlayer, result);
+    const withLoot = { ...updated, salt: updated.salt + loot };
 
     if (curRoom?.boss && areaDef?.bossRoom) {
-      dispatch(setPlayer({ ...playerState, hp: playerState.maxHp }));
+      dispatch(setPlayer({ ...withLoot, hp: withLoot.maxHp }));
       dispatch(clearCombat());
       dispatch(setScreen("victory"));
       return;
     }
 
-    dispatch(setPlayer(playerState));
+    dispatch(setPlayer(withLoot));
     dispatch(clearCombat());
     dispatch(setScreen("map"));
   };
 }
 
-/* ── combatDefeat ────────────────────────────────────────────────────────────
-   Called by CombatScreen when the player's HP reaches 0.
-────────────────────────────────────────────────────────────────────────────── */
-export function combatDefeat() {
-  return (dispatch: AppDispatch, getState: () => RootState) => {
-    const enemies = getState().combat.enemies;
-    const enemyIds = enemies ? [...new Set(enemies.map((e) => e.id))] : [];
-    dispatch(setDeathContext({ enemyIds }));
+export function gridCombatDefeat(enemyIds: readonly string[]) {
+  return (dispatch: AppDispatch) => {
+    dispatch(setDeathContext({ enemyIds: [...new Set(enemyIds)] }));
     dispatch(clearCombat());
     dispatch(setScreen("gameover"));
   };
 }
-
-/* ── fleeToMap ───────────────────────────────────────────────────────────────
-   Called by CombatScreen on a successful flee attempt.
-────────────────────────────────────────────────────────────────────────────── */
-export function fleeToMap(newPlayer: CombatPlayer) {
-  return (dispatch: AppDispatch, getState: () => RootState) => {
-    const { area: areaState } = getState();
-    const { area, currentRoomId } = areaState;
-    if (!area || !currentRoomId) return;
-
-    const {
-      block: _b,
-      stealthActive: _st,
-      counterActive: _c,
-      abilityCooldowns: _ac,
-      chargingAbility: _ca,
-      chargingTurnsLeft: _ct,
-      chargingTargetUid: _ctu,
-      blockReduction: _br,
-      ...playerState
-    } = newPlayer;
-    dispatch(setPlayer(playerState));
-
-    const { newArea: afterAI } = dispatch(tickAI(area, currentRoomId, "move"));
-    dispatch(updateArea(afterAI));
-    dispatch(clearCombat());
-    dispatch(setScreen("map"));
-  };
-}
-
-/* ── updateCombatTurn ────────────────────────────────────────────────────────
-   Called by CombatScreen at the end of each enemy turn to sync game state.
-────────────────────────────────────────────────────────────────────────────── */
-export { updateCombatState, startCombat, makeEnemyData };

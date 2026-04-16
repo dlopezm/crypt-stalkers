@@ -4,16 +4,17 @@ import { WEAPONS } from "./data/weapons";
 import { CONSUMABLES } from "./data/consumables";
 import { ABILITIES } from "./data/abilities";
 import { determineEnding } from "./data/endings";
-import { makeStarterPlayer, makeEnemyData } from "./utils/helpers";
+import { makeStarterPlayer } from "./utils/helpers";
 import { generateArea } from "./utils/area";
 import { loadGame, clearSave, hasSave } from "./utils/save";
 import { TitleScreen } from "./components/TitleScreen";
 import { IntroScreen } from "./components/IntroScreen";
 import { AuthoredAreaEditor } from "./components/editor/AuthoredAreaEditor";
 import { AreaMap } from "./components/area/AreaMap";
-import { CombatScreen } from "./components/CombatScreen";
+import { GridCombatScreen } from "./components/GridCombatScreen";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
 import type { AreaNode, AreaDef, AreaLogEntry, Player, PropEffect } from "./types";
+import type { GridPlayerState } from "./grid-combat/types";
 import { useAppDispatch, useAppSelector } from "./store";
 import { setScreen } from "./store/screenSlice";
 import { setPlayer, setFlag } from "./store/playerSlice";
@@ -27,10 +28,17 @@ import {
   updatePropState,
 } from "./store/areaSlice";
 import { canPerformAction, evaluateEffects } from "./utils/props";
-import { startCombat, clearCombat, clearDeathContext } from "./store/combatSlice";
+import {
+  startGridCombat,
+  hydrateGridCombat,
+  clearCombat,
+  clearDeathContext,
+} from "./store/combatSlice";
 import { toggleDebugMode, toggleShowDebug, setShowDebug } from "./store/debugSlice";
 import { saveRoomCheckpoint, saveAreaCheckpoint, type Checkpoint } from "./store/checkpointSlice";
-import { tickAI as tickAIThunk } from "./store/thunks";
+import { tickAI as tickAIThunk, gridCombatVictory, gridCombatDefeat } from "./store/thunks";
+import { playerToGridPlayer, areaEnemiesToGridEnemies } from "./utils/grid-helpers";
+import { getRoomTerrainLayout } from "./grid-combat/room-layouts";
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -46,6 +54,8 @@ export default function App() {
   const debugMode = useAppSelector((s) => s.debug.debugMode);
   const showDebug = useAppSelector((s) => s.debug.showDebug);
   const combatKey = useAppSelector((s) => s.combat.combatKey);
+  const combatSpawn = useAppSelector((s) => s.combat.spawn);
+  const combatState = useAppSelector((s) => s.combat.state);
   const deathContext = useAppSelector((s) => s.combat.deathContext);
   const roomCheckpoint = useAppSelector((s) => s.checkpoint.room);
   const areaCheckpoint = useAppSelector((s) => s.checkpoint.area);
@@ -98,12 +108,9 @@ export default function App() {
     );
     if (save.combat) {
       dispatch(
-        startCombat({
-          enemies: save.combat.enemies,
-          combatPlayer: save.combat.combatPlayer,
-          surpriseRound: save.combat.surpriseRound ?? false,
-          lightLevel: save.combat.lightLevel,
-          combatLog: save.combat.combatLog,
+        hydrateGridCombat({
+          spawn: save.combat.spawn,
+          state: save.combat.state,
         }),
       );
     } else {
@@ -154,7 +161,9 @@ export default function App() {
     dispatch(setScreen("title"));
   }
 
-  /* ── Check if the player's room has enemies after an AI tick ── */
+  /* ── Check if the player's room has enemies after an AI tick ──
+     Currently dormant: tickAI is stubbed and never moves enemies.
+     Will activate once area AI is ported to the grid combat system. */
   function checkAmbush(afterAI: AreaNode[], roomId: string, opts?: { player?: Player }): boolean {
     const roomAfterAI = afterAI.find((n) => n.id === roomId);
     if (!roomAfterAI || roomAfterAI.enemies.length === 0) return false;
@@ -163,11 +172,13 @@ export default function App() {
     dispatch(updateArea(updated));
     addLog(["\u26A0\uFE0F Monsters have found you!"], "system");
     if (opts?.player) dispatch(setPlayer(opts.player));
+
     dispatch(
-      startCombat({
-        enemies: roomAfterAI.enemies.map((e) => makeEnemyData(e.typeId, e.uid, e.hpOverride)),
-        combatPlayer: null,
-        surpriseRound: true,
+      startGridCombat({
+        spawn: {
+          enemies: areaEnemiesToGridEnemies(roomAfterAI.enemies),
+          roomLabel: roomAfterAI.label,
+        },
       }),
     );
     dispatch(setScreen("combat"));
@@ -232,11 +243,13 @@ export default function App() {
 
     if (hasEnemies) {
       dispatch(updateArea(afterAI));
+
       dispatch(
-        startCombat({
-          enemies: room.enemies.map((e) => makeEnemyData(e.typeId, e.uid, e.hpOverride)),
-          combatPlayer: null,
-          surpriseRound: false,
+        startGridCombat({
+          spawn: {
+            enemies: areaEnemiesToGridEnemies(room.enemies),
+            roomLabel: room.label,
+          },
         }),
       );
       dispatch(setScreen("combat"));
@@ -564,9 +577,29 @@ export default function App() {
     );
 
   if (screen === "combat") {
-    const room = area.find((n) => n.id === currentRoomId);
-    if (!room) return null;
-    return <CombatScreen key={combatKey} room={room} />;
+    if (!player || !combatSpawn) {
+      return null;
+    }
+
+    const gridPlayer = playerToGridPlayer(player);
+    const enemyIds = combatSpawn.enemies.map((e) => e.id);
+    const terrainLayout = getRoomTerrainLayout(combatSpawn.roomLabel, combatSpawn.enemies.length);
+
+    return (
+      <GridCombatScreen
+        key={combatKey}
+        gridPlayer={gridPlayer}
+        initialEnemies={combatSpawn.enemies}
+        terrainLayout={terrainLayout}
+        restoredState={combatState}
+        onVictory={(result: GridPlayerState, loot: number) => {
+          dispatch(gridCombatVictory(result, loot));
+        }}
+        onDefeat={() => {
+          dispatch(gridCombatDefeat(enemyIds));
+        }}
+      />
+    );
   }
 
   return null;

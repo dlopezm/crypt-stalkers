@@ -29,16 +29,15 @@ store.subscribe(() => {
     areaLog: a.areaLog,
     areaTurn: a.areaTurn,
     visitedAreas: a.visitedAreas,
-    combat:
-      combat.enemies && combat.combatPlayer
-        ? {
-            enemies: combat.enemies,
-            combatPlayer: combat.combatPlayer,
-            lightLevel: combat.lightLevel,
-            combatLog: combat.combatLog,
-            surpriseRound: combat.surpriseRound,
-          }
-        : null,
+    combat: combat.spawn
+      ? {
+          spawn: combat.spawn,
+          // Only persist grid state at planning-phase checkpoints.
+          // Mid-execution snapshots are dropped so reload rewinds to the
+          // start of the current turn's planning phase.
+          state: combat.state?.phase === "planning" ? combat.state : null,
+        }
+      : null,
   });
 });
 

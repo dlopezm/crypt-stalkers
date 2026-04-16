@@ -17,22 +17,7 @@ import {
   saltRevenantMechanics,
 } from "../combat/mechanics";
 import { selectGraveRobberIntent, selectGutbornLarvaIntent } from "../combat/intents";
-import {
-  ratDungeonMechanics,
-  zombieDungeonMechanics,
-  ghostDungeonMechanics,
-  vampireDungeonMechanics,
-  shadowDungeonMechanics,
-  bansheeDungeonMechanics,
-  necromancerDungeonMechanics,
-  skeletonDungeonMechanics,
-  ghoulDungeonMechanics,
-  graveRobberDungeonMechanics,
-  gutbornLarvaDungeonMechanics,
-  boneguardDungeonMechanics,
-  boneHoundDungeonMechanics,
-  saltRevenantDungeonMechanics,
-} from "../dungeon/mechanics";
+/* dungeon/mechanics deleted — area AI removed per card combat redesign */
 
 export const ENEMY_TYPES: EnemyType[] = [
   {
@@ -45,7 +30,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanic: "swarm",
     defaultRow: "front",
     combatMechanics: ratMechanics,
-    outOfCombatMechanics: ratDungeonMechanics,
     deathHint:
       "Rats swarm in numbers. Kill them fast before they breed \u2014 fire and area attacks thin the pack.",
     movement: "Frequent, random",
@@ -66,7 +50,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     resistances: { pierce: 0.5 },
     vulnerabilities: { bludgeoning: 1.5 },
     combatMechanics: skeletonMechanics,
-    outOfCombatMechanics: skeletonDungeonMechanics,
     deathHint:
       "Skeletons reassemble after death. Use bludgeoning weapons to shatter them for good.",
     movement: "Scouts the dungeon",
@@ -85,7 +68,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanic: "controlled",
     defaultRow: "front",
     combatMechanics: zombieMechanics,
-    outOfCombatMechanics: zombieDungeonMechanics,
     deathHint:
       "Zombies are slow but relentless. Kill the necromancer commanding them and they'll stop advancing.",
     movement: "Goes where master commands; returns to master if under attack",
@@ -106,7 +88,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "front",
     resistances: { slash: 0.5, pierce: 0.5 },
     combatMechanics: ghostMechanics,
-    outOfCombatMechanics: ghostDungeonMechanics,
     deathHint:
       "Ghosts phase through physical attacks. Use holy water or wait for them to manifest \u2014 they can't dodge while attacking.",
     movement: "No",
@@ -125,7 +106,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanic: "lifesteal",
     defaultRow: "front",
     combatMechanics: vampireMechanics,
-    outOfCombatMechanics: vampireDungeonMechanics,
     deathHint:
       "Vampires heal by draining your blood. Keep your HP high \u2014 they retreat when you're strong and strike when you're weak.",
     seesInDark: true,
@@ -141,7 +121,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanic: "drain_aura",
     defaultRow: "back",
     combatMechanics: bansheeMechanics,
-    outOfCombatMechanics: bansheeDungeonMechanics,
     deathHint:
       "Banshees deafen everything nearby, masking other sounds. Approach cautiously \u2014 you won't hear what else lurks in wail zones.",
     movement: "Occasional, random",
@@ -160,7 +139,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanic: "summon",
     defaultRow: "back",
     combatMechanics: necromancerMechanics,
-    outOfCombatMechanics: necromancerDungeonMechanics,
     deathHint:
       "Necromancers are frail but dangerous. They resurrect the dead and command undead troops. Prioritize them in combat.",
     movement: "Stationary",
@@ -179,7 +157,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanic: "ambush",
     defaultRow: "front",
     combatMechanics: ghoulMechanics,
-    outOfCombatMechanics: ghoulDungeonMechanics,
     deathHint:
       "Ghouls hide in dark rooms and ambush. Carry light to prevent surprise attacks \u2014 they flee from illumination.",
     movement: "Tends to hide, or moves to ambush if detecting victims",
@@ -198,7 +175,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanic: "light_drain",
     defaultRow: "front",
     combatMechanics: shadowMechanics,
-    outOfCombatMechanics: shadowDungeonMechanics,
     deathHint:
       "Shadows spread darkness to adjacent rooms and drain your light. Keep backup light sources ready.",
     seesInDark: true,
@@ -230,7 +206,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanic: "flee",
     defaultRow: "front",
     combatMechanics: { selectIntent: selectGraveRobberIntent },
-    outOfCombatMechanics: graveRobberDungeonMechanics,
     deathHint:
       "Grave robbers flee combat and steal dungeon resources. Corner them \u2014 they can't fight, but what they stole drops on death.",
     movement: "Away from any perceived danger, towards the exit",
@@ -249,7 +224,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     mechanic: "infect",
     defaultRow: "front",
     combatMechanics: { selectIntent: selectGutbornLarvaIntent },
-    outOfCombatMechanics: gutbornLarvaDungeonMechanics,
     deathHint:
       "Larvae are fragile but infest corpses. Clear bodies from rooms or they'll multiply into something worse.",
     movement: "Towards any sign of life, to find a host",
@@ -273,7 +247,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     resistances: { slash: 0.5, pierce: 0.5 },
     vulnerabilities: { bludgeoning: 1.5 },
     combatMechanics: boneguardMechanics,
-    outOfCombatMechanics: boneguardDungeonMechanics,
     deathHint:
       "Boneguards resist slashing and piercing. Use bludgeoning weapons \u2014 they're stationed sentinels, so you can plan your approach.",
     movement: "Slow, stationary sentinel",
@@ -293,7 +266,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     defaultRow: "front",
     vulnerabilities: { bludgeoning: 1.5 },
     combatMechanics: boneHoundMechanics,
-    outOfCombatMechanics: boneHoundDungeonMechanics,
     deathHint:
       "Bone hounds track you by sound. Move quietly or they'll hunt you down. Bludgeoning shatters their skeletal frames.",
     movement: "Fast, tracks player",
@@ -314,7 +286,6 @@ export const ENEMY_TYPES: EnemyType[] = [
     resistances: { pierce: 0.5 },
     vulnerabilities: { bludgeoning: 1.5 },
     combatMechanics: saltRevenantMechanics,
-    outOfCombatMechanics: saltRevenantDungeonMechanics,
     deathHint:
       "Salt revenants grapple and hold you in place. Break free quickly \u2014 they're territorial and won't chase far from their domain.",
     movement: "Slow, territorial",

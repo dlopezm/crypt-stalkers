@@ -82,10 +82,10 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
     hint: "weapon racks stripped to splinters and rust. one parchment still nailed - shifts, names, dates you don't recognize.",
     description:
       "Narrow room off the court - stripped weapon racks, splinters and rust flakes on the floor. Dim light; damp mortar joints; wet stone and iron on the air.",
-    enemies: ["rat", "rat"],
+    enemies: ["zombie", "rat", "rat"],
     notes:
       "R8. Era 2 + neglect. DIM. Dead end. " +
-      "Wrong weapon type teaches damage-type lesson if player experiments on skeletons.",
+      "Zombie + rats: urgency vs chip damage. Kill zombie fast or get Infected.",
     props: [
       {
         id: "duty_roster",
@@ -124,11 +124,10 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
     hint: "plaster saints lift hands; paint flakes into dust. two slumped figures haul salt toward the yard, same steps, same pause - as if the hall taught them the route.",
     description:
       "Tall hall - peeling plaster, worn floor flags where salt was dragged toward the yard. Thin daylight from the arch. Sound carries; you hear drips and movement along the walls.",
-    enemies: ["zombie", "zombie"],
+    enemies: ["zombie", "zombie", "zombie"],
     notes:
-      "R9. Era 2. DIM. " +
-      "Zombies lug salt on fixed path R9→R7→surface - workers reduced to instructions; player can observe without fight. " +
-      "Singing motif in frescoes - resonance hint for R17 Inner Gate.",
+      "R9. Era 2. DIM. ⚔ ZOMBIE ×3 — teaches Infected timer urgency. " +
+      "Kill fast or face permanent Stamina loss. Double-attacks punished by Bone Plate Thorns (if owned).",
     props: [
       {
         id: "order_frescoes",

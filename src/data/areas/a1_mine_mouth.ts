@@ -71,10 +71,10 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
     hint: "rusted scales and chains on a low platform. paper curls; something small scratches in the corners.",
     description:
       "Low stone platform for carts; rusted chains, orange scale on the iron. Dim light from ahead; wet corners; small scratching sounds in the grit.",
-    enemies: ["rat", "rat"],
+    enemies: ["rat", "rat", "rat"],
     notes:
       "R2. Era 1. DIM (some daylight). " +
-      "Teaching: documents reward thorough search; rats introduce breeding / door-squeeze mechanics.",
+      "Teaches Stamina budgeting — 3 rats = 3 blocks needed, or use AoE/chip acceptance.",
     props: [
       {
         id: "foreman_log",
@@ -119,11 +119,10 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
     hint: "salt carts, heaps that catch the dim light wrong - almost warm. tracks fork into the dark.",
     description:
       "Tracks meet at a hub wider than the tunnel behind you - bollards, stopped carts, heaps of salt. Some salt faces read warmer to the hand than the walls. Branches run on; air smells of rust and damp crystal.",
-    enemies: ["rat", "rat", "rat"],
+    enemies: ["rat", "rat", "rat", "rat"],
     notes:
-      "R3. Era 1. DIM. HUB room. " +
-      "Deepest salt chunks catch dim light oddly; wall-facing cartloads feel a trace WARM - What Lies Below seed. " +
-      "Salt blocks (crafting/quest later - no crafting system yet).",
+      "R3. Era 1. DIM. HUB room. ⚔ RAT ×4 — larger swarm, teaches AoE value. " +
+      "Deepest salt chunks catch dim light oddly; wall-facing cartloads feel a trace WARM - What Lies Below seed.",
     props: [
       {
         id: "salt_cart",

@@ -1,21 +1,11 @@
-import type {
-  Player,
-  AreaNode,
-  AreaDef,
-  AreaGrid,
-  AreaLogEntry,
-  EnemyData,
-  CombatPlayer,
-  Screen,
-} from "../types";
+import type { Player, AreaNode, AreaDef, AreaGrid, AreaLogEntry, Screen } from "../types";
 import type { VisitedAreaSnapshot } from "../store/areaSlice";
+import type { GridCombatSpawn } from "../store/combatSlice";
+import type { GridCombatState } from "../grid-combat/types";
 
 export interface CombatSave {
-  enemies: EnemyData[];
-  combatPlayer: CombatPlayer;
-  lightLevel: number;
-  combatLog: string[];
-  surpriseRound?: boolean;
+  spawn: GridCombatSpawn;
+  state: GridCombatState | null;
 }
 
 export interface SaveGame {

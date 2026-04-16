@@ -50,23 +50,20 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     enemies: ["skeleton"],
     isStart: true,
     notes:
-      "R12. Era 1 + Era 2 plaster + Era 3 coldfire. COLDFIRE lit - NO PROTECTION vs true-light-sensitive threats. " +
-      "Single skeleton - player's FIRST skeleton fight. With axe: hard win (~21 HP cost). With dagger only: death (teaches 'get better gear'). " +
-      "Patrol route: R12→R15→R17→R15→R12 (perpetual loop). " +
-      "Core traffic; noise/light here pulls skeletons from adjacent rooms. " +
-      "Deeper-facing walls carry wrong warmth and almost-tone in the salt - What Lies Below seed.",
+      "R12. Era 1 + coldfire. FIRST skeleton fight. " +
+      "Teaches damage-type gating: dagger pierce resisted, need bludgeoning (Pick). " +
+      "Shielded Stance (Armor 2 every other turn) teaches timing. Bone Thorns teach Unaware value.",
   },
   3: {
     label: "Side Gallery East",
     hint: "shoulder-wide; rubble underfoot. names and marks gouged in the wall - a headless figure of carved salt stares from its niche.",
     description:
       "Shoulder-wide cut, loose rubble underfoot, raw seam where plaster never reached. Pitch black without your light; breath fogs; water dripping ahead.",
-    enemies: ["rat", "rat", "rat", "rat"],
+    enemies: ["rat", "rat", "rat", "rat", "rat"],
     notes:
-      "R13. Era 1. DARK. Dead end. " +
-      "Dark reward lane; clearing nests ties to rat breeding rules. " +
-      "MINING PICK here - earned through dead-end exploration in skeleton territory. " +
-      "Connects bone lesson (R6 dead miner) to tool (pick) to test (skeletons in R15+).",
+      "R13. Era 1. DARK. Dead end. ⚔ RAT ×5 — biggest swarm so far. " +
+      "Teaches value of AoE (Cleave, Flare, Bone Splinter). Chain Hauberk Armor 2 = all hits do 0. " +
+      "MINING PICK reward — enables skeleton kills in R15+.",
     props: [
       {
         id: "miner_graffiti",
@@ -144,10 +141,10 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "vaulted roof; four ways to regret. a splintered board still names Chapel, Library, Quarters - deeper in.",
     description:
       "Four-way junction under a high vault - salt-block ribs, cracked signboards, green coldfire on everything. Echoes pile up. Drafts pull dust from the plaster seams.",
-    enemies: ["skeleton", "grave_robber"],
+    enemies: ["skeleton", "bone_hound"],
     notes:
-      "R15. Era 2 signage + defacement. COLDFIRE. Central chokepoint/decision hub. " +
-      "Coldfire irony: Mira's warning about green light while standing in coldfire.",
+      "R15. COLDFIRE. Central chokepoint. ⚔ SKELETON + BONE HOUND — teaches kill priority. " +
+      "Bone Hound escalates via Howl (summons skeleton every 3 turns). Must kill hound first.",
     props: [
       {
         id: "directional_sign",
@@ -188,8 +185,8 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
       "Side room: weapon rack, bench, corners where the green light thins. Steady coldfire glow. Oil smell, grit on the air.",
     enemies: ["skeleton", "skeleton"],
     notes:
-      "R16. Era 3 + mine shell. COLDFIRE. Dead end. " +
-      "Stealth entry vs two idle skeletons is viable.",
+      "R16. COLDFIRE. Dead end. ⚔ SKELETON ×2 — multi-skeleton fight. " +
+      "Tests weapon choice: Pick ideal (bludgeoning). Shielded stance timing with two enemies.",
     props: [
       {
         id: "rusty_mace",
@@ -236,11 +233,10 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "a slab of dressed salt big as a house front. lever, palm hollow, and gouges beside a slot - like someone tried to write a tune in stone.",
     description:
       "Corridor ends at a huge dressed-salt slab - shallow flame reliefs picked out green by the strips overhead. Lever, worn hand hollow, narrow slot. Lean in and a low vibration comes through the stone into your jaw and hands.",
-    enemies: ["skeleton", "skeleton"],
+    enemies: ["skeleton", "skeleton", "bone_hound"],
     notes:
-      "R17. Era 2 salt-block door + Era 3 occupation. COLDFIRE. " +
-      "Guards do NOT operate the gate - they only kill intruders. " +
-      "PROGRESSION GATE (soft) to Area 2.",
+      "R17. COLDFIRE. PROGRESSION GATE to Area 2. ⚔ SKELETON ×2 + BONE HOUND — Area 1 climax fight. " +
+      "Tests everything learned: damage types, kill priority, timing, Thorns interaction.",
     props: [
       {
         id: "inner_gate",

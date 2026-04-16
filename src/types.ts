@@ -5,7 +5,7 @@ export type Statuses = Partial<Record<StatusKey, number>>;
 
 /* ── Damage & Equipment ── */
 
-export type DamageType = "slash" | "pierce" | "bludgeoning";
+export type DamageType = "slash" | "pierce" | "bludgeoning" | "holy" | "fire";
 export type HandType = "1" | "2" | "offhand";
 
 export interface Weapon {
@@ -136,6 +136,12 @@ export interface MonsterIntent {
 
 /* ── Combat Mechanics ── */
 
+export interface CombatContext {
+  enemies: Enemy[];
+  player: CombatPlayer;
+  lightLevel: { value: number };
+}
+
 export interface AttackResult {
   skip?: boolean;
   damageMultiplier?: number;
@@ -147,18 +153,7 @@ export interface AttackResult {
 export interface HitResponse {
   evade?: boolean;
   damageMultiplier?: number;
-}
-
-export interface CombatState {
-  player: CombatPlayer;
-  enemies: Enemy[];
-  lightLevel: number;
-}
-
-export interface CombatContext {
-  enemies: Enemy[];
-  player: CombatPlayer;
-  lightLevel: { value: number };
+  actions?: Action[];
 }
 
 export interface CombatMechanics {
@@ -174,42 +169,6 @@ export interface CombatMechanics {
   selectIntent?: (self: Enemy, ctx: CombatContext) => MonsterIntent;
 }
 
-/* ── Out-of-Combat (Area AI) Mechanics ── */
-
-export interface AreaAIContext {
-  rooms: AreaNode[];
-  currentRoomId: string;
-  room: AreaNode;
-  neighbours: AreaNode[];
-  noise: "quiet" | "medium" | "loud";
-  byId: (id: string) => AreaNode | undefined;
-  playerHp?: number;
-  playerMaxHp?: number;
-}
-
-export type AreaAction =
-  | { type: "move_toward_player"; reason: string }
-  | { type: "move_away_from_player"; reason: string }
-  | { type: "move_random"; reason: string }
-  | { type: "move"; targetRoomId: string; reason: string }
-  | { type: "reproduce" }
-  | { type: "send_minion"; minionUid: string; targetRoomId: string; reason: string }
-  | { type: "log"; text: string; volume: SoundVolume }
-  | { type: "skip" }
-  | { type: "begin_ritual"; typeId: string; turns: number; hpFraction: number }
-  | { type: "tick_ritual" }
-  | { type: "consume_vermin" }
-  | { type: "loot_room" };
-
-export interface OutOfCombatMechanics {
-  onTick: (self: AreaEnemy, ctx: AreaAIContext) => AreaAction[];
-  canPassDoor?: (self: AreaEnemy, door: AreaNode) => boolean;
-  sounds?: {
-    move?: { texts: string[]; volume: SoundVolume };
-    blocked?: { texts: string[]; volume: SoundVolume };
-  };
-}
-
 export interface EnemyType {
   id: string;
   name: string;
@@ -223,7 +182,6 @@ export interface EnemyType {
   isBoss?: boolean;
   defaultRow: "front" | "back";
   combatMechanics?: CombatMechanics;
-  outOfCombatMechanics?: OutOfCombatMechanics;
   resistances?: Partial<Record<DamageType, number>>;
   vulnerabilities?: Partial<Record<DamageType, number>>;
   deathHint?: string;
@@ -235,9 +193,7 @@ export interface EnemyType {
   onClosedDoors?: string;
 }
 
-/** Serializable runtime state for a live enemy — stored in Redux and saves. */
-export interface EnemyData {
-  id: string;
+export interface Enemy extends EnemyType {
   uid: string;
   hp: number;
   block: number;
@@ -248,8 +204,6 @@ export interface EnemyData {
   hidden: boolean;
   intent?: MonsterIntent;
 }
-
-export interface Enemy extends EnemyType, EnemyData {}
 
 /* ── Dungeon / Area ──
  *
@@ -450,6 +404,14 @@ export interface Player {
   abilities: string[];
   /** Narrative flags set by room-prop interactions. Values are boolean or number. */
   flags: Record<string, boolean | number>;
+
+  /** Grid-combat loadout (weapon/offhand/armor) selected by the player. */
+  gridWeaponId?: string;
+  gridOffhandId?: string | null;
+  gridArmorId?: string;
+  ownedGridWeaponIds?: string[];
+  ownedGridOffhandIds?: string[];
+  ownedGridArmorIds?: string[];
 }
 
 export interface CombatPlayer extends Player {
@@ -480,35 +442,3 @@ export interface AreaLogEntry {
   debugText?: string;
   approaching?: boolean;
 }
-
-export type SoundVolume = "quiet" | "normal" | "loud";
-
-export interface AILogEntry {
-  text: string;
-  debugText: string;
-  volume: SoundVolume;
-  roomId: string;
-  toRoomId?: string;
-}
-
-/* ── Animation Events ── */
-
-export type AnimationEvent =
-  | { type: "enemy_attack"; attackerUid: string; damage: number }
-  | { type: "damage_enemy"; targetUid: string; amount: number }
-  | { type: "damage_player"; amount: number }
-  | { type: "heal_enemy"; targetUid: string; amount: number }
-  | { type: "heal_player"; amount: number }
-  | { type: "evade"; targetUid: string }
-  | { type: "block"; targetUid: string; amount: number }
-  | { type: "death"; uid: string }
-  | { type: "spawn"; uid: string; enemyId: string; flipReveal: boolean }
-  | { type: "status_apply"; targetUid: string | "player"; status: StatusKey }
-  | { type: "row_change"; uid: string; to: "front" | "back" }
-  | { type: "lifesteal"; attackerUid: string; amount: number }
-  | { type: "drain_light"; amount: number }
-  | { type: "weaken_aura"; attackerUid: string }
-  | { type: "phase"; targetUid: string }
-  | { type: "screen_shake" }
-  | { type: "turn_label"; label: string }
-  | { type: "enemy_reveal"; uid: string };

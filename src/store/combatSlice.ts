@@ -1,30 +1,28 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { EnemyData, CombatPlayer } from "../types";
-import { LIGHT_START } from "../data/constants";
+import type { GridCombatState, GridPos } from "../grid-combat/types";
 
 export interface DeathContext {
   readonly enemyIds: readonly string[];
 }
 
+export interface GridCombatSpawn {
+  readonly enemies: readonly { readonly id: string; readonly uid: string; readonly pos: GridPos }[];
+  readonly roomLabel: string;
+}
+
 export interface CombatState {
-  /** Serializable enemy data; hydrate to Enemy[] via hydrateEnemy() before use. */
-  enemies: EnemyData[] | null;
-  /** null on fresh combat — CombatScreen derives it from playerSlice. */
-  combatPlayer: CombatPlayer | null;
-  lightLevel: number;
-  combatLog: string[];
-  surpriseRound: boolean;
-  /** Changing this value forces CombatScreen to remount via key={combatKey}. */
+  /** Spawn metadata — needed to re-initialize GridCombatScreen after reload. */
+  spawn: GridCombatSpawn | null;
+  /** Full grid combat snapshot, synced at each planning-phase transition. */
+  state: GridCombatState | null;
+  /** Changing this forces GridCombatScreen to remount via key={combatKey}. */
   combatKey: number;
   deathContext?: DeathContext;
 }
 
 const initialState: CombatState = {
-  enemies: null,
-  combatPlayer: null,
-  lightLevel: LIGHT_START,
-  combatLog: [],
-  surpriseRound: false,
+  spawn: null,
+  state: null,
   combatKey: 0,
 };
 
@@ -32,29 +30,25 @@ const combatSlice = createSlice({
   name: "combat",
   initialState,
   reducers: {
-    startCombat: (
-      state,
-      action: PayloadAction<{
-        enemies: EnemyData[];
-        combatPlayer?: CombatPlayer | null;
-        surpriseRound: boolean;
-        lightLevel?: number;
-        combatLog?: string[];
-      }>,
-    ) => ({
-      enemies: action.payload.enemies,
-      combatPlayer: action.payload.combatPlayer ?? null,
-      lightLevel: action.payload.lightLevel ?? LIGHT_START,
-      combatLog: action.payload.combatLog ?? [],
-      surpriseRound: action.payload.surpriseRound,
+    startGridCombat: (state, action: PayloadAction<{ spawn: GridCombatSpawn }>) => ({
+      spawn: action.payload.spawn,
+      state: null,
       combatKey: state.combatKey + 1,
+      deathContext: state.deathContext,
     }),
-    updateCombatState: (
+    syncGridCombatState: (state, action: PayloadAction<GridCombatState>) => ({
+      ...state,
+      state: action.payload,
+    }),
+    hydrateGridCombat: (
       state,
-      action: PayloadAction<
-        Partial<Pick<CombatState, "enemies" | "combatPlayer" | "lightLevel" | "combatLog">>
-      >,
-    ) => ({ ...state, ...action.payload }),
+      action: PayloadAction<{ spawn: GridCombatSpawn; state: GridCombatState | null }>,
+    ) => ({
+      spawn: action.payload.spawn,
+      state: action.payload.state,
+      combatKey: state.combatKey + 1,
+      deathContext: state.deathContext,
+    }),
     setDeathContext: (state, action: PayloadAction<DeathContext>) => ({
       ...state,
       deathContext: action.payload,
@@ -71,6 +65,12 @@ const combatSlice = createSlice({
   },
 });
 
-export const { startCombat, updateCombatState, setDeathContext, clearDeathContext, clearCombat } =
-  combatSlice.actions;
+export const {
+  startGridCombat,
+  syncGridCombatState,
+  hydrateGridCombat,
+  setDeathContext,
+  clearDeathContext,
+  clearCombat,
+} = combatSlice.actions;
 export default combatSlice.reducer;
