@@ -329,9 +329,9 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
     hint: "three absences circle you. your torch feels like a candle in a gale.",
     description:
       "Walls are flat matte black salt. Torch gutters hard though the air is still - pressure in your ears. Only faint warm pinpricks in the seam where deep crystal still throws a little light back.",
-    enemies: ["shadow", "shadow", "shadow"],
+    enemies: ["shadow", "shadow", "shadow", "shadow", "banshee"],
     notes:
-      "R140. DARK - max drain. Era 1. Darkest room; Shadows ×3; ordinary light can fail in one turn (tuning). " +
+      "R140. DARK - max drain. Era 1. Darkest room; Shadows ×4, banshee ×1; ordinary light can fail in one turn (tuning). " +
       "Crystal lantern dimmed but not killed. Walls fully stained black. Passage toward Sealed Chamber; sense of vast patience below - draw, not dialogue. " +
       "Toughest non-boss fight Area 4; lantern near-mandatory. " +
       "Connects R139 ↔ R141 (via exit). Cross-ref: demon pressure R141–R143.",

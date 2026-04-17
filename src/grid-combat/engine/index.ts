@@ -54,7 +54,7 @@ export function executeSingleEntry(
   playerAbilities: ReadonlyMap<string, GridAbility>,
 ): ExecutionResult {
   if (entry.owner.type === "player") {
-    return executePlayerAction(state, entry, playerAbilities);
+    return executePlayerAction(state, entry, playerAbilities, enemyDefs);
   }
 
   return executeEnemyAction(state, entry, enemyDefs);

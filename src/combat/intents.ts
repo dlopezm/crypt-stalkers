@@ -122,17 +122,17 @@ export const INTENTS = {
     damage,
     tooltip: "Feeds in total darkness",
   }),
-  shieldWall: (): MonsterIntent => ({
-    id: "shield_wall",
-    label: "Shield Wall",
-    icon: "🛡️",
-    tooltip: "Blocks melee attacks to back row",
+  perjuredWard: (): MonsterIntent => ({
+    id: "perjured_ward",
+    label: "Perjured Ward",
+    icon: "⚔️",
+    tooltip: "Broken oath still compels protection",
   }),
-  howl: (): MonsterIntent => ({
-    id: "howl",
-    label: "Howl",
-    icon: "🐺",
-    tooltip: "Calls skeleton reinforcements",
+  putridLitany: (): MonsterIntent => ({
+    id: "putrid_litany",
+    label: "Putrid Litany",
+    icon: "⛪",
+    tooltip: "Corruption spreads from the false altar",
   }),
   grapple: (damage: number): MonsterIntent => ({
     id: "grapple",
@@ -268,25 +268,18 @@ export function selectLichIntent(self: Enemy, ctx: CombatContext): MonsterIntent
 
 /* ── New monster intents ── */
 
-export function selectBoneguardIntent(self: Enemy, ctx: CombatContext): MonsterIntent {
+export function selectForswornIntent(self: Enemy, ctx: CombatContext): MonsterIntent {
   const backRowAllies = ctx.enemies.filter(
     (e) => e.hp > 0 && e.row === "back" && e.uid !== self.uid,
   );
   if (backRowAllies.length > 0) {
-    return INTENTS.shieldWall();
+    return INTENTS.perjuredWard();
   }
   return INTENTS.attack(effectiveAtk(self));
 }
 
-export function selectBoneHoundIntent(self: Enemy, ctx: CombatContext): MonsterIntent {
-  const skeletonsAlive = ctx.enemies.filter(
-    (e) => e.hp > 0 && (e.id === "skeleton" || e.id === "boneguard"),
-  ).length;
-  const cdAfterTick = Math.max(0, (self.summonCooldown ?? 0) - 1);
-  if (skeletonsAlive < 2 && cdAfterTick <= 0) {
-    return INTENTS.howl();
-  }
-  return INTENTS.attack(effectiveAtk(self));
+export function selectFalseSacrariumIntent(_self: Enemy, _ctx: CombatContext): MonsterIntent {
+  return INTENTS.putridLitany();
 }
 
 export function selectSaltRevenantIntent(self: Enemy, ctx: CombatContext): MonsterIntent {

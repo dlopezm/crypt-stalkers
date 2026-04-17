@@ -9,7 +9,6 @@ import {
   SKELETON_REASSEMBLE_HP,
   GHOST_PHASE_CHANCE,
   SHADOW_DARKNESS_DAMAGE,
-  BONE_HOUND_HOWL_COOLDOWN,
   SALT_REVENANT_HP_THRESHOLD,
 } from "../data/constants";
 import type { CombatMechanics } from "../types";
@@ -25,8 +24,8 @@ import {
   selectShadowIntent,
   selectVampireIntent,
   selectLichIntent,
-  selectBoneguardIntent,
-  selectBoneHoundIntent,
+  selectForswornIntent,
+  selectFalseSacrariumIntent,
   selectSaltRevenantIntent,
 } from "./intents";
 
@@ -227,10 +226,10 @@ export const lichMechanics: CombatMechanics = {
   },
 };
 
-/* ── Boneguard: Tank/Blocker ── */
+/* ── Forsworn: Oath-breaker Tank ── */
 
-export const boneguardMechanics: CombatMechanics = {
-  selectIntent: selectBoneguardIntent,
+export const forswornMechanics: CombatMechanics = {
+  selectIntent: selectForswornIntent,
   onAttack(self, ctx) {
     const backRowAllies = ctx.enemies.filter(
       (e) => e.hp > 0 && e.row === "back" && e.uid !== self.uid,
@@ -241,7 +240,7 @@ export const boneguardMechanics: CombatMechanics = {
         extraActions: [
           {
             type: "log",
-            message: `🛡️ ${self.name} raises its massive shield, protecting the back row!`,
+            message: `⚔️ ${self.name} steps forward, compelled to shield its allies!`,
           },
         ],
       };
@@ -253,27 +252,10 @@ export const boneguardMechanics: CombatMechanics = {
   },
 };
 
-/* ── Bone Hound: Tracker/Summoner ── */
+/* ── False Sacrarium: Growing Corruption ── */
 
-export const boneHoundMechanics: CombatMechanics = {
-  selectIntent: selectBoneHoundIntent,
-  onTurnStart(self, ctx) {
-    self.summonCooldown = Math.max(0, (self.summonCooldown ?? 0) - 1);
-
-    const skeletonsAlive = ctx.enemies.filter(
-      (e) => e.hp > 0 && (e.id === "skeleton" || e.id === "boneguard"),
-    ).length;
-
-    if (skeletonsAlive < 2 && self.summonCooldown <= 0) {
-      self.summonCooldown = BONE_HOUND_HOWL_COOLDOWN;
-      return [
-        { type: "spawn", enemyId: "skeleton", row: "front" as const },
-        { type: "log", message: `🐺 ${self.name} howls! A skeleton answers the call!` },
-      ];
-    }
-
-    return [];
-  },
+export const falseSacrariumMechanics: CombatMechanics = {
+  selectIntent: selectFalseSacrariumIntent,
 };
 
 /* ── Salt Revenant: Grappler/Thematic ── */

@@ -50,12 +50,6 @@ export const LICH_REVIVE_HP_FRAC = 0.3;
 // Shadow
 export const SHADOW_DARKNESS_DAMAGE = 5;
 
-// Boneguard
-export const BONEGUARD_RESIST_MULT = 0.5;
-
-// Bone Hound
-export const BONE_HOUND_HOWL_COOLDOWN = 3;
-
 // Salt Revenant
 export const SALT_REVENANT_HP_THRESHOLD = 0.5;
 

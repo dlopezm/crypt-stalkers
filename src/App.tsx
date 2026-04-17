@@ -178,6 +178,9 @@ export default function App() {
         spawn: {
           enemies: areaEnemiesToGridEnemies(roomAfterAI.enemies),
           roomLabel: roomAfterAI.label,
+          overmapGrid: areaGrid?.cells,
+          gridRoomId: roomAfterAI.gridRoomId,
+          bbox: roomAfterAI.bbox,
         },
       }),
     );
@@ -249,6 +252,9 @@ export default function App() {
           spawn: {
             enemies: areaEnemiesToGridEnemies(room.enemies),
             roomLabel: room.label,
+            overmapGrid: areaGrid?.cells,
+            gridRoomId: room.gridRoomId,
+            bbox: room.bbox,
           },
         }),
       );
@@ -583,7 +589,15 @@ export default function App() {
 
     const gridPlayer = playerToGridPlayer(player);
     const enemyIds = combatSpawn.enemies.map((e) => e.id);
-    const terrainLayout = getRoomTerrainLayout(combatSpawn.roomLabel, combatSpawn.enemies.length);
+    const overmapData =
+      combatSpawn.overmapGrid && combatSpawn.gridRoomId != null && combatSpawn.bbox
+        ? { grid: combatSpawn.overmapGrid, roomId: combatSpawn.gridRoomId, bbox: combatSpawn.bbox }
+        : undefined;
+    const terrainLayout = getRoomTerrainLayout(
+      combatSpawn.roomLabel,
+      combatSpawn.enemies.length,
+      overmapData,
+    );
 
     return (
       <GridCombatScreen

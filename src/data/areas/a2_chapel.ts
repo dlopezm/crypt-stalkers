@@ -38,7 +38,7 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Heavy arch: carved flames and open mouths in polished salt-stone. " +
       "Past it the air is cooler and wetter. Every step doubles back as echo. Coldfire does not reach far into the dark ahead.",
-    enemies: ["zombie", "zombie"],
+    enemies: ["zombie", "zombie", "zombie", "ghost"],
     isStart: true,
     notes:
       "R37. COLDFIRE. Era 2+3. Room design ref R37. " +
@@ -71,7 +71,7 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
       "Pews carved straight up from the rock floor. Central aisle slopes toward a raised dais far ahead. " +
       "Sound comes back louder than you made it. Stalactites carved into robed figures with open mouths. " +
       "Coldfire strips along the walls read small in all this volume.",
-    enemies: ["zombie", "zombie", "zombie"],
+    enemies: ["zombie", "zombie", "zombie", "zombie", "necromancer"],
     notes:
       "R38. COLDFIRE. Era 2+3. Room design ref R38. " +
       "Vast nave: salt-crystal walls vanishing upward, pews carved from floor. Cultists chant; zombies sit - drone almost beautiful (cultists ×2 not in enemy list). " +
@@ -119,7 +119,7 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Raised platform above the nave. Salt stairs up. Rows of music stands; empty. " +
       "Almost no coldfire - dark overhead. Noise bounces and hangs; you hear yourself twice.",
-    enemies: ["banshee"],
+    enemies: ["banshee", "skeleton", "skeleton"],
     notes:
       "R39. DARK. Era 2. Room design ref R39. " +
       "Elevated platform; salt stairs from R38. Robed figure, mouth frozen open. Wail corrupts hymn if player saw R38 hymnal. Music stands; sheet music. " +
@@ -221,16 +221,17 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
   },
   6: {
     label: "Great Brazier Platform",
-    hint: "a cart-scale salt basin cold as a tomb; coldfire orbits empty air above the hearth.",
+    hint: "a cart-scale salt basin cold as a tomb; rot creeps from something that has colonized the hearth.",
     description:
       "Raised dais in the middle of the nave. Massive salt-crystal basin on top - cart-sized. Chipped flame-and-mouth carving around the rim. " +
-      "Bowl empty. Cold air moves over it; faint green from the coldfire nearby. Stone underfoot still holds a little warmth if you kneel. " +
-      "Strike steel or hum here and the whole cavern rings back.",
-    enemies: [],
+      "The bowl is not empty — a fleshy mass has rooted in the basin, rot spreading outward across the dais. " +
+      "Coldfire orbits the corruption. Stone underfoot is slick.",
+    enemies: ["false_sacrarium", "gutborn_larva"],
     notes:
       "R41. DARK (brazier out). Era 2+3. Room design ref R41. " +
-      "Central dais. Great Brazier: cart-scale salt-crystal basin, flame-and-voice relief. Witch ×1 not in enemy list - environmental boss when witch exists. Coldfire orbits her, not the bowl. " +
-      "Great Brazier milestone: defeat Witch; relight (hymn + R40/R53 + performed melody) → Chapel Cavern true light: Skullflower suppressed; Ghouls/Larvae flee; Shadows blocked; Area 1 skeleton patrols add chapel route. " +
+      "Central dais. Great Brazier colonized by False Sacrarium + Gutborn Larva. Rot spreads from the altar each turn. " +
+      "Clear the corruption to access the brazier. " +
+      "Great Brazier milestone: defeat Sacrarium; relight (hymn + R40/R53 + performed melody) → Chapel Cavern true light: Skullflower suppressed; Ghouls/Larvae flee; Shadows blocked; Area 1 skeleton patrols add chapel route. " +
       "Connects: R38, exit grid 9 (R61 upper passage / chapter house). Cross-ref R61, Mira trade R61→R41 shortcut.",
     props: [
       {
@@ -271,15 +272,16 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
   },
   7: {
     label: "Side Chapel",
-    hint: "a quiet alcove; a kneeling shape does not turn when you enter.",
+    hint: "a quiet alcove; something at the altar breathes where nothing should.",
     description:
-      "Shallow side alcove off the nave wall. Small altar grown from the same salt crystal as the floor. " +
-      "Thin coldfire. Softer echo than the main space. Wax and sharp salt smell.",
-    enemies: ["ghost"],
+      "Shallow side alcove off the nave wall. The small altar has become something else — " +
+      "fleshy nodules pulse where salt offerings once lay, the stone weeps clear fluid. " +
+      "Thin coldfire. The air is thick with sweetness and rot.",
+    enemies: ["false_sacrarium"],
     notes:
-      "R42. DARK. Era 2. Room design ref R42. " +
-      "Quiet alcove; altar to patron saint of miners. Ghost (ex-priest) kneels, murmuring unheard. Salt offerings. " +
-      "Quiet approach avoids fight; Banshee (R39) can wake Ghost unexpectedly. " +
+      "R42. DARK. Era 2+3. Room design ref R42. " +
+      "Corrupted altar: False Sacrarium rooted at the miners' patron shrine. Spreads rot tiles each turn. " +
+      "Rush it down before the room becomes uninhabitable. Holy/fire purifies. " +
       "Connects: R38 only.",
     props: [
       {

@@ -230,9 +230,9 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Training floor: circle scribed in the stone, sand and splintered wicker, bins of blunt practice steel. " +
       "Coldfire high on the walls. Low vault - noise bounces fast. Dark stains in the sand.",
-    enemies: ["zombie", "zombie", "zombie"],
+    enemies: ["forsworn", "zombie", "zombie"],
     notes:
-      "R72. COLDFIRE. Era 2+3. Room design ref R72. Spar circle; cultists ×2 not in list (zombies partial). " +
+      "R72. COLDFIRE. Era 2+3. Room design ref R72. Forsworn still drills, compelled by broken oaths. Spar circle becomes arena. " +
       "Connects: R69, R73 Lower Gate East, R74 Lower Gate West, exit grid 10 (Ossuary transit).",
     props: [
       {

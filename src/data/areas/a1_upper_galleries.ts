@@ -141,10 +141,10 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "vaulted roof; four ways to regret. a splintered board still names Chapel, Library, Quarters - deeper in.",
     description:
       "Four-way junction under a high vault - salt-block ribs, cracked signboards, green coldfire on everything. Echoes pile up. Drafts pull dust from the plaster seams.",
-    enemies: ["skeleton", "bone_hound"],
+    enemies: ["skeleton", "skeleton", "zombie"],
     notes:
-      "R15. COLDFIRE. Central chokepoint. ⚔ SKELETON + BONE HOUND — teaches kill priority. " +
-      "Bone Hound escalates via Howl (summons skeleton every 3 turns). Must kill hound first.",
+      "R15. COLDFIRE. Central chokepoint. ⚔ SKELETON ×2 + ZOMBIE — formation teaching fight. " +
+      "Teaches prioritization: zombie = slow but tanky, skeleton = fragile but reforms.",
     props: [
       {
         id: "directional_sign",
@@ -233,10 +233,10 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "a slab of dressed salt big as a house front. lever, palm hollow, and gouges beside a slot - like someone tried to write a tune in stone.",
     description:
       "Corridor ends at a huge dressed-salt slab - shallow flame reliefs picked out green by the strips overhead. Lever, worn hand hollow, narrow slot. Lean in and a low vibration comes through the stone into your jaw and hands.",
-    enemies: ["skeleton", "skeleton", "bone_hound"],
+    enemies: ["skeleton", "skeleton", "skeleton", "zombie"],
     notes:
-      "R17. COLDFIRE. PROGRESSION GATE to Area 2. ⚔ SKELETON ×2 + BONE HOUND — Area 1 climax fight. " +
-      "Tests everything learned: damage types, kill priority, timing, Thorns interaction.",
+      "R17. COLDFIRE. PROGRESSION GATE to Area 2. ⚔ SKELETON ×3 + ZOMBIE — Area 1 climax fight. " +
+      "Tests everything learned: damage types, mixed types, timing, Thorns interaction.",
     props: [
       {
         id: "inner_gate",

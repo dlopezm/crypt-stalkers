@@ -20,8 +20,8 @@ export const BALANCE = {
     hazardDefaultDamage: 2,
     hallowedGroundDamagePerTurn: 3,
     brazierLightRadius: 2,
-    poisonDamagePerTurn: 2,
-    burningDamagePerTurn: 1,
+    poisonDamagePerTurn: 3,
+    burningDamagePerTurn: 2,
     saltDepositSaltYield: 3,
   },
 
@@ -35,6 +35,8 @@ export const BALANCE = {
     riposteDamage: 5,
     overwatchDefaultDamage: 5,
     backstabMultiplier: 1,
+    flankingBonus: 2,
+    commanderBonusDamage: 2,
   },
 
   progression: {
@@ -51,7 +53,14 @@ export const BALANCE = {
     vampireLordEclipseInterval: 4,
     lichGambitInterval: 3,
     lichGambitDamage: 8,
-    boneHoundHowlInterval: 3,
+    sacrariumSpawnInterval: 4,
+    sacrariumGrowthTiles: 2,
+    sacrariumLitanyRadius: 2,
+    sacrariumLitanyDamage: 3,
+    sacrariumRotDamage: 2,
+    forswornStrikeDamage: 4,
+    forswornInterceptArmorBonus: 2,
+    forswornMarkReduction: 0.5,
     bansheeHymnInterval: 3,
   },
 } as const;

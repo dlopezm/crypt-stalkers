@@ -76,6 +76,7 @@ export const TERRAIN_INFO: Record<
   hallowed_ground: { name: "Hallowed Ground", effect: "Undead take 3 holy damage per turn." },
   smoke: { name: "Smoke", effect: "Blocks all line of sight through this tile." },
   rail: { name: "Rail Track", effect: "Mine carts travel along these." },
+  rot: { name: "Rot", effect: "Corruption deals damage each turn to any unit standing here." },
 };
 
 export const CONDITION_DISPLAY: Record<GridConditionKey, { icon: string; color: string }> = {
@@ -87,6 +88,9 @@ export const CONDITION_DISPLAY: Record<GridConditionKey, { icon: string; color: 
   silenced: { icon: "🔇", color: "text-purple-400" },
   infected: { icon: "☣️", color: "text-green-500" },
   hidden: { icon: "👁️", color: "text-gray-400" },
+  intercepting: { icon: "🛡️", color: "text-amber-300" },
+  marked: { icon: "💀", color: "text-red-500" },
+  commanded: { icon: "👆", color: "text-yellow-300" },
 };
 
 export const TELEGRAPH_TYPE_COLORS: Record<TelegraphType, { bg: string; pulse: string }> = {

@@ -135,9 +135,9 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "a pivoted mirror of polished salt, filthy and canted wrong. something thin lives in the corners.",
     description:
       "Polished salt mirror on a bad angle, grime on the face. The corridor past it eats your beam - light dies fast. Corners are cold; the disk rim stays slightly warm.",
-    enemies: ["shadow"],
+    enemies: ["shadow", "shadow"],
     notes:
-      "R119. DARK → LIT if array restored. Era 1. First reflector: pivoted polished salt mirror, grimy, misaligned. " +
+      "R119. DARK → LIT if array restored. Era 1. First reflector: pivoted polished salt mirror, grimy, misaligned. Shadows ×2. " +
       "Shadow ×1 nests in long dark. Puzzle: clean + align + feed light (torch/lantern); beam bounces down-corridor; Shadow hurt/flees; room transforms LIT. " +
       "Teaching beat: Shadow drain vs need for light - angle dim light through mirror, burn torch, or return with crystal lantern (R138). " +
       "Cross-ref: alignment diagrams Area 2 R48. Connects R117 ↔ R120.",
@@ -195,9 +195,9 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "scale you cannot map - columns of salt swallow the ceiling. a chisel line sits shy of the crystal.",
     description:
       "Biggest cavern yet. Salt columns rise until your light stops finding the top. Where nobody mined, thick columnar crystal - warm, close-packed. Where they stripped headings, walls are bare and thin; the split is obvious. Raise a flame and color chases from facet to facet across the whole hall.",
-    enemies: ["shadow", "shadow"],
+    enemies: ["shadow", "shadow", "shadow", "ghost"],
     notes:
-      "R121. DARK → LIT if reflectors from R120 reach here. Era 1. Largest natural crystal cavern; ceiling lost in dark. " +
+      "R121. DARK → LIT if reflectors from R120 reach here. Era 1. Largest natural crystal cavern; ceiling lost in dark. Shadows ×3, ghost ×1. " +
       "Unmined upper alcoves run thick with columnar salt - lush, actively encroaching on old voids. Baron headings that did reach: walls thin, picked clean, spiritually hungry by contrast. " +
       "Shadows ×2 in depth; when lit, refracted cascade kills both - contrast undeniable: more crystal where nobody took. " +
       "Alt read: narrow unmined crawl visible from mined gallery - one side stripped, other choked with new growth. " +
@@ -263,9 +263,9 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "focusing crystal and heavy wheels - the heart of the old array.",
     description:
       "Brass holds a large grown-salt lens. Worm gears and hand wheels line the walls. The focusing crystal hums when you touch it; its core stays faintly lit. The corners stay dark.",
-    enemies: ["shadow", "shadow"],
+    enemies: ["shadow", "shadow", "shadow", "skeleton", "skeleton"],
     notes:
-      "R122. DARK → permanent LIT if Master Array complete. Era 1. Hub of miners' reflector system: large mounts, wheels, central focusing crystal. " +
+      "R122. DARK → permanent LIT if Master Array complete. Era 1. Hub of miners' reflector system: large mounts, wheels, central focusing crystal. Shadows ×3, skeletons ×2. " +
       "Full restore = chain R119 → R120 → R139 plus local alignment + sustained source. " +
       "BONUS - Crystal Master Array payoff: daylight-equivalent permanent light through Crystal Galleries and Shadow Depths (R135–R140); Shadows there die; hidden paths/inscriptions exposed. " +
       "Highest puzzle complexity. Dead end / bonus branch from R120.",

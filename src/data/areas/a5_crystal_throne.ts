@@ -131,7 +131,7 @@ export const A5_CRYSTAL_THRONE_ROOMS: Record<number, AuthoredRoom> = {
     hint: "a plain salt chair faces the crystal; coldfire paints a face that still finishes the sum before I've drawn breath.",
     description:
       "The formation dominates the far side of the cavern. A plain salt-block chair faces it - simple seat and arms, worn smooth, no throne carving or canopy. Coldfire lights the whole space green; shadows stay shallow. Large floor inscriptions run toward the chair. Air is cold and tastes of brine; one breath fogs and clears.",
-    enemies: ["boss_lich"],
+    enemies: ["boss_lich", "skeleton", "skeleton", "necromancer"],
     isBoss: true,
     notes:
       "R165. Coldfire (lich-controlled). Grandmaster Serevic - enemy boss_lich (HP 90, ATK 15). " +
@@ -476,7 +476,7 @@ export const A5_CRYSTAL_THRONE: AreaDef = {
   combatRooms: [],
   bossRoom: {
     label: "The Seat",
-    enemies: ["boss_lich"],
+    enemies: ["boss_lich", "skeleton", "skeleton", "necromancer"],
     hint: "coldfire paints a desiccated face; the eyes still wait for my numbers to confess before I do.",
   },
 };

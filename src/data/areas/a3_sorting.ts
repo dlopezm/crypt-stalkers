@@ -49,12 +49,13 @@ export const A3_SORTING_ROOMS: Record<number, AuthoredRoom> = {
       "zombie",
       "zombie",
       "necromancer",
+      "forsworn",
     ],
     isStart: true,
     isBoss: true,
     notes:
-      "R80. Era 3. DARK. Vast room: bone conveyors, sorting lines; zombies sort by type, skeletons in aisles, necromancer ×1 on raised platform - factory thesis, first full throughput hit. " +
-      "Skeletons ×3, zombies ×4, necromancer ×1. Occasional zombie drifts toward R83 / deeper egress until necromancer snaps orders (What Lies Below drift). " +
+      "R80. Era 3. DARK. Vast room: bone conveyors, sorting lines; zombies sort by type, skeletons in aisles, necromancer ×1 on raised platform, forsworn ×1 - factory thesis, first full throughput hit. " +
+      "Skeletons ×3, zombies ×4, necromancer ×1, forsworn ×1. Occasional zombie drifts toward R83 / deeper egress until necromancer snaps orders (What Lies Below drift). " +
       "Teaching: kill necromancer first (e.g. crossbow) → zombies inert; hierarchy. Platform = back-row target; ranged optimal. " +
       "Noise masks movement and ghoul footsteps in conveyor hall. Environmental thread: dead pulled downward; necromancers redirect labor.",
     props: [
@@ -413,6 +414,7 @@ export const A3_SORTING: AreaDef = {
       "zombie",
       "zombie",
       "necromancer",
+      "forsworn",
     ],
     hint: "a floor of bone and moving shadow; something on a raised platform shouts until the dead obey.",
   },

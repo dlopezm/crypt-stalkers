@@ -34,10 +34,11 @@ export const A2_CHAPTER_HOUSE_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Big hall. Horseshoe table - salt-stone with iron inlay. Maps under glass on the surface. Colored-green coldfire in hanging frames. " +
       "High vault; carved plaster frieze with order mottoes. Sound carries; a coin dropped on the table would ring clear.",
-    enemies: ["necromancer", "zombie", "zombie", "zombie", "zombie"],
+    enemies: ["necromancer", "forsworn", "zombie", "zombie", "zombie", "zombie"],
     isStart: true,
     notes:
-      "R56. COLDFIRE. Era 2+3. Room design ref R56. Necromancer kill → four zombies inert (teaches command structure). " +
+      "R56. COLDFIRE. Era 2+3. Room design ref R56. Forsworn bodyguards the necromancer — intercept mechanic forces player to deal with it first or reposition. " +
+      "Necromancer kill → zombies inert (teaches command structure). " +
       "Connects: R57, R58, R59 (walk through R58: edges 2–4 and 4–5; isolated 2–5 door would merge corridors and add false edges), R60, cloister exit, armory exit.",
     props: [
       {

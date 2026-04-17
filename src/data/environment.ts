@@ -40,10 +40,10 @@ export const ENVIRONMENTAL_EFFECTS: readonly EnvironmentalEffectDef[] = [
   },
   {
     field: "tracks",
-    description: "Deep scratches scored into the stone floor.",
-    threat: "Fresh tracks \u2014 bone hound passed recently",
-    icon: "\u{1F43E}",
-    hazardous: false,
+    description: "Fleshy nodules along the wall, weeping clear fluid.",
+    threat: "Rot spreading from a false altar nearby",
+    icon: "\u{1F56F}\uFE0F",
+    hazardous: true,
   },
   {
     field: "saltCrystals",

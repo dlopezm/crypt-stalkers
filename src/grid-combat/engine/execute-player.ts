@@ -34,27 +34,60 @@ import {
   updateEnemy,
 } from "./state-helpers";
 import type { ExecutionResult } from "./types";
+import { BALANCE } from "../balance";
+import type { GridEnemyState, GridEnemyTypeDef } from "../types";
 
 export function executePlayerAction(
   state: GridCombatState,
   entry: TimelineEntry,
   playerAbilities: ReadonlyMap<string, GridAbility>,
+  enemyDefs: ReadonlyMap<string, GridEnemyTypeDef>,
 ): ExecutionResult {
   const ability = playerAbilities.get(entry.abilityId);
   if (!ability) {
     return { state, log: [] };
   }
 
+  if ((state.player.conditions.silenced ?? 0) > 0 && ability.silenceBlocked) {
+    return {
+      state,
+      log: [{ turn: state.turn, text: "Silenced — cannot use abilities!", source: "player" }],
+    };
+  }
+
   const log: GridCombatLogEntry[] = [];
   let current = state;
 
   if (ability.moveSelfDistance > 0 && ability.moveSelfDirection) {
-    current = applyPlayerMovement(current, ability, entry.targetTile);
-    log.push({ turn: current.turn, text: `You move.`, source: "player" });
+    if ((current.player.conditions.immobilized ?? 0) > 0) {
+      log.push({ turn: current.turn, text: "Cannot move — immobilized!", source: "player" });
+    } else {
+      const moveDistance =
+        (current.player.conditions.slowed ?? 0) > 0
+          ? Math.max(0, ability.moveSelfDistance - 1)
+          : ability.moveSelfDistance;
+
+      if (moveDistance > 0) {
+        current = applyPlayerMovement(
+          current,
+          { ...ability, moveSelfDistance: moveDistance },
+          entry.targetTile,
+        );
+        log.push({ turn: current.turn, text: `You move.`, source: "player" });
+      } else {
+        log.push({ turn: current.turn, text: "Too slowed to move!", source: "player" });
+      }
+    }
   }
 
   if (ability.baseDamage > 0 && entry.targetTile) {
-    const result = applyPlayerDamage(current, ability, entry.targetTile, entry.targetUid);
+    const result = applyPlayerDamage(
+      current,
+      ability,
+      entry.targetTile,
+      entry.targetUid,
+      enemyDefs,
+    );
     current = result.state;
     log.push(...result.log);
   }
@@ -65,13 +98,14 @@ export function executePlayerAction(
       entry.targetUid,
       ability.pushDistance,
       entry.targetTile,
+      enemyDefs,
     );
     current = result.state;
     log.push(...result.log);
   }
 
   for (const special of ability.special) {
-    const result = applyAbilitySpecial(current, special, entry, ability);
+    const result = applyAbilitySpecial(current, special, entry, ability, enemyDefs);
     current = result.state;
     log.push(...result.log);
   }
@@ -130,15 +164,20 @@ function applyPlayerDamage(
   ability: GridAbility,
   targetTile: GridPos,
   targetUid: string | null,
+  enemyDefs: ReadonlyMap<string, GridEnemyTypeDef>,
 ): ExecutionResult {
   const log: GridCombatLogEntry[] = [];
   let current = state;
 
-  const targets = targetUid
+  const intendedTargets = targetUid
     ? current.enemies.filter((e) => e.uid === targetUid && e.hp > 0)
     : current.enemies.filter((e) => posEqual(e.pos, targetTile) && e.hp > 0);
 
-  for (const target of targets) {
+  for (const intended of intendedTargets) {
+    const redirect = redirectToInterceptor(current, intended);
+    const target = redirect.target;
+    log.push(...redirect.log);
+
     let damage = ability.baseDamage + current.player.boneResonanceStacks;
 
     const resist = ability.damageType ? (target.resistances[ability.damageType] ?? 1) : 1;
@@ -149,13 +188,27 @@ function applyPlayerDamage(
       damage = Math.floor(damage * 0.5);
     }
 
+    if ((current.player.conditions.marked ?? 0) > 0) {
+      damage = Math.floor(damage * (1 - BALANCE.enemy.forswornMarkReduction));
+    }
+
     const newHp = Math.max(0, target.hp - damage);
     log.push({ turn: current.turn, text: `You hit ${target.id} for ${damage}!`, source: "player" });
 
     current = updateEnemy(current, target.uid, { hp: newHp });
 
+    if (target.thorns > 0 && damage > 0) {
+      const thornsHp = Math.max(0, current.player.hp - target.thorns);
+      current = { ...current, player: { ...current.player, hp: thornsHp } };
+      log.push({
+        turn: current.turn,
+        text: `Thorns! You take ${target.thorns} damage!`,
+        source: "environment",
+      });
+    }
+
     if (newHp <= 0) {
-      current = handleEnemyDeath(current, target);
+      current = handleEnemyDeath(current, target, enemyDefs);
       log.push({ turn: current.turn, text: `${target.id} defeated!`, source: "player" });
     }
   }
@@ -163,11 +216,41 @@ function applyPlayerDamage(
   return { state: current, log };
 }
 
+function redirectToInterceptor(
+  state: GridCombatState,
+  intended: GridEnemyState,
+): { target: GridEnemyState; log: readonly GridCombatLogEntry[] } {
+  if ((intended.conditions.intercepting ?? 0) > 0) {
+    return { target: intended, log: [] };
+  }
+  const interceptor = state.enemies.find(
+    (e) =>
+      e.uid !== intended.uid &&
+      e.hp > 0 &&
+      (e.conditions.intercepting ?? 0) > 0 &&
+      isAdjacent(e.pos, intended.pos),
+  );
+  if (!interceptor) {
+    return { target: intended, log: [] };
+  }
+  return {
+    target: interceptor,
+    log: [
+      {
+        turn: state.turn,
+        text: `${interceptor.id} intercepts the blow for ${intended.id}!`,
+        source: "enemy",
+      },
+    ],
+  };
+}
+
 function applyPlayerPush(
   state: GridCombatState,
   targetUid: string,
   distance: number,
   fromTile: GridPos | null,
+  enemyDefs: ReadonlyMap<string, GridEnemyTypeDef>,
 ): ExecutionResult {
   const log: GridCombatLogEntry[] = [];
   let current = state;
@@ -196,7 +279,7 @@ function applyPlayerPush(
         text: `${target.id} falls into a pit!`,
         source: "environment",
       });
-      current = handleEnemyDeath(current, { ...target, pos: result.finalPos, hp: 0 });
+      current = handleEnemyDeath(current, { ...target, pos: result.finalPos, hp: 0 }, enemyDefs);
     } else {
       current = updateEnemy(current, target.uid, { hp: Math.max(1, target.hp - 20) });
       log.push({
@@ -215,6 +298,7 @@ function applyAbilitySpecial(
   special: GridAbilitySpecial,
   entry: TimelineEntry,
   _ability: GridAbility,
+  enemyDefs: ReadonlyMap<string, GridEnemyTypeDef>,
 ): ExecutionResult {
   const log: GridCombatLogEntry[] = [];
   let current = state;
@@ -261,7 +345,7 @@ function applyAbilitySpecial(
                   source: "environment",
                 });
                 if (newHp <= 0) {
-                  current = handleEnemyDeath(current, { ...e, hp: 0 });
+                  current = handleEnemyDeath(current, { ...e, hp: 0 }, enemyDefs);
                 }
               }
             }
@@ -314,7 +398,7 @@ function applyAbilitySpecial(
                 source: "environment",
               });
               if (newHp <= 0) {
-                current = handleEnemyDeath(current, { ...hitEnemy, hp: 0 });
+                current = handleEnemyDeath(current, { ...hitEnemy, hp: 0 }, enemyDefs);
               }
             }
             if (posEqual(hitPos, current.player.pos)) {
@@ -527,7 +611,7 @@ function applyAbilitySpecial(
           source: "player",
         });
         if (newHp <= 0) {
-          current = handleEnemyDeath(current, { ...strikeEnemy, hp: 0 });
+          current = handleEnemyDeath(current, { ...strikeEnemy, hp: 0 }, enemyDefs);
           log.push({ turn: current.turn, text: `${strikeEnemy.id} defeated!`, source: "player" });
         }
       } else if (strikeEnemy) {
@@ -578,7 +662,7 @@ function applyAbilitySpecial(
           source: "player",
         });
         if (newHp <= 0) {
-          current = handleEnemyDeath(current, { ...target, hp: 0 });
+          current = handleEnemyDeath(current, { ...target, hp: 0 }, enemyDefs);
           log.push({ turn: current.turn, text: `${target.id} defeated!`, source: "player" });
         }
       }

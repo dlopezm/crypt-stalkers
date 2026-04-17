@@ -21,6 +21,7 @@ function ability(
     special: [],
     requiresBehindTarget: false,
     requiresLOS: false,
+    silenceBlocked: false,
     moveSelfDistance: 0,
     moveSelfDirection: null,
     ...partial,

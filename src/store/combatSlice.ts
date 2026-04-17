@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { GridCombatState, GridPos } from "../grid-combat/types";
+import type { RoomBBox } from "../types";
 
 export interface DeathContext {
   readonly enemyIds: readonly string[];
@@ -8,6 +9,9 @@ export interface DeathContext {
 export interface GridCombatSpawn {
   readonly enemies: readonly { readonly id: string; readonly uid: string; readonly pos: GridPos }[];
   readonly roomLabel: string;
+  readonly overmapGrid?: readonly (readonly number[])[];
+  readonly gridRoomId?: number;
+  readonly bbox?: RoomBBox;
 }
 
 export interface CombatState {

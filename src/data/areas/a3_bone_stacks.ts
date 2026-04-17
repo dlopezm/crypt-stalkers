@@ -72,9 +72,9 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     hint: "tight columns of femurs; something uses them as cover.",
     description:
       "Passage between femur stacks - columns close enough to brush your shoulders. Vertical gaps, dark between them. Sharp mineral smell. Boots loud on stone.",
-    enemies: ["ghoul"],
+    enemies: ["ghoul", "ghoul"],
     notes:
-      "R94. Era 3. DARK. Tight passage between femur towers. Ghoul ×1 hit-and-run using columns; claustrophobic fight. " +
+      "R94. Era 3. DARK. Tight passage between femur towers. Ghoul ×2 hit-and-run using columns; claustrophobic fight. " +
       "Teaching: open lantern before entering - tight quarters favor Ghoul hiding. Connects R93 ↔ R95.",
     props: [
       {
@@ -127,9 +127,9 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     hint: "the largest reserve; chalk tallies on slates read like a war plan.",
     description:
       "Open floor between huge bone walls. Wide aisles for carts to turn. Chalk and bone-meal haze. Distant drip; occasional creak from the stacks settling.",
-    enemies: ["skeleton", "skeleton", "skeleton", "necromancer"],
+    enemies: ["skeleton", "skeleton", "skeleton", "necromancer", "forsworn"],
     notes:
-      "R96. Era 3. DARK. Largest open storage; organized bone mountains; necromancer ×1; patrol skeletons ×3. " +
+      "R96. Era 3. DARK. Largest open storage; organized bone mountains; necromancer ×1; patrol skeletons ×3; forsworn ×1. " +
       "Lich's reserve - thousands more undead possible. Supervisor strain: pull toward deeper stacks / R99 approach. " +
       "Connects R93, R97, R98, ward approach (R8), R106 prison approach.",
     props: [
@@ -178,9 +178,9 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     hint: "unstable heaps; combat might bring the ceiling down.",
     description:
       "Collapsed bone and splintered timber under a low ceiling. Dust sifts when you jar or shout. Gritty cold air. Timber and salt-block look unstable overhead.",
-    enemies: ["rat", "rat", "rat", "rat", "rat"],
+    enemies: ["rat", "rat", "rat", "rat", "rat", "rat", "gutborn_larva", "gutborn_larva"],
     notes:
-      "R97. Era 3. DARK. Collapsed pile; unstable. Rats ×5. Loud combat → falling debris 2–4 random damage/turn (environmental hazard). " +
+      "R97. Era 3. DARK. Collapsed pile; unstable. Rats ×6, gutborn larva ×2. Loud combat → falling debris 2–4 random damage/turn (environmental hazard). " +
       "Connects R95, R96, R98.",
     props: [
       {
@@ -260,10 +260,10 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     hint: "coldfire on iron and salt-block; two armored shapes wait as if cast for this threshold alone.",
     description:
       "Massive door: salt-block and iron bands. Dark sheet across the opening - shimmer at the edges, cold. Coldfire in the seams. Metallic taste. Open floor in front - room to fight. Bone columns at the sides. Two armored shapes by the threshold.",
-    enemies: ["boss_skeleton_lord", "boss_skeleton_lord"],
+    enemies: ["boss_skeleton_lord", "boss_skeleton_lord", "skeleton", "skeleton", "forsworn"],
     isBoss: true,
     notes:
-      "R99. Era 3. COLDFIRE. Massive warded door; dark energy curtain; bone column anchors. Elite Skeletons ×2 (boss_skeleton_lord). Beyond → Area 5 R146. " +
+      "R99. Era 3. COLDFIRE. Massive warded door; dark energy curtain; bone column anchors. Elite Skeletons ×2 (boss_skeleton_lord) + skeleton ×2 + forsworn ×1. Beyond → Area 5 R146. " +
       "PROGRESSION GATE (Area 3 → 5): " +
       "(a) FORCE - kill elites; break ward by destroying column anchors (mining maul / fire): LOUD, pulls Bone Stacks aggro. " +
       "(b) KNOWLEDGE - deactivation phrase in lich correspondence (Area 2 Restricted Archive, if accessed). " +
@@ -407,7 +407,7 @@ export const A3_BONE_STACKS: AreaDef = {
   combatRooms: [],
   bossRoom: {
     label: "Great Ward Door",
-    enemies: ["boss_skeleton_lord", "boss_skeleton_lord"],
+    enemies: ["boss_skeleton_lord", "boss_skeleton_lord", "skeleton", "skeleton", "forsworn"],
     hint: "coldfire on iron and salt-block; two armored shapes wait as if cast for this threshold alone.",
   },
   notes:

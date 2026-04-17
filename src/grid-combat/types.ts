@@ -51,7 +51,8 @@ export type TerrainType =
   | "ward_line"
   | "hallowed_ground"
   | "smoke"
-  | "rail";
+  | "rail"
+  | "rot";
 
 export interface TerrainTile {
   readonly type: TerrainType;
@@ -127,7 +128,10 @@ export type GridConditionKey =
   | "slowed"
   | "silenced"
   | "infected"
-  | "hidden";
+  | "hidden"
+  | "intercepting"
+  | "marked"
+  | "commanded";
 
 export type GridConditions = Partial<Record<GridConditionKey, number>>;
 
@@ -160,6 +164,7 @@ export interface GridAbility {
   readonly special: readonly GridAbilitySpecial[];
   readonly requiresBehindTarget: boolean;
   readonly requiresLOS: boolean;
+  readonly silenceBlocked: boolean;
   readonly moveSelfDistance: number;
   readonly moveSelfDirection:
     | "toward_target"
@@ -320,7 +325,41 @@ export type EnemyAbilitySpecial =
       readonly type: "metamorphosis";
       readonly turnsToTransform: number;
       readonly transformInto: string;
-    };
+    }
+  | { readonly type: "teleport_to_rot" }
+  | { readonly type: "intercept_for_ally" }
+  | { readonly type: "damage_reduction_mark"; readonly fraction: number }
+  | {
+      readonly type: "create_terrain_aoe";
+      readonly terrain: TerrainType;
+      readonly count: number;
+    }
+  | { readonly type: "swarm_pile"; readonly crossDamage: number }
+  | {
+      readonly type: "corpse_burst";
+      readonly damage: number;
+      readonly poisonTurns: number;
+    }
+  | { readonly type: "phase_shift"; readonly range: number }
+  | { readonly type: "chill_aura"; readonly damage: number }
+  | { readonly type: "infected_on_death"; readonly turns: number }
+  | {
+      readonly type: "dirge_zone";
+      readonly radius: number;
+      readonly damage: number;
+      readonly apDrain: number;
+      readonly turns: number;
+    }
+  | { readonly type: "retreat_to_dark"; readonly range: number }
+  | { readonly type: "smoke_bomb"; readonly radius: number }
+  | { readonly type: "pull_toward"; readonly distance: number }
+  | { readonly type: "death_darkness"; readonly radius: number; readonly turns: number }
+  | { readonly type: "shadow_step" }
+  | { readonly type: "bone_pillar"; readonly damage: number }
+  | { readonly type: "blood_puppet" }
+  | { readonly type: "mist_form"; readonly turns: number }
+  | { readonly type: "phylactery_shield" }
+  | { readonly type: "mass_raise_all"; readonly hpFraction: number };
 
 // ─── Timeline ───
 
@@ -454,7 +493,24 @@ export type EnemyDeathEffect =
   | { readonly type: "spawn_heap"; readonly pos: GridPos }
   | { readonly type: "explode"; readonly radius: number; readonly damage: number }
   | { readonly type: "drop_caltrops"; readonly pos: GridPos }
-  | { readonly type: "create_terrain"; readonly pos: GridPos; readonly terrain: TerrainType };
+  | { readonly type: "create_terrain"; readonly pos: GridPos; readonly terrain: TerrainType }
+  | {
+      readonly type: "corpse_burst";
+      readonly pos: GridPos;
+      readonly damage: number;
+      readonly poisonTurns: number;
+    }
+  | {
+      readonly type: "infected_adjacent";
+      readonly pos: GridPos;
+      readonly turns: number;
+    }
+  | {
+      readonly type: "death_darkness";
+      readonly pos: GridPos;
+      readonly radius: number;
+      readonly turns: number;
+    };
 
 export type EnemyPassive =
   | { readonly type: "swarm_bonus"; readonly bonusDamagePerAlly: number }
@@ -470,7 +526,12 @@ export type EnemyPassive =
   | { readonly type: "shadow_cloak_in_dark"; readonly damageReduction: number }
   | { readonly type: "feast_heal_on_adjacent_kill" }
   | { readonly type: "shield_of_will_while_minions_live"; readonly armor: number }
-  | { readonly type: "fleeing" };
+  | { readonly type: "fleeing" }
+  | { readonly type: "ever_growing"; readonly hpPerTurn: number }
+  | { readonly type: "perjured_aura"; readonly armorBonus: number }
+  | { readonly type: "formation_armor"; readonly bonusPerAlly: number }
+  | { readonly type: "ambush_predator"; readonly bonusDamage: number }
+  | { readonly type: "bone_shield_while_minions"; readonly armor: number };
 
 // ─── Equipment Definitions for Grid Combat ───
 

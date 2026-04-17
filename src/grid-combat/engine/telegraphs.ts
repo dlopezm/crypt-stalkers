@@ -1,5 +1,6 @@
 import type { GridCombatState, GridEnemyState, GridEnemyTypeDef, TimelineEntry } from "../types";
 import { nextEntryId } from "./insertion";
+import { SYNTHETIC_ABILITY_ID } from "./types";
 
 export function generateEnemyTelegraphs(
   state: GridCombatState,
@@ -19,7 +20,7 @@ export function generateEnemyTelegraphs(
       entries.push({
         id: nextEntryId(),
         owner: { type: "enemy", uid: enemy.uid },
-        abilityId: "stunned",
+        abilityId: SYNTHETIC_ABILITY_ID.stunned,
         targetTile: null,
         targetUid: null,
         affectedTiles: [],
@@ -35,7 +36,7 @@ export function generateEnemyTelegraphs(
       entries.push({
         id: nextEntryId(),
         owner: { type: "enemy", uid: enemy.uid },
-        abilityId: "reforming",
+        abilityId: SYNTHETIC_ABILITY_ID.reforming,
         targetTile: null,
         targetUid: null,
         affectedTiles: [],
@@ -51,7 +52,7 @@ export function generateEnemyTelegraphs(
       entries.push({
         id: nextEntryId(),
         owner: { type: "enemy", uid: enemy.uid },
-        abilityId: "metamorphosis",
+        abilityId: SYNTHETIC_ABILITY_ID.metamorphosis,
         targetTile: null,
         targetUid: null,
         affectedTiles: [],

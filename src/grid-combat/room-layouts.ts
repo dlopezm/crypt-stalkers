@@ -5,6 +5,14 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import type { RoomTerrainLayout, RoomTerrainPlacement, GridPos } from "./types";
+import { TERRAIN_BLOCKS_MOVEMENT } from "./types";
+import type { RoomBBox } from "../types";
+
+export interface OvermapData {
+  readonly grid: readonly (readonly number[])[];
+  readonly roomId: number;
+  readonly bbox: RoomBBox;
+}
 
 function layout(
   w: number,
@@ -73,7 +81,7 @@ const CART_DEPOT = layout(
     t(4, 4, "rail", { railDirection: "east" }),
     t(4, 5, "rail", { railDirection: "east" }),
     t(0, 0, "rubble"),
-    t(0, 5, "rubble"),
+    t(0, 5, "pit"),
     t(3, 3, "pillar"),
   ],
 );
@@ -158,6 +166,7 @@ const JUNCTION_HALL = layout(
   [
     { row: 1, col: 2 },
     { row: 2, col: 5 },
+    { row: 1, col: 4 },
   ],
   [
     t(0, 0, "wall"),
@@ -188,6 +197,7 @@ const INNER_GATE = layout(
     { row: 1, col: 2 },
     { row: 1, col: 5 },
     { row: 2, col: 7 },
+    { row: 2, col: 4 },
   ],
   [
     t(0, 0, "wall"),
@@ -198,8 +208,8 @@ const INNER_GATE = layout(
     t(2, 5, "pillar"),
     t(4, 2, "pillar"),
     t(4, 5, "pillar"),
-    t(3, 0, "rubble"),
-    t(3, 7, "rubble"),
+    t(3, 0, "pit"),
+    t(3, 7, "pit"),
   ],
 );
 
@@ -248,6 +258,8 @@ const CHAPEL_ENTRANCE = layout(
   [
     { row: 2, col: 1 },
     { row: 2, col: 5 },
+    { row: 1, col: 1 },
+    { row: 1, col: 5 },
   ],
   [
     t(0, 0, "wall"),
@@ -257,6 +269,9 @@ const CHAPEL_ENTRANCE = layout(
     t(3, 1, "brazier"),
     t(3, 5, "brazier"),
     t(4, 3, "pillar"),
+    t(3, 2, "ward_line"),
+    t(3, 3, "ward_line"),
+    t(3, 4, "ward_line"),
   ],
 );
 
@@ -280,6 +295,7 @@ const NAVE = layout(
     t(5, 5, "pillar"),
     t(1, 4, "brazier"),
     t(4, 4, "brazier"),
+    t(3, 4, "pit"),
   ],
 );
 
@@ -287,7 +303,11 @@ const CHOIR_LOFT = layout(
   6,
   5,
   { row: 4, col: 3 },
-  [{ row: 1, col: 3 }],
+  [
+    { row: 1, col: 3 },
+    { row: 1, col: 1 },
+    { row: 1, col: 4 },
+  ],
   [
     t(0, 0, "wall"),
     t(0, 5, "wall"),
@@ -321,8 +341,8 @@ const STACK_ENTRANCE = layout(
   [
     t(0, 0, "wall"),
     t(0, 6, "wall"),
-    t(2, 1, "rubble"),
-    t(2, 5, "rubble"),
+    t(2, 1, "hazard", { hazardDamage: 2 }),
+    t(2, 5, "hazard", { hazardDamage: 2 }),
     t(3, 3, "pillar"),
     t(4, 1, "rubble"),
   ],
@@ -332,7 +352,10 @@ const FEMUR_CORRIDOR = layout(
   8,
   4,
   { row: 3, col: 0 },
-  [{ row: 1, col: 6 }],
+  [
+    { row: 1, col: 6 },
+    { row: 2, col: 6 },
+  ],
   [
     t(0, 0, "wall"),
     t(0, 7, "wall"),
@@ -340,9 +363,15 @@ const FEMUR_CORRIDOR = layout(
     t(3, 7, "wall"),
     t(1, 2, "rubble"),
     t(1, 5, "rubble"),
-    t(2, 4, "dark_zone"),
+    t(1, 3, "dark_zone"),
+    t(1, 4, "dark_zone"),
+    t(1, 6, "dark_zone"),
+    t(2, 1, "dark_zone"),
+    t(2, 2, "dark_zone"),
     t(2, 3, "dark_zone"),
+    t(2, 4, "dark_zone"),
     t(2, 5, "dark_zone"),
+    t(2, 6, "dark_zone"),
   ],
 );
 
@@ -355,16 +384,19 @@ const STACK_CORE = layout(
     { row: 1, col: 4 },
     { row: 1, col: 6 },
     { row: 2, col: 3 },
+    { row: 2, col: 5 },
   ],
   [
     t(0, 0, "wall"),
     t(0, 7, "wall"),
-    t(2, 1, "rubble"),
-    t(2, 6, "rubble"),
+    t(2, 1, "pit"),
+    t(2, 6, "pit"),
     t(3, 2, "pillar"),
     t(3, 5, "pillar"),
-    t(4, 0, "rubble"),
-    t(4, 7, "rubble"),
+    t(4, 0, "dark_zone"),
+    t(4, 7, "dark_zone"),
+    t(5, 0, "dark_zone"),
+    t(5, 7, "dark_zone"),
     t(5, 4, "brazier"),
   ],
 );
@@ -379,8 +411,18 @@ const COLLAPSED_STACK = layout(
     { row: 1, col: 2 },
     { row: 2, col: 0 },
     { row: 2, col: 4 },
+    { row: 0, col: 2 },
+    { row: 0, col: 3 },
+    { row: 1, col: 1 },
   ],
-  [t(1, 0, "rubble"), t(1, 4, "rubble"), t(3, 1, "rubble"), t(3, 3, "rubble"), t(2, 2, "rubble")],
+  [
+    t(1, 0, "rubble"),
+    t(1, 4, "rubble"),
+    t(3, 1, "hazard", { hazardDamage: 2 }),
+    t(3, 3, "hazard", { hazardDamage: 2 }),
+    t(2, 2, "rubble"),
+    t(1, 3, "hazard", { hazardDamage: 2 }),
+  ],
 );
 
 const GREAT_WARD_DOOR = layout(
@@ -390,6 +432,9 @@ const GREAT_WARD_DOOR = layout(
   [
     { row: 2, col: 3 },
     { row: 2, col: 5 },
+    { row: 1, col: 2 },
+    { row: 1, col: 5 },
+    { row: 3, col: 4 },
   ],
   [
     t(0, 0, "wall"),
@@ -402,8 +447,11 @@ const GREAT_WARD_DOOR = layout(
     t(5, 6, "pillar"),
     t(1, 4, "brazier"),
     t(6, 4, "brazier"),
-    t(4, 3, "rubble"),
-    t(4, 5, "rubble"),
+    t(4, 0, "pit"),
+    t(4, 7, "pit"),
+    t(4, 3, "ward_line"),
+    t(4, 4, "ward_line"),
+    t(4, 5, "ward_line"),
   ],
 );
 
@@ -415,16 +463,25 @@ const REFLECTOR_ALPHA = layout(
   6,
   6,
   { row: 5, col: 3 },
-  [{ row: 1, col: 3 }],
+  [
+    { row: 1, col: 3 },
+    { row: 1, col: 4 },
+  ],
   [
     t(0, 0, "wall"),
     t(0, 5, "wall"),
     t(2, 1, "salt_deposit"),
     t(2, 4, "salt_deposit"),
+    t(2, 2, "dark_zone"),
+    t(2, 3, "dark_zone"),
+    t(3, 1, "dark_zone"),
     t(3, 2, "dark_zone"),
     t(3, 3, "dark_zone"),
+    t(3, 4, "dark_zone"),
+    t(4, 1, "dark_zone"),
     t(4, 2, "dark_zone"),
     t(4, 3, "dark_zone"),
+    t(4, 4, "dark_zone"),
     t(1, 1, "brazier"),
   ],
 );
@@ -436,6 +493,8 @@ const GRAND_GALLERY_SHADOWS = layout(
   [
     { row: 1, col: 1 },
     { row: 1, col: 6 },
+    { row: 2, col: 3 },
+    { row: 2, col: 4 },
   ],
   [
     t(0, 0, "wall"),
@@ -462,6 +521,9 @@ const ARRAY_NEXUS = layout(
   [
     { row: 1, col: 2 },
     { row: 1, col: 5 },
+    { row: 2, col: 1 },
+    { row: 2, col: 5 },
+    { row: 3, col: 3 },
   ],
   [
     t(0, 0, "wall"),
@@ -488,7 +550,12 @@ const CRYSTAL_THRONE_ARENA = layout(
   8,
   8,
   { row: 7, col: 4 },
-  [{ row: 1, col: 4 }],
+  [
+    { row: 1, col: 4 },
+    { row: 1, col: 3 },
+    { row: 1, col: 5 },
+    { row: 2, col: 4 },
+  ],
   [
     t(0, 0, "wall"),
     t(0, 7, "wall"),
@@ -498,12 +565,32 @@ const CRYSTAL_THRONE_ARENA = layout(
     t(2, 5, "pillar"),
     t(5, 2, "pillar"),
     t(5, 5, "pillar"),
-    t(1, 1, "salt_deposit"),
-    t(1, 6, "salt_deposit"),
-    t(6, 1, "salt_deposit"),
-    t(6, 6, "salt_deposit"),
+    t(1, 1, "pit"),
+    t(1, 6, "pit"),
+    t(6, 1, "pit"),
+    t(6, 6, "pit"),
     t(3, 4, "brazier"),
     t(4, 4, "brazier"),
+    t(0, 1, "dark_zone"),
+    t(0, 2, "dark_zone"),
+    t(0, 5, "dark_zone"),
+    t(0, 6, "dark_zone"),
+    t(7, 1, "dark_zone"),
+    t(7, 2, "dark_zone"),
+    t(7, 5, "dark_zone"),
+    t(7, 6, "dark_zone"),
+    t(1, 0, "dark_zone"),
+    t(2, 0, "dark_zone"),
+    t(5, 0, "dark_zone"),
+    t(6, 0, "dark_zone"),
+    t(1, 7, "dark_zone"),
+    t(2, 7, "dark_zone"),
+    t(5, 7, "dark_zone"),
+    t(6, 7, "dark_zone"),
+    t(3, 1, "ward_line"),
+    t(4, 1, "ward_line"),
+    t(3, 6, "ward_line"),
+    t(4, 6, "ward_line"),
   ],
 );
 
@@ -606,10 +693,72 @@ const ROOM_LAYOUTS: Record<string, RoomTerrainLayout> = {
   "The Seat": CRYSTAL_THRONE_ARENA,
 };
 
-export function getRoomTerrainLayout(roomLabel: string, enemyCount: number): RoomTerrainLayout {
+function generateAdditionalSpawns(
+  layout: RoomTerrainLayout,
+  existingSpawns: readonly GridPos[],
+  needed: number,
+): readonly GridPos[] {
+  const blocked = new Set(
+    layout.terrainPlacements
+      .filter((p) => TERRAIN_BLOCKS_MOVEMENT.has(p.terrain))
+      .map((p) => `${p.pos.row},${p.pos.col}`),
+  );
+
+  const used = new Set(existingSpawns.map((s) => `${s.row},${s.col}`));
+  used.add(`${layout.playerStart.row},${layout.playerStart.col}`);
+
+  const candidates: GridPos[] = [];
+  for (let r = 0; r < layout.gridHeight; r++) {
+    for (let c = 0; c < layout.gridWidth; c++) {
+      const key = `${r},${c}`;
+      if (!blocked.has(key) && !used.has(key)) {
+        candidates.push({ row: r, col: c });
+      }
+    }
+  }
+
+  candidates.sort((a, b) => {
+    const distA =
+      Math.abs(a.row - layout.playerStart.row) + Math.abs(a.col - layout.playerStart.col);
+    const distB =
+      Math.abs(b.row - layout.playerStart.row) + Math.abs(b.col - layout.playerStart.col);
+    return distB - distA;
+  });
+
+  return candidates.slice(0, needed);
+}
+
+export function getRoomTerrainLayout(
+  roomLabel: string,
+  enemyCount: number,
+  overmap?: OvermapData,
+): RoomTerrainLayout {
+  if (overmap) {
+    return buildOvermapLayout(roomLabel, enemyCount, overmap);
+  }
+
   const specific = ROOM_LAYOUTS[roomLabel];
   if (specific) {
-    return specific;
+    if (specific.enemySpawns.length >= enemyCount) {
+      return specific;
+    }
+
+    if (import.meta.env.DEV) {
+      console.warn(
+        `Layout "${roomLabel}" has ${specific.enemySpawns.length} spawns but needs ${enemyCount}. ` +
+          `Auto-generating ${enemyCount - specific.enemySpawns.length} additional spawn(s).`,
+      );
+    }
+
+    const additional = generateAdditionalSpawns(
+      specific,
+      specific.enemySpawns,
+      enemyCount - specific.enemySpawns.length,
+    );
+    return {
+      ...specific,
+      enemySpawns: [...specific.enemySpawns, ...additional],
+    };
   }
 
   if (import.meta.env.DEV) {
@@ -628,6 +777,119 @@ export function getRoomTerrainLayout(roomLabel: string, enemyCount: number): Roo
   }
 
   return DEFAULT_LARGE;
+}
+
+function buildOvermapLayout(
+  roomLabel: string,
+  enemyCount: number,
+  overmap: OvermapData,
+): RoomTerrainLayout {
+  const { grid, roomId, bbox } = overmap;
+  const overmapH = bbox.maxRow - bbox.minRow + 1;
+  const overmapW = bbox.maxCol - bbox.minCol + 1;
+  const gridHeight = overmapH * 2;
+  const gridWidth = overmapW * 2;
+
+  const isFloor: boolean[][] = [];
+  for (let r = 0; r < gridHeight; r++) {
+    isFloor[r] = [];
+    for (let c = 0; c < gridWidth; c++) {
+      isFloor[r][c] = false;
+    }
+  }
+
+  for (let or = bbox.minRow; or <= bbox.maxRow; or++) {
+    for (let oc = bbox.minCol; oc <= bbox.maxCol; oc++) {
+      if (grid[or]?.[oc] === roomId) {
+        const baseR = (or - bbox.minRow) * 2;
+        const baseC = (oc - bbox.minCol) * 2;
+        isFloor[baseR][baseC] = true;
+        isFloor[baseR][baseC + 1] = true;
+        isFloor[baseR + 1][baseC] = true;
+        isFloor[baseR + 1][baseC + 1] = true;
+      }
+    }
+  }
+
+  const wallPlacements: RoomTerrainPlacement[] = [];
+  for (let r = 0; r < gridHeight; r++) {
+    for (let c = 0; c < gridWidth; c++) {
+      if (!isFloor[r][c]) {
+        wallPlacements.push({ pos: { row: r, col: c }, terrain: "wall" });
+      }
+    }
+  }
+
+  const authored = ROOM_LAYOUTS[roomLabel];
+  const terrainPlacements: RoomTerrainPlacement[] = [...wallPlacements];
+
+  if (authored) {
+    for (const placement of authored.terrainPlacements) {
+      const { row, col } = placement.pos;
+      if (row < gridHeight && col < gridWidth && isFloor[row]?.[col]) {
+        terrainPlacements.push(placement);
+      }
+    }
+  }
+
+  const floorTiles: GridPos[] = [];
+  for (let r = 0; r < gridHeight; r++) {
+    for (let c = 0; c < gridWidth; c++) {
+      if (isFloor[r][c]) {
+        const isUsedByTerrain = terrainPlacements.some(
+          (p) => p.pos.row === r && p.pos.col === c && p.terrain !== "wall",
+        );
+        if (!isUsedByTerrain) {
+          floorTiles.push({ row: r, col: c });
+        }
+      }
+    }
+  }
+
+  let playerStart: GridPos;
+  if (authored && authored.playerStart.row < gridHeight && authored.playerStart.col < gridWidth) {
+    playerStart = authored.playerStart;
+  } else {
+    playerStart = floorTiles[floorTiles.length - 1] ?? {
+      row: gridHeight - 1,
+      col: Math.floor(gridWidth / 2),
+    };
+  }
+
+  let enemySpawns: readonly GridPos[];
+  if (authored && authored.enemySpawns.length >= enemyCount) {
+    enemySpawns = authored.enemySpawns.filter(
+      (s) => s.row < gridHeight && s.col < gridWidth && isFloor[s.row]?.[s.col],
+    );
+  } else {
+    enemySpawns = [];
+  }
+
+  if (enemySpawns.length < enemyCount) {
+    const partialLayout: RoomTerrainLayout = {
+      gridWidth,
+      gridHeight,
+      terrainPlacements,
+      playerStart,
+      enemySpawns,
+      exitTile: authored?.exitTile ?? null,
+    };
+    const additional = generateAdditionalSpawns(
+      partialLayout,
+      enemySpawns,
+      enemyCount - enemySpawns.length,
+    );
+    enemySpawns = [...enemySpawns, ...additional];
+  }
+
+  return {
+    gridWidth,
+    gridHeight,
+    terrainPlacements,
+    playerStart,
+    enemySpawns,
+    exitTile: authored?.exitTile ?? null,
+  };
 }
 
 export { ROOM_LAYOUTS };
