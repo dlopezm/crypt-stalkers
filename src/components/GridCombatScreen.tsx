@@ -494,7 +494,7 @@ export function GridCombatScreen({
         executingEntryId={executingEntryId}
       />
 
-      <div className="flex flex-1 flex-col items-center">
+      <div className="flex flex-1 flex-col items-center min-w-0">
         <PhaseHeader phase={state.phase} turn={state.turn} />
 
         {selectedAbility && isSidestepAbility(selectedAbility) && !sidestepTarget && (

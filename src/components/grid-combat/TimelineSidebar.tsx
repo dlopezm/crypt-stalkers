@@ -46,7 +46,7 @@ export function TimelineSidebar({
   return (
     <div
       ref={scrollRef}
-      className="flex flex-col w-72 border-r border-crypt-border overflow-y-auto"
+      className="flex flex-col w-72 flex-shrink-0 border-r border-crypt-border overflow-y-auto"
       style={{ background: "#161210" }}
     >
       <div className="px-3 py-2.5 border-b border-crypt-border">

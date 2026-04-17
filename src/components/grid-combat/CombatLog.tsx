@@ -3,7 +3,7 @@ import type { GridCombatLogEntry } from "../../grid-combat/types";
 export function CombatLog({ entries }: { readonly entries: readonly GridCombatLogEntry[] }) {
   return (
     <div
-      className="flex flex-col w-64 border-l border-crypt-border overflow-y-auto"
+      className="flex flex-col w-64 flex-shrink-0 border-l border-crypt-border overflow-y-auto"
       style={{ background: "#161210" }}
     >
       <div className="px-3 py-2.5 border-b border-crypt-border">
