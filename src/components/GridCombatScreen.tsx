@@ -516,7 +516,7 @@ export function GridCombatScreen({
           </div>
         )}
 
-        <div className="flex-1 flex items-center justify-center overflow-auto p-2">
+        <div className="flex-1 flex items-center justify-center overflow-hidden p-2 min-h-0 w-full">
           <GridRenderer
             grid={state.grid}
             player={state.player}
