@@ -17,18 +17,20 @@ export const TAROT_MAP: Record<string, string> = {
   boss_lich: "20_Judgement.jpg",
 };
 
-export const TAROT_BACK = "/tarot/Cover.jpg";
+const BASE = import.meta.env.BASE_URL;
+
+export const TAROT_BACK = `${BASE}tarot/Cover.jpg`;
 
 export function getTarotSrc(enemyId: string): string | null {
   const file = TAROT_MAP[enemyId];
-  return file ? `/tarot/${file}` : null;
+  return file ? `${BASE}tarot/${file}` : null;
 }
 
 /** Preload all tarot images so they display instantly in combat */
 export function preloadTarotImages(): void {
   for (const file of Object.values(TAROT_MAP)) {
     const img = new Image();
-    img.src = `/tarot/${file}`;
+    img.src = `${BASE}tarot/${file}`;
   }
   const back = new Image();
   back.src = TAROT_BACK;
