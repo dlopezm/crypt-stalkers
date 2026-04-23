@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { btnStyle } from "../styles";
+import { useAppDispatch, useAppSelector } from "../store";
+import { setCombatSystem, type CombatSystem } from "../store/settingsSlice";
 
 export function TitleScreen({
   onStart,
@@ -10,8 +12,14 @@ export function TitleScreen({
   onContinue?: () => void;
   onClearSave?: () => void;
 }) {
+  const dispatch = useAppDispatch();
+  const combatSystem = useAppSelector((s) => s.settings.combatSystem);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [cleared, setCleared] = useState(false);
+
+  function pickCombatSystem(sys: CombatSystem) {
+    dispatch(setCombatSystem(sys));
+  }
 
   function handleClear() {
     onClearSave?.();
@@ -51,6 +59,34 @@ export function TitleScreen({
           <div>{"\u26CF\uFE0F"} The deeper you dig, the more it costs</div>
         </div>
         <div className="flex flex-col gap-3 items-center">
+          <div className="w-full">
+            <div className="text-xs uppercase tracking-[0.2em] text-crypt-dim mb-1.5 text-center">
+              Combat System
+            </div>
+            <div className="flex gap-2 w-full">
+              <button
+                style={btnStyle(combatSystem === "card" ? "#6e5a2a" : "#3a3a3a")}
+                className="text-sm! flex-1 px-3! py-2! tracking-[0.1em]"
+                onClick={() => pickCombatSystem("card")}
+                title="Card Quest-style: deck, stamina, distance"
+              >
+                {"\u{1F0CF}"} Cards
+              </button>
+              <button
+                style={btnStyle(combatSystem === "grid" ? "#6e5a2a" : "#3a3a3a")}
+                className="text-sm! flex-1 px-3! py-2! tracking-[0.1em]"
+                onClick={() => pickCombatSystem("grid")}
+                title="Into-the-Breach-style: tactical grid, AP, terrain"
+              >
+                {"▦"} Grid
+              </button>
+            </div>
+            <div className="text-xs text-crypt-dim text-center mt-1.5 italic">
+              {combatSystem === "card"
+                ? "Draw cards, manage stamina, read telegraphs."
+                : "Tactical grid with AP, terrain, and timeline insertion."}
+            </div>
+          </div>
           {hasSave && (
             <button
               style={btnStyle("#2a6e2a")}

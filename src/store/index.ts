@@ -6,6 +6,7 @@ import areaReducer from "./areaSlice";
 import combatReducer from "./combatSlice";
 import debugReducer from "./debugSlice";
 import checkpointReducer from "./checkpointSlice";
+import settingsReducer from "./settingsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +16,7 @@ export const store = configureStore({
     combat: combatReducer,
     debug: debugReducer,
     checkpoint: checkpointReducer,
+    settings: settingsReducer,
   },
   devTools: {
     name: "Crypt Stalkers",

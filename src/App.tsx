@@ -12,6 +12,8 @@ import { IntroScreen } from "./components/IntroScreen";
 import { AuthoredAreaEditor } from "./components/editor/AuthoredAreaEditor";
 import { AreaMap } from "./components/area/AreaMap";
 import { GridCombatScreen } from "./components/GridCombatScreen";
+import { CardCombatScreen } from "./components/CardCombatScreen";
+import { playerToCardLoadout, cardResultToGridPlayerState } from "./utils/card-combat-helpers";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
 import type { AreaNode, AreaDef, AreaLogEntry, Player, PropEffect } from "./types";
 import type { GridPlayerState } from "./grid-combat/types";
@@ -60,6 +62,7 @@ export default function App() {
   const roomCheckpoint = useAppSelector((s) => s.checkpoint.room);
   const areaCheckpoint = useAppSelector((s) => s.checkpoint.area);
   const visitedAreas = useAppSelector((s) => s.area.visitedAreas);
+  const combatSystem = useAppSelector((s) => s.settings.combatSystem);
 
   function addLog(
     entries: { text: string; roomId?: string }[] | string[],
@@ -587,8 +590,31 @@ export default function App() {
       return null;
     }
 
-    const gridPlayer = playerToGridPlayer(player);
     const enemyIds = combatSpawn.enemies.map((e) => e.id);
+
+    if (combatSystem === "card") {
+      const loadout = playerToCardLoadout(player);
+      const cardEnemies = combatSpawn.enemies.map((e) => ({ id: e.id, uid: e.uid }));
+      return (
+        <CardCombatScreen
+          key={combatKey}
+          loadout={loadout}
+          startingHp={player.hp}
+          startingMaxHp={player.maxHp}
+          startingSalt={player.salt}
+          initialEnemies={cardEnemies}
+          onVictory={(finalHp, finalSalt, loot) => {
+            const synthetic = cardResultToGridPlayerState(player, finalHp, finalSalt);
+            dispatch(gridCombatVictory(synthetic, loot));
+          }}
+          onDefeat={() => {
+            dispatch(gridCombatDefeat(enemyIds));
+          }}
+        />
+      );
+    }
+
+    const gridPlayer = playerToGridPlayer(player);
     const overmapData =
       combatSpawn.overmapGrid && combatSpawn.gridRoomId != null && combatSpawn.bbox
         ? { grid: combatSpawn.overmapGrid, roomId: combatSpawn.gridRoomId, bbox: combatSpawn.bbox }
