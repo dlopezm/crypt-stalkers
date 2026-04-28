@@ -13,6 +13,8 @@ import { AuthoredAreaEditor } from "./components/editor/AuthoredAreaEditor";
 import { AreaMap } from "./components/area/AreaMap";
 import { GridCombatScreen } from "./components/GridCombatScreen";
 import { CardCombatScreen } from "./components/CardCombatScreen";
+import { LineScreen } from "./line-combat/LineScreen";
+import { buildEncounterFromEnemies } from "./line-combat/encounter-defs";
 import { playerToCardLoadout, cardResultToGridPlayerState } from "./utils/card-combat-helpers";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
 import type { AreaNode, AreaDef, AreaLogEntry, Player, PropEffect } from "./types";
@@ -591,6 +593,54 @@ export default function App() {
     }
 
     const enemyIds = combatSpawn.enemies.map((e) => e.id);
+
+    if (combatSystem === "line") {
+      // Build a line encounter from the actual enemies spawned in this room.
+      const encounter = buildEncounterFromEnemies(
+        combatSpawn.enemies.map((e) => e.id),
+        combatSpawn.roomLabel ?? "Combat",
+      );
+      return (
+        <LineScreen
+          key={combatKey}
+          encounter={encounter}
+          playerData={{
+            hp: player.hp,
+            maxHp: player.maxHp,
+            salt: player.salt,
+            mainWeaponId: player.gridWeaponId ?? "sword",
+            offhandId: player.gridOffhandId ?? null,
+            armorId: player.gridArmorId ?? "cloth",
+            armor: 0,
+          }}
+          onVictory={(saltEarned) => {
+            const base = playerToGridPlayer(player);
+            const resultState: import("./grid-combat/types").GridPlayerState = {
+              ...base,
+              salt: player.salt + saltEarned,
+              pos: { row: 0, col: 0 },
+              ap: 0,
+              maxAp: 3,
+              conditions: {},
+              armor: 0,
+              thorns: 0,
+              abilityCooldowns: {},
+              boneResonanceStacks: 0,
+              overwatchTile: null,
+              overwatchDamage: 0,
+              riposteActive: false,
+              guardDamageReduction: 0,
+              braceNegateActive: false,
+              blockFirstHitReduction: 0,
+            };
+            dispatch(gridCombatVictory(resultState, saltEarned));
+          }}
+          onDefeat={() => {
+            dispatch(gridCombatDefeat(enemyIds));
+          }}
+        />
+      );
+    }
 
     if (combatSystem === "card") {
       const loadout = playerToCardLoadout(player);

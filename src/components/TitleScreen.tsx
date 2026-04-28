@@ -80,11 +80,21 @@ export function TitleScreen({
               >
                 {"▦"} Grid
               </button>
+              <button
+                style={btnStyle(combatSystem === "line" ? "#6e5a2a" : "#3a3a3a")}
+                className="text-sm! flex-1 px-3! py-2! tracking-[0.1em]"
+                onClick={() => pickCombatSystem("line")}
+                title="Corridor combat: entities on a line, push/pull/pierce"
+              >
+                {"—"} Line
+              </button>
             </div>
             <div className="text-xs text-crypt-dim text-center mt-1.5 italic">
               {combatSystem === "card"
                 ? "Draw cards, manage stamina, read telegraphs."
-                : "Tactical grid with AP, terrain, and timeline insertion."}
+                : combatSystem === "grid"
+                  ? "Tactical grid with AP, terrain, and timeline insertion."
+                  : "Corridor combat — push, pull, and pierce along a line."}
             </div>
           </div>
           {hasSave && (

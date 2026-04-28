@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-export type CombatSystem = "grid" | "card";
+export type CombatSystem = "grid" | "card" | "line";
 
 interface SettingsState {
   combatSystem: CombatSystem;
@@ -14,7 +14,8 @@ function loadInitial(): SettingsState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { combatSystem: "card" };
     const parsed = JSON.parse(raw) as Partial<SettingsState>;
-    const cs = parsed.combatSystem === "grid" ? "grid" : "card";
+    const cs: CombatSystem =
+      parsed.combatSystem === "grid" ? "grid" : parsed.combatSystem === "line" ? "line" : "card";
     return { combatSystem: cs };
   } catch {
     return { combatSystem: "card" };
@@ -39,7 +40,9 @@ const settingsSlice = createSlice({
       persist(state);
     },
     toggleCombatSystem: (state) => {
-      state.combatSystem = state.combatSystem === "card" ? "grid" : "card";
+      const order: CombatSystem[] = ["card", "grid", "line"];
+      const idx = order.indexOf(state.combatSystem);
+      state.combatSystem = order[(idx + 1) % order.length];
       persist(state);
     },
   },
