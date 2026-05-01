@@ -88,13 +88,23 @@ export function TitleScreen({
               >
                 {"—"} Line
               </button>
+              <button
+                style={btnStyle(combatSystem === "dice" ? "#6e5a2a" : "#3a3a3a")}
+                className="text-sm! flex-1 px-3! py-2! tracking-[0.1em]"
+                onClick={() => pickCombatSystem("dice")}
+                title="Reliquary: roll dice from your equipment, lock and re-roll, assign faces"
+              >
+                {"\u{1F3B2}"} Dice
+              </button>
             </div>
             <div className="text-xs text-crypt-dim text-center mt-1.5 italic">
               {combatSystem === "card"
                 ? "Draw cards, manage stamina, read telegraphs."
                 : combatSystem === "grid"
                   ? "Tactical grid with AP, terrain, and timeline insertion."
-                  : "Corridor combat — push, pull, and pierce along a line."}
+                  : combatSystem === "line"
+                    ? "Corridor combat — push, pull, and pierce along a line."
+                    : "Reliquary — roll your equipment dice, lock and re-roll, assign faces."}
             </div>
           </div>
           {hasSave && (

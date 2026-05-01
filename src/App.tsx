@@ -16,6 +16,8 @@ import { CardCombatScreen } from "./components/CardCombatScreen";
 import { LineScreen } from "./line-combat/LineScreen";
 import { buildEncounterFromEnemies } from "./line-combat/encounter-defs";
 import { playerToCardLoadout, cardResultToGridPlayerState } from "./utils/card-combat-helpers";
+import { DiceScreen } from "./dice-combat/DiceScreen";
+import { playerToDiceLoadout, diceResultToGridPlayerState } from "./utils/dice-combat-helpers";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
 import type { AreaNode, AreaDef, AreaLogEntry, Player, PropEffect } from "./types";
 import type { GridPlayerState } from "./grid-combat/types";
@@ -655,6 +657,28 @@ export default function App() {
           initialEnemies={cardEnemies}
           onVictory={(finalHp, finalSalt, loot) => {
             const synthetic = cardResultToGridPlayerState(player, finalHp, finalSalt);
+            dispatch(gridCombatVictory(synthetic, loot));
+          }}
+          onDefeat={() => {
+            dispatch(gridCombatDefeat(enemyIds));
+          }}
+        />
+      );
+    }
+
+    if (combatSystem === "dice") {
+      const diceLoadout = playerToDiceLoadout(player);
+      const diceEnemies = combatSpawn.enemies.map((e) => ({ id: e.id, uid: e.uid }));
+      return (
+        <DiceScreen
+          key={combatKey}
+          loadout={diceLoadout}
+          startingHp={player.hp}
+          startingMaxHp={player.maxHp}
+          startingSalt={player.salt}
+          initialEnemies={diceEnemies}
+          onVictory={(finalHp, finalSalt, loot) => {
+            const synthetic = diceResultToGridPlayerState(player, finalHp, finalSalt);
             dispatch(gridCombatVictory(synthetic, loot));
           }}
           onDefeat={() => {
