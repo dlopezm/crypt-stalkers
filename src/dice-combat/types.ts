@@ -1,13 +1,30 @@
-import type { DamageType } from "../types";
+import type { DamageType, StatusKey } from "../types";
 
 /* ── Dice + Faces ── */
 
-export type DieSlot = "body" | "main" | "offhand" | "armor" | "soul";
+/** Four slots: main hand, off hand, armor, ability. */
+export type DieSlot = "main" | "offhand" | "armor" | "ability";
 
 export type Row = "front" | "back";
 
-/** What a single face does when assigned. A face is a small bag of effects.
- * Each face must specify a target kind that constrains assignment. */
+/** Seven colors plus the neutral blank. Two faces in the pool sharing a color = bust. */
+export type FaceColor =
+  | "crimson"
+  | "salt"
+  | "fire"
+  | "coldfire"
+  | "brine"
+  | "echo"
+  | "iron"
+  | "blank";
+
+export interface ColorDef {
+  readonly id: FaceColor;
+  readonly label: string;
+  readonly hex: string;
+  readonly badge: string;
+}
+
 export type FaceTargetKind =
   | "self"
   | "enemy"
@@ -22,15 +39,14 @@ export interface FaceDef {
   readonly label: string;
   readonly icon: string;
   readonly desc: string;
+  readonly color: FaceColor;
   readonly target: FaceTargetKind;
   readonly damage?: number;
   readonly damageType?: DamageType;
-  readonly ignoresBlock?: boolean;
   readonly heal?: number;
   readonly block?: number;
-  readonly applyStatus?: { readonly status: import("../types").StatusKey; readonly stacks: number };
+  readonly applyStatus?: { readonly status: StatusKey; readonly stacks: number };
   readonly cleanseSelf?: number;
-  readonly bonusReroll?: number;
   /** Push the targeted enemy to the opposite row. */
   readonly pushOpposite?: boolean;
   /** Self-buff: the next damage face this turn deals +N. */
@@ -41,6 +57,12 @@ export interface FaceDef {
   readonly twoHandedBonus?: boolean;
   /** Salt currency gain. */
   readonly gainSalt?: number;
+  /** Soul-Die / Ward face: removes a Salt-Lock from one player die. */
+  readonly breakSlotLock?: boolean;
+  /** Hymn-Hum: Echo faces in the pool count as "any color" for bust check this turn. */
+  readonly grantHymnHum?: boolean;
+  /** Resonance: forgive the next color clash this turn. */
+  readonly grantResonance?: boolean;
 }
 
 export interface DieDef {
@@ -48,30 +70,29 @@ export interface DieDef {
   readonly slot: DieSlot;
   readonly name: string;
   readonly icon: string;
-  /** Exactly 6 face IDs, indexed 0..5. The roll value is the index. */
+  /** Exactly 6 face IDs, indexed 0..5. */
   readonly faces: readonly [string, string, string, string, string, string];
 }
 
-/* ── Roll + Assignment ── */
+/* ── Push-your-luck pool ── */
 
-export interface DieInstance {
+/** A face rolled into the player's pool this turn. The pool is the bust check substrate. */
+export interface PoolFace {
+  /** Stable identity within the turn — used for assignment lookups. */
+  readonly poolId: number;
+  /** The slot this face came from. */
   readonly slot: DieSlot;
-  readonly dieId: string;
-  /** Index 0..5 into the die's faces; -1 means unrolled. */
-  readonly faceIndex: number;
-  readonly locked: boolean;
-  /** True when an enemy effect (e.g., Salt Revenant grapple) prevents this die from being used or re-rolled. */
-  readonly grappled: boolean;
-  /** True when a Shadow drains this die out of the pool for one turn. */
-  readonly suppressed: boolean;
+  /** The face id rolled. */
+  readonly faceId: string;
+  /** The effective color used for the bust check. */
+  readonly color: FaceColor;
+  /** Forced faces (e.g. False Sacrarium) are added at start-of-turn and cannot be unrolled. */
+  readonly forced: boolean;
 }
 
-export interface FaceAssignment {
-  /** Which die slot this assignment is for. */
-  readonly slot: DieSlot;
-  /** UID of the enemy target if the face needs one; otherwise null. */
+export interface PoolAssignment {
+  readonly poolId: number;
   readonly targetUid: string | null;
-  /** True after the face has been resolved this turn. */
   readonly resolved: boolean;
 }
 
@@ -97,49 +118,66 @@ export interface DiceEnemy {
   readonly resistances: Partial<Record<DamageType, number>>;
   readonly vulnerabilities: Partial<Record<DamageType, number>>;
   readonly isBoss: boolean;
-  /** Currently telegraphed intent (resolved at end of player's turn). */
   readonly intent: DiceEnemyIntent | null;
-  /** True when an enemy ability (Ghoul ambush, Vampire Mist Form) makes it untargetable this turn. */
   readonly untargetable: boolean;
-  /** Used by Skeleton: if killed by non-bludgeoning, reassemble next turn. */
+  /** Used by Skeleton: a Heap of Bones that will rise unless smashed/burned. */
   readonly reassembleQueued: boolean;
-  /** Turn count for hatching/timed enemies. */
+  /** Heap-of-Bones countdown: turns until it rises into a Skeleton. */
+  readonly reassembleCountdown: number;
+  /** Number of turns this enemy has been on the field. */
   readonly turnsAlive: number;
+  /** Phase index for phased bosses (Lich King, Vampire Lord). */
+  readonly phaseIndex: number;
+  /** Vampire Lord: has the once-per-fight heal already fired? */
+  readonly thresholdHealUsed: boolean;
+  /** Mournful Ghost: incorporeal this turn — Crimson damage deals 0. */
+  readonly intangible: boolean;
 }
 
 /* ── Player state ── */
+
+/** A face from the player's die was rewritten by an enemy effect (Banshee / Lich P2). */
+export interface CorruptedFace {
+  readonly slot: DieSlot;
+  readonly faceIndex: number; // 0..5
+  readonly recoloredTo: FaceColor;
+  /** Source enemy uid; when that enemy dies, this corruption clears. */
+  readonly sourceUid: string;
+}
 
 export interface DicePlayer {
   readonly hp: number;
   readonly maxHp: number;
   readonly salt: number;
   readonly block: number;
-  /** Statuses on the player. */
   readonly statuses: import("../types").Statuses;
   readonly mainWeaponId: string;
   readonly offhandId: string | null;
   readonly armorId: string;
-  readonly soulFaces: readonly [string, string, string, string, string, string];
-  /** Re-rolls remaining this turn. */
-  readonly rerollsLeft: number;
-  /** Power stack from a Wind-Up or Aim — adds N to next damage face this turn. Consumed on first damage face. */
+  readonly abilityFaces: readonly [string, string, string, string, string, string];
+  /** Buff: next damage face deals +N. */
   readonly powerCharges: number;
-  /** Two-handed bonus: damage faces deal +1 this turn while active. */
+  /** Damage faces deal +1 this turn. */
   readonly twoHandedActive: boolean;
-  /** Dodge: next physical hit negated. */
+  /** Next physical hit negated. */
   readonly dodgeActive: boolean;
-  /** Number of re-rolls Banshee will steal next turn. */
-  readonly rerollDebt: number;
-  /** Bonus re-rolls accrued from Focus faces this turn — applied to next turn. */
-  readonly bonusRerollsNextTurn: number;
-  /** Number of dice Shadow will suppress next turn. */
-  readonly suppressDebt: number;
+  /** Hymn-Hum is active for the current pool's bust check. */
+  readonly hymnHumActive: boolean;
+  /** One color clash will be forgiven this turn. */
+  readonly resonanceCharges: number;
+  /** Slots locked by Salt Revenants — cannot be rolled. */
+  readonly slotLocks: readonly DieSlot[];
+  /** Faces rewritten by Banshee / Lich (visible on the die in the tray). */
+  readonly corruptedFaces: readonly CorruptedFace[];
+  /** Forced faces injected next turn (e.g. False Sacrarium accrual). */
+  readonly forcedFacesNextTurn: readonly { readonly faceId: string; readonly sourceUid: string }[];
 }
 
 /* ── Combat state ── */
 
 export type DiceCombatPhase =
   | "rolling"
+  | "busted"
   | "assigning"
   | "resolving-player"
   | "resolving-enemies"
@@ -155,13 +193,15 @@ export interface DiceCombatLogEntry {
 export interface DiceCombatState {
   readonly player: DicePlayer;
   readonly enemies: readonly DiceEnemy[];
-  readonly dice: readonly DieInstance[];
-  /** Assignments for the current turn — one per die, indexed by slot. Empty before assignment phase. */
-  readonly assignments: Partial<Record<DieSlot, FaceAssignment>>;
+  /** Current rolled pool — bust check runs on this. */
+  readonly pool: readonly PoolFace[];
+  /** Assignments for the current pool, keyed by PoolFace.poolId. */
+  readonly assignments: Readonly<Record<number, PoolAssignment>>;
+  /** Monotonic counter for PoolFace.poolId. */
+  readonly nextPoolId: number;
   readonly turn: number;
   readonly phase: DiceCombatPhase;
   readonly log: readonly DiceCombatLogEntry[];
-  /** Deterministic RNG seed for tests. */
   readonly rng: number;
 }
 
@@ -171,7 +211,7 @@ export interface DiceLoadout {
   readonly mainWeaponId: string;
   readonly offhandId: string | null;
   readonly armorId: string;
-  readonly soulFaces: readonly [string, string, string, string, string, string];
+  readonly abilityFaces: readonly [string, string, string, string, string, string];
 }
 
 export interface DiceCombatInit {
@@ -194,18 +234,40 @@ export interface DiceEnemyDef {
   readonly isBoss: boolean;
   readonly resistances: Partial<Record<DamageType, number>>;
   readonly vulnerabilities: Partial<Record<DamageType, number>>;
-  /** Choose this enemy's next intent given the current state. */
   readonly selectIntent: (self: DiceEnemy, state: DiceCombatState) => DiceEnemyIntent | null;
-  /** Optional behavior when this enemy resolves its intent. Returns updated state. */
   readonly resolveIntent?: (
     self: DiceEnemy,
     state: DiceCombatState,
     intent: DiceEnemyIntent,
   ) => DiceCombatState;
-  /** Optional hook called when this enemy is killed. Returns updated state. */
   readonly onDeath?: (
     self: DiceEnemy,
     state: DiceCombatState,
     killingDamageType: DamageType | null,
   ) => DiceCombatState;
+  /** Hook: called once when this enemy enters the battle (initial spawn or summon). */
+  readonly onSpawn?: (self: DiceEnemy, state: DiceCombatState) => DiceCombatState;
+  /** Hook: called at the start of every player turn. Used for passive auras and start-of-turn effects. */
+  readonly onPlayerTurnStart?: (self: DiceEnemy, state: DiceCombatState) => DiceCombatState;
+  /** Hook: called when the player busts. Used by Blood Wraith heal-on-bust. */
+  readonly onPlayerBust?: (
+    self: DiceEnemy,
+    state: DiceCombatState,
+    poolSize: number,
+  ) => DiceCombatState;
+  /** Hook: damage that would land on another enemy is offered to this one first (bodyguard). Returns the actual target uid. */
+  readonly redirectDamageTo?: (
+    self: DiceEnemy,
+    state: DiceCombatState,
+    intendedUid: string,
+  ) => string;
+  /** Hook: incoming damage is computed; this lets the enemy modify it (Ghost intangibility). */
+  readonly modifyIncomingDamage?: (
+    self: DiceEnemy,
+    state: DiceCombatState,
+    base: number,
+    damageType: DamageType,
+  ) => number;
+  /** Hook: after taking damage, may queue follow-ups (Vampire Lord threshold heal). */
+  readonly afterDamaged?: (self: DiceEnemy, state: DiceCombatState) => DiceCombatState;
 }

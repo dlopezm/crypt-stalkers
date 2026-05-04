@@ -46,6 +46,17 @@ export const WEAPONS: Weapon[] = [
     cost: 40,
   },
   {
+    id: "torch",
+    name: "Torch",
+    damage: 1,
+    damageType: "fire",
+    hand: "offhand",
+    reach: "melee",
+    icon: "\u{1F525}",
+    desc: "Burns and lights. Wards off the dark.",
+    cost: 0,
+  },
+  {
     id: "spear",
     name: "Spear",
     damage: 8,

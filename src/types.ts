@@ -412,6 +412,9 @@ export interface Player {
   ownedGridWeaponIds?: string[];
   ownedGridOffhandIds?: string[];
   ownedGridArmorIds?: string[];
+
+  /** Dice-combat active ability id (key into ABILITY_DICE). Defaults to "steady_hands". */
+  activeAbilityId?: string;
 }
 
 export interface CombatPlayer extends Player {

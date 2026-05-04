@@ -1,25 +1,20 @@
 import type { Player } from "../types";
 import type { DiceLoadout } from "../dice-combat/types";
-import {
-  ARMOR_DICE,
-  OFFHAND_DICE,
-  SOUL_STARTING_FACES,
-  WEAPON_DICE,
-} from "../dice-combat/dice-defs";
+import { ARMOR_DICE, getAbilityDie, OFFHAND_DICE, WEAPON_DICE } from "../dice-combat/dice-defs";
 import type { GridPlayerState } from "../grid-combat/types";
 
 const DEFAULT_WEAPON = "dagger";
+const DEFAULT_OFFHAND = "torch";
 const DEFAULT_ARMOR = "mail_hauberk";
 
 function resolveWeapon(id: string | null | undefined): string {
   if (id && WEAPON_DICE[id]) return id;
-  // Player.mainWeapon.id might map; honour known weapon ids that have a dice mapping.
   return DEFAULT_WEAPON;
 }
 
-function resolveOffhand(id: string | null | undefined): string | null {
-  if (!id) return null;
-  return OFFHAND_DICE[id] ? id : null;
+function resolveOffhand(id: string | null | undefined): string {
+  if (id && OFFHAND_DICE[id]) return id;
+  return DEFAULT_OFFHAND;
 }
 
 function resolveArmor(id: string | null | undefined): string {
@@ -28,11 +23,12 @@ function resolveArmor(id: string | null | undefined): string {
 }
 
 export function playerToDiceLoadout(player: Player): DiceLoadout {
+  const abilityDie = getAbilityDie(player.activeAbilityId);
   return {
     mainWeaponId: resolveWeapon(player.mainWeapon?.id),
     offhandId: resolveOffhand(player.offhandWeapon?.id ?? null),
     armorId: resolveArmor(player.gridArmorId),
-    soulFaces: SOUL_STARTING_FACES,
+    abilityFaces: abilityDie.faces,
   };
 }
 

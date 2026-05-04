@@ -1,32 +1,26 @@
 import type { DamageType, StatusKey } from "../../types";
 import { DICE_BALANCE } from "../balance";
-import {
-  BODY_DIE,
-  buildSoulDie,
-  getArmorDie,
-  getFace,
-  getOffhandDie,
-  getWeaponDie,
-  SLOT_ORDER,
-  SOUL_STARTING_FACES,
-} from "../dice-defs";
-import { getEnemyDef } from "../enemy-defs";
+import { COLORS, getDieForSlot, getFace, SLOT_ORDER, ABILITY_STARTING_FACES } from "../dice-defs";
+import { DICE_ENEMY_DEFS, getEnemyDef } from "../enemy-defs";
 import type {
   DiceCombatInit,
   DiceCombatLogEntry,
   DiceCombatState,
   DiceEnemy,
   DieDef,
-  DieInstance,
   DieSlot,
-  FaceAssignment,
+  FaceColor,
   FaceDef,
   FaceTargetKind,
+  PoolAssignment,
+  PoolFace,
   Row,
 } from "../types";
 import { rollD6 } from "./rng";
 
-/* ── Init ── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * INIT
+ * ───────────────────────────────────────────────────────────────────────── */
 
 export function initDiceCombat(init: DiceCombatInit): DiceCombatState {
   const seed = init.seed ?? (Math.floor(Math.random() * 0x7fffffff) || 1);
@@ -50,20 +44,15 @@ export function initDiceCombat(init: DiceCombatInit): DiceCombatState {
       intent: null,
       untargetable: false,
       reassembleQueued: false,
+      reassembleCountdown: 0,
       turnsAlive: 0,
+      phaseIndex: 0,
+      thresholdHealUsed: false,
+      intangible: false,
     });
   }
 
-  const dice: DieInstance[] = SLOT_ORDER.map((slot) => ({
-    slot,
-    dieId: dieForSlot(slot, init.loadout).id,
-    faceIndex: -1,
-    locked: false,
-    grappled: false,
-    suppressed: false,
-  }));
-
-  const state: DiceCombatState = {
+  let state: DiceCombatState = {
     player: {
       hp: init.startingHp,
       maxHp: init.startingMaxHp,
@@ -73,111 +62,239 @@ export function initDiceCombat(init: DiceCombatInit): DiceCombatState {
       mainWeaponId: init.loadout.mainWeaponId,
       offhandId: init.loadout.offhandId,
       armorId: init.loadout.armorId,
-      soulFaces: init.loadout.soulFaces,
-      rerollsLeft: DICE_BALANCE.REROLLS_PER_TURN,
+      abilityFaces: init.loadout.abilityFaces,
       powerCharges: 0,
       twoHandedActive: false,
       dodgeActive: false,
-      rerollDebt: 0,
-      bonusRerollsNextTurn: 0,
-      suppressDebt: 0,
+      hymnHumActive: false,
+      resonanceCharges: 0,
+      slotLocks: [],
+      corruptedFaces: [],
+      forcedFacesNextTurn: [],
     },
     enemies,
-    dice,
+    pool: [],
     assignments: {},
+    nextPoolId: 1,
     turn: 1,
     phase: "rolling",
-    log: [{ turn: 1, source: "system", text: "Combat begins. Roll your dice." }],
+    log: [{ turn: 1, source: "system", text: "Combat begins. Push your luck." }],
     rng: seed,
   };
 
-  // Roll the opening dice and telegraph initial enemy intents.
-  const rolled = rollAllDice(state);
-  return telegraphIntents(rolled);
-}
-
-function dieForSlot(slot: DieSlot, loadout: DiceCombatInit["loadout"]): DieDef {
-  switch (slot) {
-    case "body":
-      return BODY_DIE;
-    case "main":
-      return getWeaponDie(loadout.mainWeaponId);
-    case "offhand":
-      return getOffhandDie(loadout.offhandId);
-    case "armor":
-      return getArmorDie(loadout.armorId);
-    case "soul":
-      return buildSoulDie(loadout.soulFaces);
+  // Fire onSpawn hooks for each enemy after they're all in the field.
+  for (const e of state.enemies) {
+    const def = getEnemyDef(e.id);
+    if (def?.onSpawn) {
+      const fresh = state.enemies.find((x) => x.uid === e.uid);
+      if (fresh) state = def.onSpawn(fresh, state);
+    }
   }
+
+  state = startOfPlayerTurn(state);
+  state = telegraphIntents(state);
+  return state;
 }
 
-/* ── Dice resolution helpers ── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * START OF PLAYER TURN
+ * Apply per-turn effects: forced faces, onPlayerTurnStart hooks, etc.
+ * ───────────────────────────────────────────────────────────────────────── */
 
-export function dieDefForInstance(d: DieInstance, state: DiceCombatState): DieDef {
-  return dieForSlot(d.slot, {
+function startOfPlayerTurn(state: DiceCombatState): DiceCombatState {
+  // 1. Reset per-turn flags first, so hooks (e.g. Lich P3) can re-grant Hymn-Hum.
+  let s: DiceCombatState = {
+    ...state,
+    player: {
+      ...state.player,
+      block: 0,
+      twoHandedActive: false,
+      powerCharges: 0,
+      resonanceCharges: 0,
+      dodgeActive: false,
+      hymnHumActive: false,
+    },
+    phase: "rolling",
+  };
+
+  // 2. Run onPlayerTurnStart hooks (Ghost flip, Lich phase, Hymn-Hum re-grant, etc.).
+  for (const e of [...s.enemies]) {
+    const def = getEnemyDef(e.id);
+    const fresh = s.enemies.find((x) => x.uid === e.uid);
+    if (def?.onPlayerTurnStart && fresh) {
+      s = def.onPlayerTurnStart(fresh, s);
+    }
+  }
+
+  // 3. Inject forced faces (False Sacrarium accrual) into the empty pool.
+  if (s.player.forcedFacesNextTurn.length > 0) {
+    let pool: PoolFace[] = [...s.pool];
+    let nextId = s.nextPoolId;
+    const shadowAlive = s.enemies.some((e) => e.id === "shadow" && e.hp > 0);
+    for (const forced of s.player.forcedFacesNextTurn) {
+      const face = getFace(forced.faceId);
+      if (!face) continue;
+      const color: FaceColor = face.color === "blank" && shadowAlive ? "coldfire" : face.color;
+      pool = [
+        ...pool,
+        { poolId: nextId, slot: "main", faceId: forced.faceId, color, forced: true },
+      ];
+      nextId += 1;
+    }
+    s = {
+      ...s,
+      pool,
+      nextPoolId: nextId,
+      player: { ...s.player, forcedFacesNextTurn: [] },
+      log: appendLog(s, "system", "Forced faces enter your pool from a corrupting presence."),
+    };
+    if (computeBust(s).busted) {
+      return triggerBust(s);
+    }
+  }
+
+  return s;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * COLOR / FACE LOOKUP
+ * ───────────────────────────────────────────────────────────────────────── */
+
+export function dieForSlot(slot: DieSlot, state: DiceCombatState): DieDef {
+  return getDieForSlot(slot, {
     mainWeaponId: state.player.mainWeaponId,
     offhandId: state.player.offhandId,
     armorId: state.player.armorId,
-    soulFaces: state.player.soulFaces,
+    abilityFaces: state.player.abilityFaces,
   });
 }
 
-export function faceForInstance(d: DieInstance, state: DiceCombatState): FaceDef | null {
-  if (d.faceIndex < 0) return null;
-  const def = dieDefForInstance(d, state);
-  return getFace(def.faces[d.faceIndex]);
+export function effectiveColor(
+  slot: DieSlot,
+  faceIndex: number,
+  faceDef: FaceDef,
+  state: DiceCombatState,
+): FaceColor {
+  // Banshee/Lich corruption.
+  const corruption = state.player.corruptedFaces.find(
+    (c) => c.slot === slot && c.faceIndex === faceIndex,
+  );
+  if (corruption) return corruption.recoloredTo;
+
+  // Shadow Coldfire Mark: while a Shadow lives, blanks recolor to Coldfire.
+  if (faceDef.color === "blank") {
+    const shadowAlive = state.enemies.some((e) => e.id === "shadow" && e.hp > 0);
+    if (shadowAlive) return "coldfire";
+  }
+  return faceDef.color;
 }
 
-/* ── Rolling ── */
-
-function rollAllDice(state: DiceCombatState): DiceCombatState {
-  let seed = state.rng;
-  const dice: DieInstance[] = state.dice.map((d) => {
-    if (d.suppressed) return { ...d, faceIndex: -1, locked: false };
-    if (d.locked) return d;
-    const r = rollD6(seed);
-    seed = r.seed;
-    return { ...d, faceIndex: r.face };
-  });
-  return { ...state, dice, rng: seed };
+export function faceAtPoolId(state: DiceCombatState, poolId: number): FaceDef | null {
+  const pf = state.pool.find((p) => p.poolId === poolId);
+  if (!pf) return null;
+  return getFace(pf.faceId);
 }
 
-export function rerollDice(state: DiceCombatState): DiceCombatState {
-  if (state.phase !== "rolling") return state;
-  if (state.player.rerollsLeft <= 0) return state;
-  const next = rollAllDice(state);
-  return {
-    ...next,
-    player: { ...next.player, rerollsLeft: next.player.rerollsLeft - 1 },
-    log: [
-      ...next.log,
-      {
-        turn: next.turn,
-        source: "player",
-        text: `Re-rolled (${next.player.rerollsLeft} left).`,
-      },
-    ],
+/* ─────────────────────────────────────────────────────────────────────────
+ * PUSH-YOUR-LUCK ROLLING
+ * ───────────────────────────────────────────────────────────────────────── */
+
+export function canRollSlot(state: DiceCombatState, slot: DieSlot): boolean {
+  if (state.phase !== "rolling") return false;
+  if (state.player.slotLocks.includes(slot)) return false;
+  if (state.pool.length >= DICE_BALANCE.POOL_HARD_CAP) return false;
+  return true;
+}
+
+/** Roll one die into the pool. May trigger a bust. */
+export function rollSlot(state: DiceCombatState, slot: DieSlot): DiceCombatState {
+  if (!canRollSlot(state, slot)) return state;
+  const die = dieForSlot(slot, state);
+  const r = rollD6(state.rng);
+  const faceIdx = r.face;
+  const faceId = die.faces[faceIdx];
+  const faceDef = getFace(faceId);
+  if (!faceDef) return { ...state, rng: r.seed };
+  const color = effectiveColor(slot, faceIdx, faceDef, state);
+
+  const newPoolFace: PoolFace = {
+    poolId: state.nextPoolId,
+    slot,
+    faceId,
+    color,
+    forced: false,
   };
-}
 
-export function toggleLock(state: DiceCombatState, slot: DieSlot): DiceCombatState {
-  if (state.phase !== "rolling") return state;
-  return {
+  let s: DiceCombatState = {
     ...state,
-    dice: state.dice.map((d) =>
-      d.slot === slot && !d.suppressed && !d.grappled ? { ...d, locked: !d.locked } : d,
-    ),
+    pool: [...state.pool, newPoolFace],
+    nextPoolId: state.nextPoolId + 1,
+    rng: r.seed,
+    log: appendLog(state, "player", `Rolled ${faceDef.label} (${COLORS[color].label}).`),
   };
+
+  const check = computeBust(s);
+  if (check.busted) {
+    s = triggerBust(s);
+  }
+  return s;
+}
+
+interface BustCheckResult {
+  busted: boolean;
+  clashColor: FaceColor | null;
+}
+
+function computeBust(state: DiceCombatState): BustCheckResult {
+  const seenByColor = new Map<FaceColor, number>();
+  for (const pf of state.pool) {
+    const c = pf.color;
+    // Hymn-Hum: Echo faces count as wildcards (don't contribute to a clash).
+    if (state.player.hymnHumActive && c === "echo") continue;
+    seenByColor.set(c, (seenByColor.get(c) ?? 0) + 1);
+  }
+  for (const [color, count] of seenByColor) {
+    if (count >= 2) return { busted: true, clashColor: color };
+  }
+  return { busted: false, clashColor: null };
+}
+
+function triggerBust(state: DiceCombatState): DiceCombatState {
+  // Resonance forgives one clash.
+  if (state.player.resonanceCharges > 0) {
+    return {
+      ...state,
+      player: { ...state.player, resonanceCharges: state.player.resonanceCharges - 1 },
+      log: appendLog(state, "system", "Resonance forgives the clash — keep rolling."),
+    };
+  }
+  const poolSize = state.pool.length;
+  let s: DiceCombatState = {
+    ...state,
+    phase: "busted",
+    pool: [],
+    assignments: {},
+    log: appendLog(state, "system", "BUST. Your pool is lost."),
+  };
+  // Heal-on-bust hooks (Vampire, Vampire Lord) — sized off the pool just discarded.
+  for (const e of [...s.enemies]) {
+    const def = getEnemyDef(e.id);
+    const fresh = s.enemies.find((x) => x.uid === e.uid);
+    if (def?.onPlayerBust && fresh && fresh.hp > 0) {
+      s = def.onPlayerBust(fresh, s, poolSize);
+    }
+  }
+  return s;
 }
 
 /** Move from rolling phase into assigning. */
-export function commitRoll(state: DiceCombatState): DiceCombatState {
+export function stopRolling(state: DiceCombatState): DiceCombatState {
   if (state.phase !== "rolling") return state;
-  // Auto-assign self / none-target faces; leave enemy targets for the player.
-  const assignments: Partial<Record<DieSlot, FaceAssignment>> = {};
-  for (const d of state.dice) {
-    if (d.suppressed || d.grappled) continue;
-    const face = faceForInstance(d, state);
+  if (state.pool.length === 0) return state;
+  // Auto-assign self / none / all-target faces.
+  const assignments: Record<number, PoolAssignment> = {};
+  for (const pf of state.pool) {
+    const face = getFace(pf.faceId);
     if (!face) continue;
     if (
       face.target === "self" ||
@@ -185,13 +302,15 @@ export function commitRoll(state: DiceCombatState): DiceCombatState {
       face.target === "all-front" ||
       face.target === "all-enemies"
     ) {
-      assignments[d.slot] = { slot: d.slot, targetUid: null, resolved: false };
+      assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: false };
     }
   }
   return { ...state, phase: "assigning", assignments };
 }
 
-/* ── Assignment ── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * ASSIGNMENT
+ * ───────────────────────────────────────────────────────────────────────── */
 
 export interface AssignCheck {
   readonly ok: boolean;
@@ -200,104 +319,114 @@ export interface AssignCheck {
 
 export function canAssign(
   state: DiceCombatState,
-  slot: DieSlot,
+  poolId: number,
   targetUid: string | null,
 ): AssignCheck {
-  if (state.phase !== "assigning") return { ok: false, reason: "Not in assignment phase." };
-  const die = state.dice.find((d) => d.slot === slot);
-  if (!die) return { ok: false, reason: "No such die." };
-  if (die.suppressed) return { ok: false, reason: "Die is suppressed." };
-  if (die.grappled) return { ok: false, reason: "Die is grappled." };
-  const face = faceForInstance(die, state);
-  if (!face) return { ok: false, reason: "Face not rolled." };
+  if (state.phase !== "assigning") return { ok: false, reason: "Not assigning." };
+  const face = faceAtPoolId(state, poolId);
+  if (!face) return { ok: false, reason: "No such face." };
   return validateTarget(state, face.target, targetUid);
 }
 
 function validateTarget(
   state: DiceCombatState,
-  targetKind: FaceTargetKind,
+  kind: FaceTargetKind,
   targetUid: string | null,
 ): AssignCheck {
-  if (targetKind === "self" || targetKind === "none") {
-    return targetUid === null
-      ? { ok: true }
-      : { ok: false, reason: "This face has no enemy target." };
+  if (kind === "self" || kind === "none") {
+    return targetUid === null ? { ok: true } : { ok: false, reason: "This face has no target." };
   }
-  if (targetKind === "all-front" || targetKind === "all-enemies") {
-    return targetUid === null ? { ok: true } : { ok: false, reason: "Auto-targets all enemies." };
+  if (kind === "all-front" || kind === "all-enemies") {
+    return targetUid === null ? { ok: true } : { ok: false, reason: "Auto-targets all." };
   }
-  if (!targetUid) return { ok: false, reason: "Pick an enemy target." };
+  if (!targetUid) return { ok: false, reason: "Pick a target." };
   const enemy = state.enemies.find((e) => e.uid === targetUid && e.hp > 0 && !e.untargetable);
   if (!enemy) return { ok: false, reason: "Invalid target." };
-  if (targetKind === "front-enemy" && enemy.row !== "front") {
-    return { ok: false, reason: "Melee face can only hit the front row." };
+  if (kind === "front-enemy" && enemy.row !== "front") {
+    return { ok: false, reason: "Front-row only." };
   }
   return { ok: true };
 }
 
 export function assignFace(
   state: DiceCombatState,
-  slot: DieSlot,
+  poolId: number,
   targetUid: string | null,
 ): DiceCombatState {
-  const check = canAssign(state, slot, targetUid);
+  const check = canAssign(state, poolId, targetUid);
   if (!check.ok) return state;
   return {
     ...state,
-    assignments: { ...state.assignments, [slot]: { slot, targetUid, resolved: false } },
+    assignments: {
+      ...state.assignments,
+      [poolId]: { poolId, targetUid, resolved: false },
+    },
   };
 }
 
-export function clearAssignment(state: DiceCombatState, slot: DieSlot): DiceCombatState {
+export function clearAssignment(state: DiceCombatState, poolId: number): DiceCombatState {
   const next = { ...state.assignments };
-  delete next[slot];
+  delete next[poolId];
   return { ...state, assignments: next };
 }
 
 export function allAssigned(state: DiceCombatState): boolean {
-  for (const d of state.dice) {
-    if (d.suppressed || d.grappled) continue;
-    const face = faceForInstance(d, state);
+  for (const pf of state.pool) {
+    const face = getFace(pf.faceId);
     if (!face) continue;
     if (face.target === "none") continue;
-    if (!state.assignments[d.slot]) return false;
+    if (!state.assignments[pf.poolId]) return false;
   }
   return true;
 }
 
-/* ── Resolution ── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * RESOLVE TURN
+ * ───────────────────────────────────────────────────────────────────────── */
 
-/** Run the full turn from the current "assigning" state through enemy resolution
- * and bottom-of-turn cleanup. Returns the new state. */
 export function resolveTurn(state: DiceCombatState): DiceCombatState {
+  if (state.phase === "busted") {
+    let s: DiceCombatState = { ...state, phase: "resolving-enemies" };
+    s = resolveEnemyIntents(s);
+    if (isDefeat(s)) return finalize(s, "defeat");
+    s = endOfTurn(s);
+    if (isVictory(s)) return finalize(s, "victory");
+    if (isDefeat(s)) return finalize(s, "defeat");
+    s = telegraphIntents(s);
+    return s;
+  }
+
   if (state.phase !== "assigning") return state;
   if (!allAssigned(state)) return state;
+
   let s: DiceCombatState = { ...state, phase: "resolving-player" };
-  s = resolvePlayerFaces(s);
+  s = resolvePlayerPool(s);
   if (isVictory(s)) return finalize(s, "victory");
+
   s = { ...s, phase: "resolving-enemies" };
   s = resolveEnemyIntents(s);
   if (isDefeat(s)) return finalize(s, "defeat");
+
   s = endOfTurn(s);
   if (isVictory(s)) return finalize(s, "victory");
   if (isDefeat(s)) return finalize(s, "defeat");
-  // Telegraph and roll for the next turn.
+
   s = telegraphIntents(s);
-  s = rollAllDice(s);
-  return { ...s, phase: "rolling" };
+  return s;
 }
 
-function resolvePlayerFaces(state: DiceCombatState): DiceCombatState {
+function resolvePlayerPool(state: DiceCombatState): DiceCombatState {
   let s = state;
-  // Resolve in a fixed order: body, main, offhand, armor, soul.
-  for (const slot of SLOT_ORDER) {
-    const assignment = s.assignments[slot];
-    const die = s.dice.find((d) => d.slot === slot);
-    if (!die) continue;
-    const face = faceForInstance(die, s);
+  // Resolve in pool order (the order the player rolled).
+  for (const pf of s.pool) {
+    const face = getFace(pf.faceId);
     if (!face) continue;
-    if (face.target === "none" && !assignment) continue;
-    s = applyFaceEffect(s, face, assignment ?? null, slot);
+    const a = s.assignments[pf.poolId];
+    if (face.target !== "none" && !a && face.target !== "self") {
+      // unassigned non-self face — skip (shouldn't happen if allAssigned)
+      continue;
+    }
+    s = applyFaceEffect(s, face, a?.targetUid ?? null);
     if (isVictory(s)) break;
   }
   return s;
@@ -306,32 +435,16 @@ function resolvePlayerFaces(state: DiceCombatState): DiceCombatState {
 function applyFaceEffect(
   state: DiceCombatState,
   face: FaceDef,
-  assignment: FaceAssignment | null,
-  slot: DieSlot,
+  targetUid: string | null,
 ): DiceCombatState {
   let s = state;
-  const targetUid = assignment?.targetUid ?? null;
 
-  // Self-buffs first (so a Wind-Up + Smash combo on the same turn works if Wind-Up resolves first).
-  if (face.bonusReroll) {
-    s = {
-      ...s,
-      player: {
-        ...s.player,
-        bonusRerollsNextTurn: s.player.bonusRerollsNextTurn + face.bonusReroll,
-      },
-      log: appendLog(s, "player", `${face.label}: +${face.bonusReroll} re-roll on your next turn.`),
-    };
-  }
+  // Self-buffs first.
   if (face.grantPower) {
     s = {
       ...s,
       player: { ...s.player, powerCharges: s.player.powerCharges + face.grantPower },
-      log: appendLog(
-        s,
-        "player",
-        `${face.label}: stored +${face.grantPower} for the next damage face.`,
-      ),
+      log: appendLog(s, "player", `${face.label}: stored +${face.grantPower}.`),
     };
   }
   if (face.grantDodge) {
@@ -345,17 +458,22 @@ function applyFaceEffect(
     s = {
       ...s,
       player: { ...s.player, twoHandedActive: true },
-      log: appendLog(s, "player", `${face.label}: damage faces deal +1 this turn.`),
+      log: appendLog(s, "player", `${face.label}: damage faces +1.`),
     };
   }
-
+  if (face.grantHymnHum) {
+    s = { ...s, player: { ...s.player, hymnHumActive: true } };
+  }
+  if (face.grantResonance) {
+    s = { ...s, player: { ...s.player, resonanceCharges: s.player.resonanceCharges + 1 } };
+  }
   if (face.heal) {
     const newHp = Math.min(s.player.maxHp, s.player.hp + face.heal);
     const healed = newHp - s.player.hp;
     s = {
       ...s,
       player: { ...s.player, hp: newHp },
-      log: appendLog(s, "player", `${face.label}: healed ${healed} HP.`),
+      log: appendLog(s, "player", `${face.label}: healed ${healed}.`),
     };
   }
   if (face.block) {
@@ -372,20 +490,37 @@ function applyFaceEffect(
     s = {
       ...s,
       player: { ...s.player, salt: s.player.salt + face.gainSalt },
-      log: appendLog(s, "player", `${face.label}: gained ${face.gainSalt} salt.`),
+      log: appendLog(s, "player", `${face.label}: +${face.gainSalt} salt.`),
     };
   }
+  if (face.breakSlotLock) {
+    if (s.player.slotLocks.length > 0) {
+      const removed = s.player.slotLocks[0];
+      s = {
+        ...s,
+        player: { ...s.player, slotLocks: s.player.slotLocks.slice(1) },
+        log: appendLog(s, "player", `${face.label}: broke ${removed} lock.`),
+      };
+    }
+  }
 
-  // Damage / status / push (target-needing effects).
   if (face.target === "self" || face.target === "none") return s;
 
   const targets = collectTargets(s, face.target, targetUid);
-  if (targets.length === 0) return s;
+
+  // Damage path runs through redirect (Forsworn) with dedupe so AOE doesn't
+  // multiply onto a single bodyguard.
+  if (face.damage !== undefined && face.damageType !== undefined) {
+    const seen = new Set<string>();
+    for (const uid of targets) {
+      const actual = resolveDamageRedirect(s, uid);
+      if (seen.has(actual)) continue;
+      seen.add(actual);
+      s = damageEnemy(s, actual, face.damage, face.damageType, face.label);
+    }
+  }
 
   for (const enemyUid of targets) {
-    if (face.damage !== undefined && face.damageType !== undefined) {
-      s = damageEnemy(s, enemyUid, face.damage, face.damageType, face.label, face.ignoresBlock);
-    }
     if (face.applyStatus) {
       s = applyStatusToEnemy(
         s,
@@ -399,14 +534,18 @@ function applyFaceEffect(
       s = pushEnemyToOppositeRow(s, enemyUid, face.label);
     }
   }
-  // Mark the assignment resolved (purely informational).
-  if (assignment) {
-    s = {
-      ...s,
-      assignments: { ...s.assignments, [slot]: { ...assignment, resolved: true } },
-    };
-  }
   return s;
+}
+
+function resolveDamageRedirect(state: DiceCombatState, uid: string): string {
+  for (const e of state.enemies) {
+    if (e.hp <= 0) continue;
+    const def = getEnemyDef(e.id);
+    if (!def?.redirectDamageTo) continue;
+    const next = def.redirectDamageTo(e, state, uid);
+    if (next !== uid) return next;
+  }
+  return uid;
 }
 
 function collectTargets(
@@ -429,13 +568,16 @@ function collectTargets(
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * DAMAGE
+ * ───────────────────────────────────────────────────────────────────────── */
+
 function damageEnemy(
   state: DiceCombatState,
   uid: string,
   base: number,
   type: DamageType,
   source: string,
-  ignoresBlock?: boolean,
 ): DiceCombatState {
   const enemy = state.enemies.find((e) => e.uid === uid);
   if (!enemy || enemy.hp <= 0) return state;
@@ -443,12 +585,22 @@ function damageEnemy(
   let dmg = base;
   if (state.player.powerCharges > 0) dmg += state.player.powerCharges;
   if (state.player.twoHandedActive) dmg += 1;
+  // Robes Censer +1 vs undead.
+  if (type === "fire" && source === "Censer" && isUndead(enemy)) {
+    dmg += 1;
+  }
 
   const resist = enemy.resistances[type];
   const vuln = enemy.vulnerabilities[type];
   if (resist !== undefined) dmg = Math.floor(dmg * resist);
   if (vuln !== undefined) dmg = Math.floor(dmg * vuln);
-  // Bleed/weaken on enemy don't reduce incoming dmg in this system; statuses only affect the carrier.
+
+  // Per-enemy damage modifier (Ghost intangibility, etc.).
+  const def = getEnemyDef(enemy.id);
+  if (def?.modifyIncomingDamage) {
+    dmg = def.modifyIncomingDamage(enemy, state, dmg, type);
+  }
+
   dmg = Math.max(0, dmg);
 
   const newHp = Math.max(0, enemy.hp - dmg);
@@ -456,15 +608,37 @@ function damageEnemy(
   let s: DiceCombatState = {
     ...state,
     enemies,
-    // Power charges are consumed by the first damage face that fires this turn.
     player: { ...state.player, powerCharges: 0 },
-    log: appendLog(state, "player", `${source}: ${dmg} ${type} to ${enemy.name}.`),
+    log: appendLog(state, "player", `${source}: ${dmg} ${type} → ${enemy.name}.`),
   };
-  void ignoresBlock; // enemies don't have block in dice-combat; reserved for future
+
+  // afterDamaged hook (Vampire Lord threshold heal).
+  if (def?.afterDamaged && newHp > 0) {
+    const fresh = s.enemies.find((e) => e.uid === uid);
+    if (fresh) s = def.afterDamaged(fresh, s);
+  }
+
   if (newHp === 0) {
     s = handleEnemyDeath(s, enemy, type);
   }
   return s;
+}
+
+function isUndead(enemy: DiceEnemy): boolean {
+  return [
+    "skeleton",
+    "heap_of_bones",
+    "zombie",
+    "ghost",
+    "vampire",
+    "banshee",
+    "necromancer",
+    "ghoul",
+    "shadow",
+    "boss_skeleton_lord",
+    "boss_vampire_lord",
+    "boss_lich",
+  ].includes(enemy.id);
 }
 
 function handleEnemyDeath(
@@ -475,13 +649,22 @@ function handleEnemyDeath(
   const def = getEnemyDef(enemy.id);
   let s: DiceCombatState = {
     ...state,
+    enemies: state.enemies.filter((e) => e.uid !== enemy.uid),
     log: appendLog(state, "system", `${enemy.name} falls.`),
   };
-  // Remove the dead enemy from active list.
-  s = { ...s, enemies: s.enemies.filter((e) => e.uid !== enemy.uid) };
+  // Clear corruptions sourced from this enemy.
+  if (s.player.corruptedFaces.some((c) => c.sourceUid === enemy.uid)) {
+    s = {
+      ...s,
+      player: {
+        ...s.player,
+        corruptedFaces: s.player.corruptedFaces.filter((c) => c.sourceUid !== enemy.uid),
+      },
+      log: appendLog(s, "system", `${enemy.name}'s corruption fades.`),
+    };
+  }
   if (def?.onDeath) {
-    const updated = def.onDeath(enemy, s, killingType);
-    s = updated;
+    s = def.onDeath(enemy, s, killingType);
   }
   return s;
 }
@@ -502,11 +685,7 @@ function applyStatusToEnemy(
   return {
     ...state,
     enemies,
-    log: appendLog(
-      state,
-      "player",
-      `${source}: applied ${stacks} ${status} to ${enemy?.name ?? "target"}.`,
-    ),
+    log: appendLog(state, "player", `${source}: ${stacks} ${status} → ${enemy?.name ?? "target"}.`),
   };
 }
 
@@ -522,11 +701,7 @@ function pushEnemyToOppositeRow(
   return {
     ...state,
     enemies,
-    log: appendLog(
-      state,
-      "player",
-      `${source}: shoved ${enemy?.name ?? "target"} to the ${enemy?.row} row.`,
-    ),
+    log: appendLog(state, "player", `${source}: shoved ${enemy?.name ?? "?"} to ${enemy?.row}.`),
   };
 }
 
@@ -543,11 +718,13 @@ function cleansePlayer(state: DiceCombatState, count: number, source: string): D
   return {
     ...state,
     player: { ...state.player, statuses: next },
-    log: appendLog(state, "player", `${source}: cleansed ${removed} status.`),
+    log: appendLog(state, "player", `${source}: cleansed ${removed}.`),
   };
 }
 
-/* ── Enemy phase ── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * ENEMY PHASE
+ * ───────────────────────────────────────────────────────────────────────── */
 
 function telegraphIntents(state: DiceCombatState): DiceCombatState {
   const enemies = state.enemies.map((e) => {
@@ -561,34 +738,38 @@ function telegraphIntents(state: DiceCombatState): DiceCombatState {
 
 function resolveEnemyIntents(state: DiceCombatState): DiceCombatState {
   let s = state;
-  // Front row first, then back, mirroring Slice & Dice's tempo (melee threats land before casters).
+  // Front row first.
   const order = [...s.enemies].sort(
     (a, b) => (a.row === "front" ? -1 : 1) - (b.row === "front" ? -1 : 1),
   );
   for (const e of order) {
-    if (e.hp <= 0 || e.untargetable || e.reassembleQueued) continue;
-    if (e.statuses.stun && e.statuses.stun > 0) {
+    const fresh = s.enemies.find((x) => x.uid === e.uid);
+    if (!fresh || fresh.hp <= 0 || fresh.untargetable || fresh.reassembleQueued) continue;
+    if (fresh.statuses.stun && fresh.statuses.stun > 0) {
       s = {
         ...s,
         enemies: s.enemies.map((x) =>
-          x.uid === e.uid
-            ? { ...x, statuses: { ...x.statuses, stun: Math.max(0, (x.statuses.stun ?? 0) - 1) } }
+          x.uid === fresh.uid
+            ? {
+                ...x,
+                statuses: { ...x.statuses, stun: Math.max(0, (x.statuses.stun ?? 0) - 1) },
+              }
             : x,
         ),
-        log: appendLog(s, "system", `${e.name} is stunned and cannot act.`),
+        log: appendLog(s, "system", `${fresh.name} is stunned.`),
       };
       continue;
     }
-    const intent = e.intent;
+    const intent = fresh.intent;
     if (!intent) continue;
-    const def = getEnemyDef(e.id);
+    const def = getEnemyDef(fresh.id);
     if (intent.damage !== undefined) {
-      s = damagePlayer(s, intent.damage, e.name, intent.label);
+      s = damagePlayer(s, intent.damage, fresh.name, intent.label);
       if (isDefeat(s)) return s;
     }
     if (def?.resolveIntent) {
-      const fresh = s.enemies.find((x) => x.uid === e.uid);
-      if (fresh) s = def.resolveIntent(fresh, s, intent);
+      const refreshed = s.enemies.find((x) => x.uid === fresh.uid);
+      if (refreshed) s = def.resolveIntent(refreshed, s, intent);
     }
   }
   return s;
@@ -601,6 +782,7 @@ function damagePlayer(
   label: string,
 ): DiceCombatState {
   let dmg = amount;
+  if (state.player.statuses.weaken && state.player.statuses.weaken > 0) dmg = Math.max(0, dmg - 1);
   let s = state;
   if (s.player.dodgeActive) {
     return {
@@ -620,72 +802,80 @@ function damagePlayer(
   }
   if (dmg <= 0) return s;
   const newHp = Math.max(0, s.player.hp - dmg);
-  s = {
+  return {
     ...s,
     player: { ...s.player, hp: newHp },
     log: appendLog(s, "enemy", `${source}'s ${label} hits for ${dmg}.`),
   };
-  return s;
 }
 
-/* ── End of turn ── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * END OF TURN
+ * ───────────────────────────────────────────────────────────────────────── */
 
 function endOfTurn(state: DiceCombatState): DiceCombatState {
   let s = state;
-  // 1. Reassemble queued skeletons.
+
+  // 1. Heap of Bones countdowns.
   s = {
     ...s,
     enemies: s.enemies.map((e) => {
       if (!e.reassembleQueued) return e;
-      const def = getEnemyDef(e.id);
-      const reviveHp = def ? Math.ceil(def.maxHp / 2) : Math.ceil(e.maxHp / 2);
-      return {
-        ...e,
-        hp: reviveHp,
-        reassembleQueued: false,
-        untargetable: false,
-        statuses: {},
-      };
+      if (e.reassembleCountdown <= 1) {
+        const def = DICE_ENEMY_DEFS.skeleton;
+        return {
+          ...e,
+          id: def.id,
+          name: def.name,
+          icon: def.icon,
+          maxHp: def.maxHp,
+          hp: Math.max(1, Math.ceil(def.maxHp / 2)),
+          resistances: def.resistances,
+          vulnerabilities: def.vulnerabilities,
+          reassembleQueued: false,
+          reassembleCountdown: 0,
+          statuses: {},
+        };
+      }
+      return { ...e, reassembleCountdown: e.reassembleCountdown - 1 };
     }),
   };
-  // 2. Tick player statuses (bleed, poison).
+
+  // 2. Rat merge: at end of turn, two rats become a stronger rat.
+  s = mergeRats(s);
+
+  // 3. Tick player statuses.
   s = tickPlayerStatuses(s);
-  // 3. Tick enemy statuses (bleed mostly).
+
+  // 4. Tick enemy statuses.
   s = tickEnemyStatuses(s);
-  // 4. Reset per-turn flags.
-  s = {
-    ...s,
-    player: {
-      ...s.player,
-      block: 0,
-      twoHandedActive: false,
-      powerCharges: 0,
-      // Recompute re-rolls for the next turn, applying any debt the Banshee imposed
-      // and any bonus from Focus faces resolved during this turn.
-      rerollsLeft: Math.max(
-        0,
-        DICE_BALANCE.REROLLS_PER_TURN - s.player.rerollDebt + s.player.bonusRerollsNextTurn,
-      ),
-      rerollDebt: 0,
-      bonusRerollsNextTurn: 0,
-    },
-    assignments: {},
-    turn: s.turn + 1,
-  };
-  // 5. Apply suppression / clear stale dice state.
-  s = {
-    ...s,
-    dice: s.dice.map((d) => ({
-      ...d,
-      faceIndex: -1,
-      locked: false,
-      suppressed: false,
-      grappled: false,
-    })),
-  };
+
+  // 5. Clear pool / advance turn. Per-turn player flags are reset in
+  // startOfPlayerTurn so hooks (e.g. Lich P3 Hymn-Hum) can re-grant.
+  s = { ...s, pool: [], assignments: {}, turn: s.turn + 1 };
+
   // 6. Bump enemy ages.
   s = { ...s, enemies: s.enemies.map((e) => ({ ...e, turnsAlive: e.turnsAlive + 1 })) };
+
+  // 7. Run start-of-next-player-turn hooks.
+  s = startOfPlayerTurn(s);
   return s;
+}
+
+function mergeRats(state: DiceCombatState): DiceCombatState {
+  const rats = state.enemies.filter((e) => e.id === "rat" && e.hp > 0);
+  if (rats.length < 2) return state;
+  const [a, b] = rats;
+  const mergedHp = a.hp + b.hp + 1;
+  const mergedMax = a.maxHp + b.maxHp + 1;
+  const enemies = state.enemies
+    .filter((e) => e.uid !== b.uid)
+    .map((e) => (e.uid === a.uid ? { ...e, hp: mergedHp, maxHp: mergedMax } : e));
+  return {
+    ...state,
+    enemies,
+    log: appendLog(state, "system", "Two rats merge into a larger one."),
+  };
 }
 
 function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
@@ -700,7 +890,7 @@ function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
         hp: newHp,
         statuses: { ...s.player.statuses, bleed: bleed - 1 },
       },
-      log: appendLog(s, "system", `Bleed costs you ${bleed} HP.`),
+      log: appendLog(s, "system", `Bleed: -${bleed} HP.`),
     };
   }
   const poison = s.player.statuses.poison;
@@ -709,7 +899,7 @@ function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
     s = {
       ...s,
       player: { ...s.player, hp: newHp },
-      log: appendLog(s, "system", `Poison costs you ${poison} HP.`),
+      log: appendLog(s, "system", `Poison: -${poison} HP.`),
     };
   }
   return s;
@@ -718,28 +908,24 @@ function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
 function tickEnemyStatuses(state: DiceCombatState): DiceCombatState {
   let s = state;
   const enemies: DiceEnemy[] = [];
-  const updatedLog: DiceCombatLogEntry[] = [...s.log];
   for (const e of s.enemies) {
     const bleed = e.statuses.bleed ?? 0;
     let hp = e.hp;
     const statuses = { ...e.statuses };
     if (bleed > 0) {
       hp = Math.max(0, hp - bleed);
-      updatedLog.push({
-        turn: s.turn,
-        source: "system",
-        text: `${e.name} bleeds for ${bleed}.`,
-      });
       statuses.bleed = bleed - 1;
     }
     enemies.push({ ...e, hp, statuses });
   }
-  s = { ...s, enemies, log: updatedLog };
-  // Drop dead enemies (status-tick deaths don't trigger reassemble — only physical kills do).
+  s = { ...s, enemies };
+  // Drop dead enemies (status-tick deaths bypass onDeath).
   return { ...s, enemies: s.enemies.filter((e) => e.hp > 0 || e.reassembleQueued) };
 }
 
-/* ── Victory / defeat ── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * VICTORY / DEFEAT
+ * ───────────────────────────────────────────────────────────────────────── */
 
 function isVictory(state: DiceCombatState): boolean {
   return state.enemies.every((e) => e.hp <= 0 && !e.reassembleQueued);
@@ -757,7 +943,9 @@ function finalize(state: DiceCombatState, outcome: "victory" | "defeat"): DiceCo
   };
 }
 
-/* ── Logging ── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * LOGGING
+ * ───────────────────────────────────────────────────────────────────────── */
 
 function appendLog(
   state: DiceCombatState,
@@ -767,6 +955,8 @@ function appendLog(
   return [...state.log, { turn: state.turn, source, text }];
 }
 
-/* ── Re-export commonly used helpers ── */
+/* ─────────────────────────────────────────────────────────────────────────
+ * RE-EXPORTS
+ * ───────────────────────────────────────────────────────────────────────── */
 
-export { SOUL_STARTING_FACES };
+export { ABILITY_STARTING_FACES, SLOT_ORDER };

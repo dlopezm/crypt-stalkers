@@ -299,6 +299,39 @@ export default function App() {
     dispatch(setPlayer({ ...player, mainWeapon: weapon, offhandWeapon: offhand }));
   }
 
+  function onEquipDiceItem(slot: "main" | "offhand" | "armor" | "ability", id: string) {
+    if (!player) return;
+    if (slot === "main") {
+      const w = WEAPONS.find((x) => x.id === id)!;
+      const owned = player.ownedWeapons.find((x) => x.id === id)
+        ? player.ownedWeapons
+        : [...player.ownedWeapons, w];
+      const offhand = w.hand === "2" ? null : player.offhandWeapon;
+      dispatch(
+        setPlayer({ ...player, mainWeapon: w, offhandWeapon: offhand, ownedWeapons: owned }),
+      );
+    } else if (slot === "offhand") {
+      const w = WEAPONS.find((x) => x.id === id)!;
+      const owned = player.ownedWeapons.find((x) => x.id === id)
+        ? player.ownedWeapons
+        : [...player.ownedWeapons, w];
+      // Equipping an offhand requires a 1-handed main weapon.
+      const main =
+        player.mainWeapon.hand === "2"
+          ? (player.ownedWeapons.find((x) => x.hand !== "2") ?? player.mainWeapon)
+          : player.mainWeapon;
+      dispatch(setPlayer({ ...player, offhandWeapon: w, mainWeapon: main, ownedWeapons: owned }));
+    } else if (slot === "armor") {
+      const ownedArmor = player.ownedGridArmorIds ?? [];
+      const next = ownedArmor.includes(id) ? ownedArmor : [...ownedArmor, id];
+      dispatch(setPlayer({ ...player, gridArmorId: id, ownedGridArmorIds: next }));
+    } else if (slot === "ability") {
+      const ownedAbilities = player.abilities ?? [];
+      const next = ownedAbilities.includes(id) ? ownedAbilities : [...ownedAbilities, id];
+      dispatch(setPlayer({ ...player, activeAbilityId: id, abilities: next }));
+    }
+  }
+
   function onSetTrap(roomId: string, trapKey: string) {
     if (!area || !currentRoomId) return;
     const trapped = area.map((n) => (n.id === roomId ? { ...n, trap: trapKey } : n));
@@ -575,6 +608,7 @@ export default function App() {
           onBlockDoor={onBlockDoor}
           onRest={onRestOnMap}
           onSwitchWeapon={onSwitchWeaponOnMap}
+          onEquipDiceItem={onEquipDiceItem}
           onExamineProp={onExamineProp}
           onPropAction={onPropAction}
           onToggleDebug={() => dispatch(toggleDebugMode())}

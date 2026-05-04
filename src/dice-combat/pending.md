@@ -1,0 +1,5 @@
+- enemies should also roll dice
+- rats should reproduce with 1/6 or 2/6 chance
+- skeletons should start with some armor
+- player should be able to activate dice in any order
+- player defensive dice should be targetable

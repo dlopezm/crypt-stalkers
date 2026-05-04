@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { btnStyle, FONT } from "../styles";
 import {
+  allAssigned,
   assignFace,
   canAssign,
+  canRollSlot,
   clearAssignment,
-  commitRoll,
-  faceForInstance,
+  dieForSlot,
+  faceAtPoolId,
   initDiceCombat,
-  rerollDice,
   resolveTurn,
-  toggleLock,
+  rollSlot,
+  stopRolling,
 } from "./engine";
-import { dieDefForInstance } from "./engine";
-import type { DiceCombatState, DiceLoadout, DieInstance, DieSlot } from "./types";
-import { getFace, SLOT_ORDER } from "./dice-defs";
+import { COLORS, getFace, SLOT_ORDER } from "./dice-defs";
+import type { DiceCombatState, DiceLoadout, DieDef, DieSlot, FaceColor, PoolFace } from "./types";
 
 interface Props {
   readonly loadout: DiceLoadout;
@@ -44,9 +45,9 @@ export function DiceScreen({
     }),
   );
 
-  const [selectedSlot, setSelectedSlot] = useState<DieSlot | null>(null);
+  const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
+  const [learnSlot, setLearnSlot] = useState<DieSlot | null>(null);
 
-  // Fire victory/defeat callbacks once.
   useEffect(() => {
     if (state.phase === "victory") {
       onVictory(state.player.hp, state.player.salt + 5, 5);
@@ -56,56 +57,59 @@ export function DiceScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase]);
 
-  const selectedDie = useMemo(
-    () => (selectedSlot ? (state.dice.find((d) => d.slot === selectedSlot) ?? null) : null),
-    [selectedSlot, state.dice],
-  );
+  // Auto-advance from "busted" → enemy resolution after a brief beat.
+  useEffect(() => {
+    if (state.phase === "busted") {
+      const t = setTimeout(() => setState((s) => resolveTurn(s)), 900);
+      return () => clearTimeout(t);
+    }
+    return;
+  }, [state.phase]);
+
   const selectedFace = useMemo(
-    () => (selectedDie ? faceForInstance(selectedDie, state) : null),
-    [selectedDie, state],
+    () => (selectedPoolId !== null ? faceAtPoolId(state, selectedPoolId) : null),
+    [selectedPoolId, state],
   );
 
-  function handleDieClick(slot: DieSlot) {
-    if (state.phase === "rolling") {
-      setState((s) => toggleLock(s, slot));
-      return;
-    }
-    if (state.phase === "assigning") {
-      setSelectedSlot(slot);
-    }
+  function handleRoll(slot: DieSlot) {
+    if (state.phase !== "rolling") return;
+    if (!canRollSlot(state, slot)) return;
+    setState((s) => rollSlot(s, slot));
   }
 
-  function handleEnemyClick(enemyUid: string) {
-    if (state.phase !== "assigning" || !selectedSlot) return;
-    const check = canAssign(state, selectedSlot, enemyUid);
-    if (!check.ok) return;
-    setState((s) => assignFace(s, selectedSlot, enemyUid));
-    setSelectedSlot(null);
-  }
-
-  function handleSelfApply() {
-    if (state.phase !== "assigning" || !selectedSlot) return;
-    const check = canAssign(state, selectedSlot, null);
-    if (!check.ok) return;
-    setState((s) => assignFace(s, selectedSlot, null));
-    setSelectedSlot(null);
-  }
-
-  function handleClearAssignment(slot: DieSlot) {
-    setState((s) => clearAssignment(s, slot));
-    if (selectedSlot === slot) setSelectedSlot(null);
-  }
-
-  function handleReroll() {
-    setState((s) => rerollDice(s));
-  }
-
-  function handleCommit() {
-    setState((s) => commitRoll(s));
+  function handleStop() {
+    setState((s) => stopRolling(s));
   }
 
   function handleResolve() {
     setState((s) => resolveTurn(s));
+    setSelectedPoolId(null);
+  }
+
+  function handlePoolFaceClick(poolId: number) {
+    if (state.phase !== "assigning") return;
+    setSelectedPoolId((cur) => (cur === poolId ? null : poolId));
+  }
+
+  function handleEnemyClick(uid: string) {
+    if (state.phase !== "assigning" || selectedPoolId === null) return;
+    const check = canAssign(state, selectedPoolId, uid);
+    if (!check.ok) return;
+    setState((s) => assignFace(s, selectedPoolId, uid));
+    setSelectedPoolId(null);
+  }
+
+  function handleSelfApply() {
+    if (state.phase !== "assigning" || selectedPoolId === null) return;
+    const check = canAssign(state, selectedPoolId, null);
+    if (!check.ok) return;
+    setState((s) => assignFace(s, selectedPoolId, null));
+    setSelectedPoolId(null);
+  }
+
+  function handleClearAssignment(poolId: number) {
+    setState((s) => clearAssignment(s, poolId));
+    if (selectedPoolId === poolId) setSelectedPoolId(null);
   }
 
   return (
@@ -122,70 +126,74 @@ export function DiceScreen({
       }}
     >
       <Header state={state} />
-      <EnemyLineup state={state} selectedSlot={selectedSlot} onClick={handleEnemyClick} />
+      <EnemyLineup state={state} selectedPoolId={selectedPoolId} onClick={handleEnemyClick} />
       <PlayerStats state={state} />
-      <DiceTray
+      <PoolView
         state={state}
-        selectedSlot={selectedSlot}
-        onDieClick={handleDieClick}
-        onClearAssignment={handleClearAssignment}
+        selectedPoolId={selectedPoolId}
+        onClick={handlePoolFaceClick}
+        onClear={handleClearAssignment}
       />
+      <DiceTray state={state} onRoll={handleRoll} onLearn={(slot) => setLearnSlot(slot)} />
       <ActionBar
         state={state}
         selectedFace={selectedFace}
-        onReroll={handleReroll}
-        onCommit={handleCommit}
+        onStop={handleStop}
         onResolve={handleResolve}
         onSelfApply={handleSelfApply}
       />
       <CombatLog state={state} />
+      {learnSlot ? (
+        <DieLearnDialog
+          slot={learnSlot}
+          die={dieForSlot(learnSlot, state)}
+          state={state}
+          onClose={() => setLearnSlot(null)}
+        />
+      ) : null}
     </div>
   );
 }
 
-/* ── Subcomponents ── */
+/* ── Header ── */
 
 function Header({ state }: { state: DiceCombatState }) {
-  const phaseLabel = {
-    rolling: "ROLLING — lock dice and re-roll",
-    assigning: "ASSIGNING — pick a target for each face",
+  const phaseLabel: Record<DiceCombatState["phase"], string> = {
+    rolling: "ROLLING — push your luck",
+    busted: "BUST — enemies act",
+    assigning: "ASSIGN — pick a target for each face",
     "resolving-player": "Resolving your faces…",
     "resolving-enemies": "Enemies act…",
     victory: "VICTORY",
     defeat: "DEFEAT",
-  }[state.phase];
-
+  };
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
       <div style={{ fontSize: "1.4rem", letterSpacing: "0.08em" }}>
-        RELIQUARY · TURN {state.turn}
+        PALE VAULT · TURN {state.turn}
       </div>
-      <div style={{ fontSize: "0.95rem", opacity: 0.85 }}>{phaseLabel}</div>
+      <div style={{ fontSize: "0.95rem", opacity: 0.85 }}>{phaseLabel[state.phase]}</div>
     </div>
   );
 }
 
+/* ── Enemy lineup ── */
+
 function EnemyLineup({
   state,
-  selectedSlot,
+  selectedPoolId,
   onClick,
 }: {
   state: DiceCombatState;
-  selectedSlot: DieSlot | null;
+  selectedPoolId: number | null;
   onClick: (uid: string) => void;
 }) {
   const front = state.enemies.filter((e) => e.row === "front" && (e.hp > 0 || e.reassembleQueued));
   const back = state.enemies.filter((e) => e.row === "back" && (e.hp > 0 || e.reassembleQueued));
-
-  const selectedDie = selectedSlot ? state.dice.find((d) => d.slot === selectedSlot) : null;
-  const selectedFace = selectedDie ? faceForInstance(selectedDie, state) : null;
-
   function isTargetable(uid: string): boolean {
-    if (!selectedFace) return false;
-    const check = canAssign(state, selectedSlot!, uid);
-    return check.ok;
+    if (selectedPoolId === null) return false;
+    return canAssign(state, selectedPoolId, uid).ok;
   }
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
       <div style={rowStyle()}>
@@ -275,7 +283,7 @@ function EnemyCard({
         color: "#ece0c8",
         fontFamily: FONT,
         padding: "0.5rem 0.7rem",
-        minWidth: "120px",
+        minWidth: "140px",
         cursor: targetable ? "pointer" : "default",
         opacity,
         textAlign: "left",
@@ -284,8 +292,13 @@ function EnemyCard({
       <div style={{ fontSize: "1.7rem" }}>{enemy.icon}</div>
       <div style={{ fontSize: "0.85rem" }}>{enemy.name}</div>
       <div style={{ fontSize: "0.75rem", color: "#c0392b" }}>
-        {isReassembling ? "Reassembling…" : `HP ${enemy.hp}/${enemy.maxHp}`}
+        {isReassembling
+          ? `Rises in ${enemy.reassembleCountdown}…`
+          : `HP ${enemy.hp}/${enemy.maxHp}`}
       </div>
+      {enemy.intangible ? (
+        <div style={{ fontSize: "0.7rem", color: "#7B3FA0" }}>👻 intangible</div>
+      ) : null}
       {enemy.statuses.bleed ? (
         <div style={{ fontSize: "0.7rem", color: "#c0392b" }}>🩸 {enemy.statuses.bleed}</div>
       ) : null}
@@ -311,13 +324,15 @@ function EnemyCard({
   );
 }
 
+/* ── Player stats ── */
+
 function PlayerStats({ state }: { state: DiceCombatState }) {
   const p = state.player;
   return (
     <div
       style={{
         display: "flex",
-        gap: "1.5rem",
+        gap: "1.25rem",
         padding: "0.6rem 0.8rem",
         border: "1px solid #3a2a1c",
         background: "#150f0a",
@@ -331,27 +346,173 @@ function PlayerStats({ state }: { state: DiceCombatState }) {
       </div>
       <div>🛡️ Block {p.block}</div>
       <div>💎 Salt {p.salt}</div>
-      <div>🎲 Re-rolls {p.rerollsLeft}</div>
       {p.powerCharges > 0 ? <div>💪 Power +{p.powerCharges}</div> : null}
-      {p.twoHandedActive ? <div>✊ Two-Hand</div> : null}
+      {p.twoHandedActive ? <div>⚔️ Edge +1</div> : null}
       {p.dodgeActive ? <div>🌀 Dodge</div> : null}
-      {p.rerollDebt > 0 ? (
-        <div style={{ color: "#c0392b" }}>📉 -{p.rerollDebt} re-roll next</div>
+      {p.hymnHumActive ? <div style={{ color: "#3FA3D6" }}>🎵 Hymn-Hum</div> : null}
+      {p.resonanceCharges > 0 ? <div style={{ color: "#E8821F" }}>✦ Resonance</div> : null}
+      {p.slotLocks.length > 0 ? (
+        <div style={{ color: "#c0392b" }}>🔒 Locked: {p.slotLocks.join(", ")}</div>
       ) : null}
     </div>
   );
 }
 
-function DiceTray({
+/* ── Pool view ── */
+
+function PoolView({
   state,
-  selectedSlot,
-  onDieClick,
-  onClearAssignment,
+  selectedPoolId,
+  onClick,
+  onClear,
 }: {
   state: DiceCombatState;
-  selectedSlot: DieSlot | null;
-  onDieClick: (slot: DieSlot) => void;
-  onClearAssignment: (slot: DieSlot) => void;
+  selectedPoolId: number | null;
+  onClick: (poolId: number) => void;
+  onClear: (poolId: number) => void;
+}) {
+  const busted = state.phase === "busted";
+  return (
+    <div
+      style={{
+        padding: "0.7rem",
+        border: busted ? "2px solid #C0303A" : "1px solid #3a2a1c",
+        background: busted ? "#2a0c0c" : "#0f0a07",
+        borderRadius: "6px",
+        minHeight: "100px",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "0.7rem",
+          letterSpacing: "0.15em",
+          opacity: 0.6,
+          marginBottom: "0.4rem",
+        }}
+      >
+        POOL · {state.pool.length} face{state.pool.length === 1 ? "" : "s"}
+        {busted ? " · BUST" : null}
+      </div>
+      {state.pool.length === 0 ? (
+        <div style={{ opacity: 0.3, fontStyle: "italic" }}>(roll a die to push)</div>
+      ) : (
+        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+          {state.pool.map((pf) => (
+            <PoolFaceCard
+              key={pf.poolId}
+              pf={pf}
+              state={state}
+              selected={selectedPoolId === pf.poolId}
+              onClick={() => onClick(pf.poolId)}
+              onClear={() => onClear(pf.poolId)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PoolFaceCard({
+  pf,
+  state,
+  selected,
+  onClick,
+  onClear,
+}: {
+  pf: PoolFace;
+  state: DiceCombatState;
+  selected: boolean;
+  onClick: () => void;
+  onClear: () => void;
+}) {
+  const face = getFace(pf.faceId);
+  if (!face) return null;
+  const color = COLORS[pf.color];
+  const assignment = state.assignments[pf.poolId];
+  const target = assignment?.targetUid
+    ? state.enemies.find((e) => e.uid === assignment.targetUid)
+    : null;
+  const border = selected
+    ? "2px solid #f1c40f"
+    : assignment
+      ? "2px solid #8e44ad"
+      : "1px solid #3a2a1c";
+  return (
+    <div
+      onClick={onClick}
+      title={`${face.label} (${color.label})\n${face.desc}`}
+      style={{
+        cursor: state.phase === "assigning" ? "pointer" : "default",
+        background: "#1c1410",
+        border,
+        borderRadius: "6px",
+        padding: "0.4rem",
+        minWidth: "120px",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          height: "8px",
+          background: color.hex,
+          borderRadius: "3px",
+          marginBottom: "0.3rem",
+        }}
+      />
+      <div style={{ fontSize: "1.4rem", textAlign: "center" }}>
+        <span style={{ fontSize: "0.9rem", marginRight: "0.2rem", opacity: 0.7 }}>
+          {color.badge}
+        </span>
+        {face.icon}
+      </div>
+      <div style={{ fontSize: "0.75rem", textAlign: "center" }}>{face.label}</div>
+      <div style={{ fontSize: "0.62rem", opacity: 0.6, textAlign: "center" }}>
+        {pf.slot} · {color.label}
+      </div>
+      {assignment ? (
+        <div
+          style={{
+            marginTop: "0.3rem",
+            fontSize: "0.65rem",
+            color: "#bb88dd",
+            textAlign: "center",
+          }}
+        >
+          → {target ? target.name : "self"}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClear();
+            }}
+            style={{
+              ...btnStyle("#3a2a1c"),
+              padding: "0.05rem 0.3rem",
+              fontSize: "0.55rem",
+              marginLeft: "0.3rem",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+      {pf.forced ? (
+        <div style={{ fontSize: "0.6rem", color: "#c0392b", textAlign: "center" }}>FORCED</div>
+      ) : null}
+    </div>
+  );
+}
+
+/* ── Dice tray ── */
+
+function DiceTray({
+  state,
+  onRoll,
+  onLearn,
+}: {
+  state: DiceCombatState;
+  onRoll: (slot: DieSlot) => void;
+  onLearn: (slot: DieSlot) => void;
 }) {
   return (
     <div
@@ -364,140 +525,137 @@ function DiceTray({
         borderRadius: "6px",
       }}
     >
-      {SLOT_ORDER.map((slot) => {
-        const die = state.dice.find((d) => d.slot === slot);
-        if (!die) return null;
-        return (
-          <DieView
-            key={slot}
-            state={state}
-            die={die}
-            selected={selectedSlot === slot}
-            onClick={() => onDieClick(slot)}
-            onClearAssignment={() => onClearAssignment(slot)}
-          />
-        );
-      })}
+      {SLOT_ORDER.map((slot) => (
+        <DieView
+          key={slot}
+          state={state}
+          slot={slot}
+          onRoll={() => onRoll(slot)}
+          onLearn={() => onLearn(slot)}
+        />
+      ))}
     </div>
   );
 }
 
 function DieView({
   state,
-  die,
-  selected,
-  onClick,
-  onClearAssignment,
+  slot,
+  onRoll,
+  onLearn,
 }: {
   state: DiceCombatState;
-  die: DieInstance;
-  selected: boolean;
-  onClick: () => void;
-  onClearAssignment: () => void;
+  slot: DieSlot;
+  onRoll: () => void;
+  onLearn: () => void;
 }) {
-  const def = dieDefForInstance(die, state);
-  const face = faceForInstance(die, state);
-  const assignment = state.assignments[die.slot];
-  const target = assignment?.targetUid
-    ? state.enemies.find((e) => e.uid === assignment.targetUid)
-    : null;
-
-  let border = "1px solid #3a2a1c";
-  if (selected) border = "2px solid #f1c40f";
-  else if (die.locked) border = "2px solid #27ae60";
-  else if (assignment) border = "2px solid #8e44ad";
-
+  const die = dieForSlot(slot, state);
+  const locked = state.player.slotLocks.includes(slot);
+  const canRoll = state.phase === "rolling" && !locked;
+  const corruptions = state.player.corruptedFaces.filter((c) => c.slot === slot);
   return (
     <div
+      onClick={canRoll ? onRoll : undefined}
       style={{
-        background: die.suppressed ? "#1a0d0a" : "#1c1410",
-        border,
+        background: locked ? "#2a0c0c" : "#1c1410",
+        border: locked ? "2px solid #c0392b" : canRoll ? "2px solid #27ae60" : "1px solid #3a2a1c",
         borderRadius: "6px",
         padding: "0.5rem",
         minWidth: "150px",
-        cursor: "pointer",
-        opacity: die.suppressed ? 0.4 : 1,
+        cursor: canRoll ? "pointer" : "default",
+        opacity: locked ? 0.6 : 1,
       }}
-      onClick={onClick}
     >
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           fontSize: "0.7rem",
-          opacity: 0.6,
+          opacity: 0.7,
         }}
       >
         <span>
-          {def.icon} {def.name}
+          {die.icon} {die.name}
         </span>
-        {die.locked ? <span style={{ color: "#27ae60" }}>LOCKED</span> : null}
+        {locked ? <span style={{ color: "#c0392b" }}>LOCKED</span> : null}
       </div>
-      {die.faceIndex < 0 ? (
+      <div style={{ marginTop: "0.3rem", display: "flex", flexDirection: "column", gap: "2px" }}>
+        {die.faces.map((faceId, idx) => {
+          const face = getFace(faceId);
+          if (!face) return null;
+          const corruption = corruptions.find((c) => c.faceIndex === idx);
+          const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
+          const color = COLORS[colorId];
+          return (
+            <div
+              key={idx}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.3rem",
+                fontSize: "0.65rem",
+                opacity: 0.85,
+              }}
+            >
+              <span
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  background: color.hex,
+                  borderRadius: "2px",
+                  display: "inline-block",
+                  border: corruption ? "1px solid #f1c40f" : "none",
+                }}
+              />
+              <span style={{ width: "10px", textAlign: "center" }}>{color.badge}</span>
+              <span style={{ flex: 1 }}>{face.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      {canRoll ? (
         <div
           style={{
-            minHeight: "60px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: 0.3,
-          }}
-        >
-          (unrolled)
-        </div>
-      ) : face ? (
-        <>
-          <div style={{ fontSize: "1.6rem", textAlign: "center" }}>{face.icon}</div>
-          <div style={{ fontSize: "0.8rem", textAlign: "center" }}>{face.label}</div>
-          <div
-            style={{ fontSize: "0.65rem", opacity: 0.7, textAlign: "center", minHeight: "30px" }}
-          >
-            {face.desc}
-          </div>
-        </>
-      ) : null}
-      {assignment ? (
-        <div
-          style={{
-            marginTop: "0.3rem",
-            fontSize: "0.7rem",
-            color: "#bb88dd",
+            marginTop: "0.4rem",
+            fontSize: "0.65rem",
+            color: "#9ad6a3",
             textAlign: "center",
           }}
         >
-          → {target ? target.name : "self"}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClearAssignment();
-            }}
-            style={{
-              ...btnStyle("#3a2a1c"),
-              padding: "0.1rem 0.4rem",
-              fontSize: "0.6rem",
-              marginLeft: "0.3rem",
-            }}
-          >
-            ✕
-          </button>
+          Click to push →
         </div>
       ) : null}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onLearn();
+        }}
+        style={{
+          ...btnStyle("#3a2a1c"),
+          marginTop: "0.4rem",
+          padding: "0.25rem 0.4rem",
+          fontSize: "0.65rem",
+          width: "100%",
+        }}
+      >
+        Learn more
+      </button>
     </div>
   );
 }
 
+/* ── Action bar ── */
+
 function ActionBar({
   state,
   selectedFace,
-  onReroll,
-  onCommit,
+  onStop,
   onResolve,
   onSelfApply,
 }: {
   state: DiceCombatState;
   selectedFace: ReturnType<typeof getFace>;
-  onReroll: () => void;
-  onCommit: () => void;
+  onStop: () => void;
   onResolve: () => void;
   onSelfApply: () => void;
 }) {
@@ -509,22 +667,16 @@ function ActionBar({
       selectedFace.target === "none" ||
       selectedFace.target === "all-front" ||
       selectedFace.target === "all-enemies");
-
   return (
     <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
       {phase === "rolling" ? (
-        <>
-          <button
-            style={btnStyle("#8b0000", state.player.rerollsLeft <= 0)}
-            disabled={state.player.rerollsLeft <= 0}
-            onClick={onReroll}
-          >
-            Re-Roll ({state.player.rerollsLeft} left)
-          </button>
-          <button style={btnStyle("#27ae60")} onClick={onCommit}>
-            Commit Roll →
-          </button>
-        </>
+        <button
+          style={btnStyle("#27ae60", state.pool.length === 0)}
+          disabled={state.pool.length === 0}
+          onClick={onStop}
+        >
+          STOP — Assign Pool ({state.pool.length})
+        </button>
       ) : null}
       {phase === "assigning" ? (
         <>
@@ -534,8 +686,8 @@ function ActionBar({
             </button>
           ) : null}
           <button
-            style={btnStyle("#8b0000", !canResolveNow(state))}
-            disabled={!canResolveNow(state)}
+            style={btnStyle("#8b0000", !allAssigned(state))}
+            disabled={!allAssigned(state)}
             onClick={onResolve}
           >
             Resolve Turn
@@ -546,16 +698,123 @@ function ActionBar({
   );
 }
 
-function canResolveNow(state: DiceCombatState): boolean {
-  for (const d of state.dice) {
-    if (d.suppressed || d.grappled) continue;
-    const face = faceForInstance(d, state);
-    if (!face) continue;
-    if (face.target === "none") continue;
-    if (!state.assignments[d.slot]) return false;
-  }
-  return true;
+/* ── Learn-more dialog ── */
+
+function DieLearnDialog({
+  slot,
+  die,
+  state,
+  onClose,
+}: {
+  slot: DieSlot;
+  die: DieDef;
+  state: DiceCombatState;
+  onClose: () => void;
+}) {
+  const corruptions = state.player.corruptedFaces.filter((c) => c.slot === slot);
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.75)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "1rem",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#1a120c",
+          border: "1px solid #3a2a1c",
+          borderRadius: "8px",
+          padding: "1.2rem",
+          maxWidth: "560px",
+          width: "100%",
+          maxHeight: "85vh",
+          overflowY: "auto",
+          color: "#ece0c8",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: "1rem",
+          }}
+        >
+          <div style={{ fontSize: "1.2rem" }}>
+            {die.icon} {die.name}
+          </div>
+          <button onClick={onClose} style={{ ...btnStyle("#3a2a1c"), fontSize: "0.8rem" }}>
+            Close ✕
+          </button>
+        </div>
+        <div style={{ fontSize: "0.8rem", opacity: 0.7, marginBottom: "0.8rem" }}>
+          Each face has a color. Two same colors in your pool = bust.
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {die.faces.map((faceId, idx) => {
+            const face = getFace(faceId);
+            if (!face) return null;
+            const corruption = corruptions.find((c) => c.faceIndex === idx);
+            const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
+            const color = COLORS[colorId];
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.6rem",
+                  padding: "0.5rem",
+                  background: "#0f0a07",
+                  border: corruption ? "1px solid #f1c40f" : "1px solid #2a1c10",
+                  borderRadius: "4px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "24px",
+                    height: "24px",
+                    background: color.hex,
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#000",
+                    fontSize: "0.85rem",
+                    fontWeight: "bold",
+                  }}
+                  title={color.label}
+                >
+                  {color.badge}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "0.9rem" }}>
+                    {face.icon} {face.label}{" "}
+                    <span style={{ fontSize: "0.7rem", opacity: 0.6 }}>
+                      ({color.label}
+                      {corruption ? " — corrupted" : ""})
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>{face.desc}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
+
+/* ── Combat log ── */
 
 function CombatLog({ state }: { state: DiceCombatState }) {
   const recent = state.log.slice(-12);

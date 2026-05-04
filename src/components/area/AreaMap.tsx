@@ -7,6 +7,7 @@ import { GridCanvas, visibleRooms, CELL_PX } from "./GridCanvas";
 import { RoomLabels, resolvePropTiles } from "./RoomLabels";
 import { RoomPanel } from "./RoomPanel";
 import { PropDialog } from "./PropDialog";
+import { EquipmentPicker, type EquipmentSlot } from "./EquipmentPicker";
 import { getActiveProps } from "../../utils/props";
 import type { AreaNode, AreaGrid, Player, AreaLogEntry } from "../../types";
 
@@ -26,6 +27,7 @@ export function AreaMap({
   onBlockDoor,
   onRest,
   onSwitchWeapon,
+  onEquipDiceItem,
   onExamineProp,
   onPropAction,
   onToggleDebug,
@@ -47,6 +49,7 @@ export function AreaMap({
   onBlockDoor: (id: string) => void;
   onRest: () => void;
   onSwitchWeapon: (weaponId: string) => void;
+  onEquipDiceItem: (slot: EquipmentSlot, id: string) => void;
   onExamineProp: (roomId: string, propId: string) => void;
   onPropAction: (roomId: string, propId: string, actionId: string) => void;
   onToggleDebug: () => void;
@@ -58,6 +61,7 @@ export function AreaMap({
   const [scoutResult, setScoutResult] = useState<string | null>(null);
   const [scoutLevel, setScoutLevel] = useState(0);
   const [showWeaponPicker, setShowWeaponPicker] = useState(false);
+  const [showEquipmentPicker, setShowEquipmentPicker] = useState(false);
   const [openProp, setOpenProp] = useState<{ roomId: string; propId: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
@@ -333,6 +337,15 @@ export function AreaMap({
             <div className="text-sm text-crypt-muted mt-2">
               {"\u{1F392}"} {player.consumables.length} items
             </div>
+            <div className="mt-2">
+              <button
+                style={btnStyle("#5a4a20")}
+                className="text-xs! px-2! py-1!"
+                onClick={() => setShowEquipmentPicker(true)}
+              >
+                {"⚙️"} Equipment
+              </button>
+            </div>
             {player.ownedWeapons.length > 1 && (
               <div className="mt-2">
                 <button
@@ -442,6 +455,17 @@ export function AreaMap({
           player={player}
           onAction={handlePropAction}
           onClose={() => setOpenProp(null)}
+        />
+      )}
+
+      {showEquipmentPicker && (
+        <EquipmentPicker
+          player={player}
+          debugMode={debugMode}
+          onEquip={(slot, id) => {
+            onEquipDiceItem(slot, id);
+          }}
+          onClose={() => setShowEquipmentPicker(false)}
         />
       )}
 
