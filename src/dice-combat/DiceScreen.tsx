@@ -11,9 +11,11 @@ import {
   initDiceCombat,
   resolveTurn,
   rollSlot,
+  stepEnemyTurn,
   stopRolling,
 } from "./engine";
 import { COLORS, getFace, SLOT_ORDER } from "./dice-defs";
+import { getEnemyDef } from "./enemy-defs";
 import type { DiceCombatState, DiceLoadout, DieDef, DieSlot, FaceColor, PoolFace } from "./types";
 
 interface Props {
@@ -47,6 +49,15 @@ export function DiceScreen({
 
   const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
   const [learnSlot, setLearnSlot] = useState<DieSlot | null>(null);
+  const [inspectEnemyUid, setInspectEnemyUid] = useState<string | null>(null);
+  const [playerFlashUid, setPlayerFlashUid] = useState<string | null>(null);
+
+  // Clear player-action flash after a short beat.
+  useEffect(() => {
+    if (!playerFlashUid) return;
+    const t = setTimeout(() => setPlayerFlashUid(null), 500);
+    return () => clearTimeout(t);
+  }, [playerFlashUid]);
 
   useEffect(() => {
     if (state.phase === "victory") {
@@ -57,14 +68,18 @@ export function DiceScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase]);
 
-  // Auto-advance from "busted" → enemy resolution after a brief beat.
+  // v3: bust no longer auto-advances — the player presses "End Turn" so they
+  // can read the offending dice in the pool before the turn flushes.
+
+  // v3: stepwise enemy resolution. While in "resolving-enemies" phase, advance
+  // one queue entry per beat so the player sees each attack land.
   useEffect(() => {
-    if (state.phase === "busted") {
-      const t = setTimeout(() => setState((s) => resolveTurn(s)), 900);
+    if (state.phase === "resolving-enemies") {
+      const t = setTimeout(() => setState((s) => stepEnemyTurn(s)), 600);
       return () => clearTimeout(t);
     }
     return;
-  }, [state.phase]);
+  }, [state.phase, state.enemyQueue.length]);
 
   const selectedFace = useMemo(
     () => (selectedPoolId !== null ? faceAtPoolId(state, selectedPoolId) : null),
@@ -97,6 +112,17 @@ export function DiceScreen({
     if (!check.ok) return;
     setState((s) => assignFace(s, selectedPoolId, uid));
     setSelectedPoolId(null);
+    setPlayerFlashUid(uid);
+  }
+
+  function handleAttackClick(uid: string, faceIndex: number) {
+    if (state.phase !== "assigning" || selectedPoolId === null) return;
+    const target = `attack:${uid}:${faceIndex}`;
+    const check = canAssign(state, selectedPoolId, target);
+    if (!check.ok) return;
+    setState((s) => assignFace(s, selectedPoolId, target));
+    setSelectedPoolId(null);
+    setPlayerFlashUid(uid);
   }
 
   function handleSelfApply() {
@@ -126,7 +152,14 @@ export function DiceScreen({
       }}
     >
       <Header state={state} />
-      <EnemyLineup state={state} selectedPoolId={selectedPoolId} onClick={handleEnemyClick} />
+      <EnemyLineup
+        state={state}
+        selectedPoolId={selectedPoolId}
+        onClick={handleEnemyClick}
+        onAttackClick={handleAttackClick}
+        onInspect={(uid) => setInspectEnemyUid(uid)}
+        playerFlashUid={playerFlashUid}
+      />
       <PlayerStats state={state} />
       <PoolView
         state={state}
@@ -149,6 +182,12 @@ export function DiceScreen({
           die={dieForSlot(learnSlot, state)}
           state={state}
           onClose={() => setLearnSlot(null)}
+        />
+      ) : null}
+      {inspectEnemyUid ? (
+        <EnemyDieDialog
+          enemy={state.enemies.find((e) => e.uid === inspectEnemyUid) ?? null}
+          onClose={() => setInspectEnemyUid(null)}
         />
       ) : null}
     </div>
@@ -183,16 +222,26 @@ function EnemyLineup({
   state,
   selectedPoolId,
   onClick,
+  onAttackClick,
+  onInspect,
+  playerFlashUid,
 }: {
   state: DiceCombatState;
   selectedPoolId: number | null;
   onClick: (uid: string) => void;
+  onAttackClick: (uid: string, faceIndex: number) => void;
+  onInspect: (uid: string) => void;
+  playerFlashUid: string | null;
 }) {
   const front = state.enemies.filter((e) => e.row === "front" && (e.hp > 0 || e.reassembleQueued));
   const back = state.enemies.filter((e) => e.row === "back" && (e.hp > 0 || e.reassembleQueued));
   function isTargetable(uid: string): boolean {
     if (selectedPoolId === null) return false;
     return canAssign(state, selectedPoolId, uid).ok;
+  }
+  function isAttackTargetable(uid: string, idx: number): boolean {
+    if (selectedPoolId === null) return false;
+    return canAssign(state, selectedPoolId, `attack:${uid}:${idx}`).ok;
   }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
@@ -204,9 +253,14 @@ function EnemyLineup({
           back.map((e) => (
             <EnemyCard
               key={e.uid}
+              state={state}
               enemy={e}
               targetable={isTargetable(e.uid)}
               onClick={() => onClick(e.uid)}
+              isAttackTargetable={(idx) => isAttackTargetable(e.uid, idx)}
+              onAttackClick={(idx) => onAttackClick(e.uid, idx)}
+              onInspect={() => onInspect(e.uid)}
+              playerFlash={playerFlashUid === e.uid}
             />
           ))
         )}
@@ -219,9 +273,14 @@ function EnemyLineup({
           front.map((e) => (
             <EnemyCard
               key={e.uid}
+              state={state}
               enemy={e}
               targetable={isTargetable(e.uid)}
               onClick={() => onClick(e.uid)}
+              isAttackTargetable={(idx) => isAttackTargetable(e.uid, idx)}
+              onAttackClick={(idx) => onAttackClick(e.uid, idx)}
+              onInspect={() => onInspect(e.uid)}
+              playerFlash={playerFlashUid === e.uid}
             />
           ))
         )}
@@ -261,21 +320,43 @@ function Empty() {
 }
 
 function EnemyCard({
+  state,
   enemy,
   targetable,
   onClick,
+  isAttackTargetable,
+  onAttackClick,
+  onInspect,
+  playerFlash,
 }: {
+  state: DiceCombatState;
   enemy: DiceCombatState["enemies"][number];
   targetable: boolean;
   onClick: () => void;
+  isAttackTargetable: (idx: number) => boolean;
+  onAttackClick: (idx: number) => void;
+  onInspect: () => void;
+  playerFlash: boolean;
 }) {
   const isReassembling = enemy.reassembleQueued;
-  const border = targetable ? "2px solid #f1c40f" : "1px solid #3a2a1c";
+  const isActing = state.lastEnemyAction?.uid === enemy.uid;
+  const border = playerFlash
+    ? "2px solid #9ad6a3"
+    : isActing
+      ? "2px solid #c0392b"
+      : targetable
+        ? "2px solid #f1c40f"
+        : "1px solid #3a2a1c";
   const opacity = enemy.untargetable || isReassembling ? 0.5 : 1;
+  const boxShadow = playerFlash
+    ? "0 0 12px 2px rgba(154,214,163,0.6)"
+    : isActing
+      ? "0 0 12px 2px rgba(192,57,43,0.6)"
+      : undefined;
+  const def = getEnemyDef(enemy.id);
+  const dice = def?.dice ?? [];
   return (
-    <button
-      onClick={onClick}
-      disabled={!targetable}
+    <div
       style={{
         background: "linear-gradient(180deg,#2a1f18,#1c1410)",
         border,
@@ -284,28 +365,111 @@ function EnemyCard({
         fontFamily: FONT,
         padding: "0.5rem 0.7rem",
         minWidth: "140px",
-        cursor: targetable ? "pointer" : "default",
         opacity,
         textAlign: "left",
+        boxShadow,
+        transition: "box-shadow 0.15s ease, border-color 0.15s ease",
       }}
     >
-      <div style={{ fontSize: "1.7rem" }}>{enemy.icon}</div>
-      <div style={{ fontSize: "0.85rem" }}>{enemy.name}</div>
-      <div style={{ fontSize: "0.75rem", color: "#c0392b" }}>
-        {isReassembling
-          ? `Rises in ${enemy.reassembleCountdown}…`
-          : `HP ${enemy.hp}/${enemy.maxHp}`}
-      </div>
-      {enemy.intangible ? (
-        <div style={{ fontSize: "0.7rem", color: "#7B3FA0" }}>👻 intangible</div>
-      ) : null}
-      {enemy.statuses.bleed ? (
-        <div style={{ fontSize: "0.7rem", color: "#c0392b" }}>🩸 {enemy.statuses.bleed}</div>
-      ) : null}
-      {enemy.statuses.stun ? (
-        <div style={{ fontSize: "0.7rem", color: "#f1c40f" }}>⚡ {enemy.statuses.stun}</div>
-      ) : null}
-      {enemy.intent ? (
+      <button
+        onClick={onClick}
+        disabled={!targetable}
+        style={{
+          background: "none",
+          border: "none",
+          color: "inherit",
+          font: "inherit",
+          padding: 0,
+          width: "100%",
+          textAlign: "left",
+          cursor: targetable ? "pointer" : "default",
+        }}
+      >
+        <div style={{ fontSize: "1.7rem" }}>{enemy.icon}</div>
+        <div style={{ fontSize: "0.85rem" }}>{enemy.name}</div>
+        <div style={{ fontSize: "0.75rem", color: "#c0392b" }}>
+          {isReassembling
+            ? `Rises in ${enemy.reassembleCountdown}…`
+            : `HP ${enemy.hp}/${enemy.maxHp}`}
+        </div>
+        {enemy.intangible ? (
+          <div style={{ fontSize: "0.7rem", color: "#7B3FA0" }}>👻 intangible</div>
+        ) : null}
+        {enemy.statuses.bleed ? (
+          <div style={{ fontSize: "0.7rem", color: "#c0392b" }}>🩸 {enemy.statuses.bleed}</div>
+        ) : null}
+        {enemy.statuses.stun ? (
+          <div style={{ fontSize: "0.7rem", color: "#f1c40f" }}>⚡ {enemy.statuses.stun}</div>
+        ) : null}
+        {enemy.statuses.warded ? (
+          <div style={{ fontSize: "0.7rem", color: "#bcbcbc" }}>🛡 {enemy.statuses.warded}</div>
+        ) : null}
+        {enemy.statuses.mark ? (
+          <div style={{ fontSize: "0.7rem", color: "#E8821F" }}>⚹ marked</div>
+        ) : null}
+      </button>
+      {enemy.rolledFaces.length > 0 ? (
+        <div
+          style={{
+            marginTop: "0.3rem",
+            fontSize: "0.7rem",
+            opacity: 0.95,
+            borderTop: "1px solid #3a2a1c",
+            paddingTop: "0.3rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.15rem",
+          }}
+        >
+          {enemy.rolledFaces.map((rf, idx) => {
+            const face = getFace(rf.faceId);
+            if (!face) return null;
+            const canDefend = isAttackTargetable(idx);
+            const mit = state.attackMitigations[`${enemy.uid}:${idx}`];
+            const mitigated = mit && (mit.block > 0 || mit.dodge || mit.riposteDamage > 0);
+            const cancelled = mitigated && mit.dodge;
+            return (
+              <button
+                key={idx}
+                title={face.desc}
+                disabled={!canDefend}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canDefend) onAttackClick(idx);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                  background: canDefend ? "rgba(241,196,15,0.12)" : "transparent",
+                  border: canDefend
+                    ? "1px solid #f1c40f"
+                    : mitigated
+                      ? "1px dashed #3FA3D6"
+                      : "1px solid transparent",
+                  borderRadius: "3px",
+                  color: "inherit",
+                  font: "inherit",
+                  padding: "0.05rem 0.2rem",
+                  cursor: canDefend ? "pointer" : "default",
+                  textDecoration: cancelled ? "line-through" : undefined,
+                  opacity: cancelled ? 0.5 : 1,
+                }}
+              >
+                <span>{face.icon}</span>
+                <span>{face.label}</span>
+                {face.tags?.includes("unblockable") ? <span title="unblockable">⛓🛡</span> : null}
+                {face.tags?.includes("area") ? <span title="area">⤧</span> : null}
+                {mit?.block ? <span style={{ color: "#3FA3D6" }}>🛡{mit.block}</span> : null}
+                {mit?.riposteDamage ? (
+                  <span style={{ color: "#c0392b" }}>⤺{mit.riposteDamage}</span>
+                ) : null}
+                {mit?.dodge ? <span style={{ color: "#3FA3D6" }}>✷</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : enemy.intent ? (
         <div
           style={{
             marginTop: "0.3rem",
@@ -320,7 +484,26 @@ function EnemyCard({
           {enemy.intent.damage !== undefined ? ` · ${enemy.intent.damage}` : ""}
         </div>
       ) : null}
-    </button>
+      {dice.length > 0 ? (
+        <button
+          onClick={onInspect}
+          style={{
+            marginTop: "0.3rem",
+            background: "transparent",
+            border: "1px solid #3a2a1c",
+            borderRadius: "4px",
+            color: "#9aa9b6",
+            font: "inherit",
+            fontSize: "0.7rem",
+            padding: "0.15rem 0.4rem",
+            cursor: "pointer",
+            alignSelf: "flex-start",
+          }}
+        >
+          🎲 inspect dice
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -690,9 +873,14 @@ function ActionBar({
             disabled={!allAssigned(state)}
             onClick={onResolve}
           >
-            Resolve Turn
+            End Turn
           </button>
         </>
+      ) : null}
+      {phase === "busted" ? (
+        <button style={btnStyle("#8b0000")} onClick={onResolve}>
+          End Turn — Bust
+        </button>
       ) : null}
     </div>
   );
@@ -847,6 +1035,158 @@ function CombatLog({ state }: { state: DiceCombatState }) {
           [T{entry.turn}] {entry.text}
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ── Enemy die inspect dialog ── */
+
+function EnemyDieDialog({
+  enemy,
+  onClose,
+}: {
+  enemy: DiceCombatState["enemies"][number] | null;
+  onClose: () => void;
+}) {
+  if (!enemy) return null;
+  const def = getEnemyDef(enemy.id);
+  const dice = def?.dice ?? [];
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.75)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "1rem",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#1a120c",
+          border: "1px solid #3a2a1c",
+          borderRadius: "8px",
+          padding: "1.2rem",
+          maxWidth: "560px",
+          width: "100%",
+          maxHeight: "85vh",
+          overflowY: "auto",
+          color: "#ece0c8",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: "1rem",
+          }}
+        >
+          <div style={{ fontSize: "1.2rem" }}>
+            {enemy.icon} {enemy.name}
+          </div>
+          <button onClick={onClose} style={{ ...btnStyle("#3a2a1c"), fontSize: "0.8rem" }}>
+            Close ✕
+          </button>
+        </div>
+        <div style={{ fontSize: "0.8rem", opacity: 0.7, marginBottom: "0.8rem" }}>
+          The enemy rolls one face per die each turn. You see the rolled face above the enemy before
+          you push your own luck.
+        </div>
+        {dice.length === 0 ? (
+          <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+            No dice — this enemy uses a fixed action.
+          </div>
+        ) : null}
+        {dice.map((die) => (
+          <div key={die.id} style={{ marginBottom: "1rem" }}>
+            <div style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>
+              {die.icon} {die.name}
+              <span style={{ fontSize: "0.7rem", opacity: 0.6, marginLeft: "0.5rem" }}>
+                ({die.defaultTarget === "self" ? "self-buff die" : "attacks player"})
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+              {die.faces.map((faceId, idx) => {
+                const face = getFace(faceId);
+                if (!face) return null;
+                const color = COLORS[face.color];
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.6rem",
+                      padding: "0.4rem",
+                      background: "#0f0a07",
+                      border: "1px solid #2a1c10",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "24px",
+                        height: "24px",
+                        background: color.hex,
+                        borderRadius: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#000",
+                        fontSize: "0.85rem",
+                        fontWeight: "bold",
+                      }}
+                      title={color.label}
+                    >
+                      {color.badge}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: "0.9rem",
+                          display: "flex",
+                          gap: "0.3rem",
+                          alignItems: "center",
+                        }}
+                      >
+                        {face.icon} {face.label}
+                        {face.tags?.includes("unblockable") ? (
+                          <span
+                            title="unblockable"
+                            style={{ color: "#c0392b", fontSize: "0.7rem" }}
+                          >
+                            ⛓🛡 unblockable
+                          </span>
+                        ) : null}
+                        {face.tags?.includes("undodgeable") ? (
+                          <span
+                            title="undodgeable"
+                            style={{ color: "#c0392b", fontSize: "0.7rem" }}
+                          >
+                            ⛓✷ undodgeable
+                          </span>
+                        ) : null}
+                        {face.tags?.includes("area") ? (
+                          <span title="area" style={{ color: "#E8821F", fontSize: "0.7rem" }}>
+                            ⤧ area
+                          </span>
+                        ) : null}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>{face.desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

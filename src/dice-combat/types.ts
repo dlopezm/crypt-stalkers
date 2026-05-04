@@ -34,6 +34,41 @@ export type FaceTargetKind =
   | "all-enemies"
   | "none";
 
+/* ── v3 symbol grammar ──
+ * A face is a color + a bag of symbols + zero or more tags. v2 effect fields
+ * remain on FaceDef for backwards compatibility — when both are present, v3
+ * symbols are authoritative and v2 fields are ignored. New faces should use
+ * `symbols` + `tags` only. */
+
+export type SymbolKey =
+  | "sword" // ⚔ 1 damage
+  | "shield" // 🛡 1 block (absorb 1 from assigned attack)
+  | "heart" // ♥ 1 heal to friendly target
+  | "flame" // 🔥 1 fire (+1 vs undead)
+  | "drop" // 💧 +1 Bleed
+  | "spark" // ✦ +1 Stun (one of target's intents next turn)
+  | "crystal" // ◇ +1 Salt
+  | "bolt" // ↯ +1 Weaken
+  | "sun" // ☼ +1 Bolster
+  | "riposte" // ⤺ pre-empt 1 dmg vs an enemy attack, before it resolves
+  | "cleanse" // ⟲ remove 1 status
+  | "mark" // ⚹ marks target (next dmg symbol on it counts double)
+  | "power" // ↑ +1 Power charge (next sword counts +1)
+  | "dodge" // ✷ negate one specific incoming attack (assign to attack glyph)
+  | "reproduce" // 🐀 enemy-only: spawn a same-kind enemy
+  | "steal" // 🪙 enemy-only: steal 1 salt from player
+  | "push"; // ⇄ push target to opposite row
+
+export type FaceTag =
+  | "ranged" // assignable to back row
+  | "area" // also hits two adjacent in target's row
+  | "holy" // damage symbols +1 vs undead
+  | "heavy" // bludgeoning
+  | "silent" // does not count for the bust check
+  | "pierce" // damage symbols ignore enemy block
+  | "unblockable" // (enemy) shields cannot absorb this attack
+  | "undodgeable"; // (enemy) dodge cannot cancel this attack
+
 export interface FaceDef {
   readonly id: string;
   readonly label: string;
@@ -41,27 +76,24 @@ export interface FaceDef {
   readonly desc: string;
   readonly color: FaceColor;
   readonly target: FaceTargetKind;
+  /** v3 symbol bag. When present, this is the authoritative effect spec. */
+  readonly symbols?: readonly SymbolKey[];
+  /** v3 face tags. Modify reach, area, damage type, etc. */
+  readonly tags?: readonly FaceTag[];
+  /** v2 fields — retained for legacy faces. Ignored when `symbols` is set. */
   readonly damage?: number;
   readonly damageType?: DamageType;
   readonly heal?: number;
   readonly block?: number;
   readonly applyStatus?: { readonly status: StatusKey; readonly stacks: number };
   readonly cleanseSelf?: number;
-  /** Push the targeted enemy to the opposite row. */
   readonly pushOpposite?: boolean;
-  /** Self-buff: the next damage face this turn deals +N. */
   readonly grantPower?: number;
-  /** Self-buff: the next physical hit on the player is negated. */
   readonly grantDodge?: boolean;
-  /** Self-buff: damage faces deal +1 for the rest of this turn. */
   readonly twoHandedBonus?: boolean;
-  /** Salt currency gain. */
   readonly gainSalt?: number;
-  /** Soul-Die / Ward face: removes a Salt-Lock from one player die. */
   readonly breakSlotLock?: boolean;
-  /** Hymn-Hum: Echo faces in the pool count as "any color" for bust check this turn. */
   readonly grantHymnHum?: boolean;
-  /** Resonance: forgive the next color clash this turn. */
   readonly grantResonance?: boolean;
 }
 
@@ -106,6 +138,28 @@ export interface DiceEnemyIntent {
   readonly tooltip?: string;
 }
 
+/* ── v3 enemy dice ── */
+
+/** A 6-faced enemy die. Faces use the same FaceDef grammar as the player's dice.
+ * Enemy faces typically point at the player (offensive symbols) or at the enemy
+ * itself (defensive symbols). Tags `unblockable`/`undodgeable` can be set per face. */
+export interface EnemyDieDef {
+  readonly id: string;
+  readonly name: string;
+  readonly icon: string;
+  /** Six face IDs (lookup in FACES). */
+  readonly faces: readonly [string, string, string, string, string, string];
+  /** Where rolled symbols target by default. `self` means defensive (enemy buffs/heals self). */
+  readonly defaultTarget: "player" | "self" | "enemy-other";
+}
+
+/** Result of an enemy rolling its dice this turn. */
+export interface EnemyRolledFace {
+  readonly dieId: string;
+  readonly faceId: string;
+  readonly targetUid: string; // who this face hits (player uid is "player", or own uid for self-buffs)
+}
+
 export interface DiceEnemy {
   readonly uid: string;
   readonly id: string;
@@ -132,6 +186,8 @@ export interface DiceEnemy {
   readonly thresholdHealUsed: boolean;
   /** Mournful Ghost: incorporeal this turn — Crimson damage deals 0. */
   readonly intangible: boolean;
+  /** v3: faces this enemy rolled at start of its turn. Visible to player before they roll. */
+  readonly rolledFaces: readonly EnemyRolledFace[];
 }
 
 /* ── Player state ── */
@@ -190,6 +246,23 @@ export interface DiceCombatLogEntry {
   readonly source: "player" | "enemy" | "system";
 }
 
+/** v3: per-incoming-attack mitigation. Built up as the player drops shield/dodge/riposte
+ * symbols onto specific enemy attack glyphs during the assigning phase. Consulted by
+ * resolveEnemyIntents at attack-resolution time. Key = `${enemyUid}:${rolledFaceIndex}`. */
+export interface AttackMitigation {
+  readonly block: number;
+  readonly dodge: boolean;
+  readonly riposteDamage: number;
+}
+
+/** v3: stepped enemy resolution — the engine produces a queue and the UI walks
+ * through it one entry per beat so the player can read what each enemy does. */
+export interface EnemyQueueEntry {
+  readonly uid: string;
+  /** Index into the enemy's rolledFaces. null = legacy fixed-intent attack. */
+  readonly faceIndex: number | null;
+}
+
 export interface DiceCombatState {
   readonly player: DicePlayer;
   readonly enemies: readonly DiceEnemy[];
@@ -203,6 +276,12 @@ export interface DiceCombatState {
   readonly phase: DiceCombatPhase;
   readonly log: readonly DiceCombatLogEntry[];
   readonly rng: number;
+  /** v3: defensive assignments. Keyed by `${enemyUid}:${rolledFaceIndex}`. */
+  readonly attackMitigations: Readonly<Record<string, AttackMitigation>>;
+  /** v3: pending enemy attack queue, processed one entry at a time. */
+  readonly enemyQueue: readonly EnemyQueueEntry[];
+  /** v3: the entry just resolved (for UI flash). */
+  readonly lastEnemyAction: EnemyQueueEntry | null;
 }
 
 /* ── Init params ── */
@@ -234,6 +313,8 @@ export interface DiceEnemyDef {
   readonly isBoss: boolean;
   readonly resistances: Partial<Record<DamageType, number>>;
   readonly vulnerabilities: Partial<Record<DamageType, number>>;
+  /** v3: enemy dice. When present, the engine rolls these instead of calling selectIntent. */
+  readonly dice?: readonly EnemyDieDef[];
   readonly selectIntent: (self: DiceEnemy, state: DiceCombatState) => DiceEnemyIntent | null;
   readonly resolveIntent?: (
     self: DiceEnemy,

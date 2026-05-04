@@ -7,6 +7,10 @@ export const STATUS_COLORS: Record<StatusKey, string> = {
   silence: "#8e44ad",
   poison: "#27ae60",
   stun: "#f1c40f",
+  bolster: "#E8821F",
+  dice_stun: "#f1c40f",
+  mark: "#E8821F",
+  warded: "#bcbcbc",
 };
 
 export const STATUS_ICONS: Record<StatusKey, string> = {
@@ -16,6 +20,10 @@ export const STATUS_ICONS: Record<StatusKey, string> = {
   silence: "\u{1F507}",
   poison: "\u{1F40D}",
   stun: "\u26A1",
+  bolster: "\u2600",
+  dice_stun: "\u2728",
+  mark: "\u2739",
+  warded: "\u{1F6E1}",
 };
 
 export const STATUS_DESC: Record<StatusKey, string> = {
@@ -25,4 +33,8 @@ export const STATUS_DESC: Record<StatusKey, string> = {
   silence: "Can't use Abilities",
   poison: "Lose HP (stacks)",
   stun: "Skip next action",
+  bolster: "+1 to damage symbols",
+  dice_stun: "One rolled die does nothing",
+  mark: "Next damage doubled",
+  warded: "Block (absorbs damage)",
 };

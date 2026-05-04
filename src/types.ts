@@ -1,6 +1,16 @@
 export type Screen = "title" | "intro" | "map" | "combat" | "victory" | "gameover" | "editor";
 
-export type StatusKey = "bleed" | "weaken" | "blind" | "silence" | "poison" | "stun";
+export type StatusKey =
+  | "bleed"
+  | "weaken"
+  | "blind"
+  | "silence"
+  | "poison"
+  | "stun"
+  | "bolster"
+  | "dice_stun"
+  | "mark"
+  | "warded";
 export type Statuses = Partial<Record<StatusKey, number>>;
 
 /* ── Damage & Equipment ── */

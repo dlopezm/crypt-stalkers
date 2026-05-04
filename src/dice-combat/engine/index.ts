@@ -3,20 +3,24 @@ import { DICE_BALANCE } from "../balance";
 import { COLORS, getDieForSlot, getFace, SLOT_ORDER, ABILITY_STARTING_FACES } from "../dice-defs";
 import { DICE_ENEMY_DEFS, getEnemyDef } from "../enemy-defs";
 import type {
+  AttackMitigation,
   DiceCombatInit,
   DiceCombatLogEntry,
   DiceCombatState,
   DiceEnemy,
   DieDef,
   DieSlot,
+  EnemyQueueEntry,
   FaceColor,
   FaceDef,
+  FaceTag,
   FaceTargetKind,
   PoolAssignment,
   PoolFace,
   Row,
+  SymbolKey,
 } from "../types";
-import { rollD6 } from "./rng";
+import { nextRng, rollD6 } from "./rng";
 
 /* ─────────────────────────────────────────────────────────────────────────
  * INIT
@@ -49,6 +53,7 @@ export function initDiceCombat(init: DiceCombatInit): DiceCombatState {
       phaseIndex: 0,
       thresholdHealUsed: false,
       intangible: false,
+      rolledFaces: [],
     });
   }
 
@@ -80,6 +85,9 @@ export function initDiceCombat(init: DiceCombatInit): DiceCombatState {
     phase: "rolling",
     log: [{ turn: 1, source: "system", text: "Combat begins. Push your luck." }],
     rng: seed,
+    attackMitigations: {},
+    enemyQueue: [],
+    lastEnemyAction: null,
   };
 
   // Fire onSpawn hooks for each enemy after they're all in the field.
@@ -251,6 +259,9 @@ function computeBust(state: DiceCombatState): BustCheckResult {
     const c = pf.color;
     // Hymn-Hum: Echo faces count as wildcards (don't contribute to a clash).
     if (state.player.hymnHumActive && c === "echo") continue;
+    // v3: faces tagged `silent` don't count for the bust check.
+    const fd = getFace(pf.faceId);
+    if (fd?.tags?.includes("silent")) continue;
     seenByColor.set(c, (seenByColor.get(c) ?? 0) + 1);
   }
   for (const [color, count] of seenByColor) {
@@ -269,11 +280,11 @@ function triggerBust(state: DiceCombatState): DiceCombatState {
     };
   }
   const poolSize = state.pool.length;
+  // v3: keep the pool visible during the bust phase so the player can read the
+  // clash before pressing "End Turn". The pool is flushed in endOfTurn.
   let s: DiceCombatState = {
     ...state,
     phase: "busted",
-    pool: [],
-    assignments: {},
     log: appendLog(state, "system", "BUST. Your pool is lost."),
   };
   // Heal-on-bust hooks (Vampire, Vampire Lord) — sized off the pool just discarded.
@@ -287,25 +298,39 @@ function triggerBust(state: DiceCombatState): DiceCombatState {
   return s;
 }
 
-/** Move from rolling phase into assigning. */
+/** Move from rolling phase into assigning.
+ * v3: faces with target self/none/all-* resolve IMMEDIATELY at stop-time —
+ * EXCEPT faces carrying defensive symbols (shield/dodge/riposte). Those must
+ * be pointed at a specific enemy attack glyph by the player (or, as a fallback,
+ * self-assigned via the explicit "self" button if no attacks remain). */
 export function stopRolling(state: DiceCombatState): DiceCombatState {
   if (state.phase !== "rolling") return state;
   if (state.pool.length === 0) return state;
-  // Auto-assign self / none / all-target faces.
+  let s: DiceCombatState = { ...state, phase: "assigning", assignments: {} };
   const assignments: Record<number, PoolAssignment> = {};
   for (const pf of state.pool) {
     const face = getFace(pf.faceId);
     if (!face) continue;
-    if (
-      face.target === "self" ||
-      face.target === "none" ||
-      face.target === "all-front" ||
-      face.target === "all-enemies"
-    ) {
-      assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: false };
+    if (face.target === "none") {
+      assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
+      continue;
+    }
+    // Defensive faces wait for the player to pick a specific attack glyph.
+    if (hasDefensiveSymbol(face)) continue;
+    if (face.target === "self") {
+      s = applyFaceEffect(s, face, null);
+      assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
+      continue;
+    }
+    if (face.target === "all-front" || face.target === "all-enemies") {
+      s = applyFaceEffect(s, face, null);
+      assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
+      continue;
     }
   }
-  return { ...state, phase: "assigning", assignments };
+  s = { ...s, assignments };
+  if (isVictory(s)) return finalize(s, "victory");
+  return s;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -317,6 +342,21 @@ export interface AssignCheck {
   readonly reason?: string;
 }
 
+/** Parse an attack-target string `attack:UID:IDX` into its parts, or null. */
+function parseAttackTarget(targetUid: string | null): { uid: string; idx: number } | null {
+  if (!targetUid || !targetUid.startsWith("attack:")) return null;
+  const parts = targetUid.split(":");
+  if (parts.length !== 3) return null;
+  const idx = Number.parseInt(parts[2], 10);
+  if (Number.isNaN(idx)) return null;
+  return { uid: parts[1], idx };
+}
+
+/** True if the face has at least one defensive symbol (shield/dodge/riposte). */
+function hasDefensiveSymbol(face: FaceDef): boolean {
+  return face.symbols?.some((s) => s === "shield" || s === "dodge" || s === "riposte") ?? false;
+}
+
 export function canAssign(
   state: DiceCombatState,
   poolId: number,
@@ -325,14 +365,31 @@ export function canAssign(
   if (state.phase !== "assigning") return { ok: false, reason: "Not assigning." };
   const face = faceAtPoolId(state, poolId);
   if (!face) return { ok: false, reason: "No such face." };
-  return validateTarget(state, face.target, targetUid);
+  // Already resolved? Block re-assignment.
+  if (state.assignments[poolId]?.resolved) return { ok: false, reason: "Already resolved." };
+  // Attack-glyph target (defensive assignment).
+  const atk = parseAttackTarget(targetUid);
+  if (atk) {
+    if (!hasDefensiveSymbol(face)) {
+      return { ok: false, reason: "This face has no defensive symbol." };
+    }
+    const enemy = state.enemies.find((e) => e.uid === atk.uid && e.hp > 0);
+    if (!enemy) return { ok: false, reason: "Invalid attacker." };
+    if (atk.idx < 0 || atk.idx >= enemy.rolledFaces.length) {
+      return { ok: false, reason: "Invalid attack glyph." };
+    }
+    return { ok: true };
+  }
+  return validateTarget(state, face, targetUid);
 }
 
 function validateTarget(
   state: DiceCombatState,
-  kind: FaceTargetKind,
+  face: FaceDef,
   targetUid: string | null,
 ): AssignCheck {
+  const kind = face.target;
+  const ranged = face.tags?.includes("ranged") ?? false;
   if (kind === "self" || kind === "none") {
     return targetUid === null ? { ok: true } : { ok: false, reason: "This face has no target." };
   }
@@ -342,7 +399,8 @@ function validateTarget(
   if (!targetUid) return { ok: false, reason: "Pick a target." };
   const enemy = state.enemies.find((e) => e.uid === targetUid && e.hp > 0 && !e.untargetable);
   if (!enemy) return { ok: false, reason: "Invalid target." };
-  if (kind === "front-enemy" && enemy.row !== "front") {
+  // `ranged` tag overrides front-row restriction.
+  if (kind === "front-enemy" && enemy.row !== "front" && !ranged) {
     return { ok: false, reason: "Front-row only." };
   }
   return { ok: true };
@@ -355,19 +413,64 @@ export function assignFace(
 ): DiceCombatState {
   const check = canAssign(state, poolId, targetUid);
   if (!check.ok) return state;
-  return {
-    ...state,
+  const face = faceAtPoolId(state, poolId);
+  if (!face) return state;
+
+  let s = state;
+  const atk = parseAttackTarget(targetUid);
+  if (atk) {
+    // Defensive assignment: register a mitigation, deferred to enemy attack time.
+    const key = `${atk.uid}:${atk.idx}`;
+    const cur: AttackMitigation = s.attackMitigations[key] ?? {
+      block: 0,
+      dodge: false,
+      riposteDamage: 0,
+    };
+    let block = cur.block;
+    let dodge = cur.dodge;
+    let riposteDamage = cur.riposteDamage;
+    for (const sym of face.symbols ?? []) {
+      if (sym === "shield") block += 1;
+      else if (sym === "dodge") dodge = true;
+      else if (sym === "riposte") riposteDamage += 1;
+      // Self-affecting symbols on a defensive face still apply to the player.
+      else if (
+        sym === "heart" ||
+        sym === "crystal" ||
+        sym === "power" ||
+        sym === "sun" ||
+        sym === "cleanse"
+      ) {
+        // Apply via the symbol resolver against self.
+        s = applyFaceSymbols(s, { ...face, symbols: [sym] }, null);
+      }
+    }
+    s = {
+      ...s,
+      attackMitigations: { ...s.attackMitigations, [key]: { block, dodge, riposteDamage } },
+      log: appendLog(s, "player", `${face.label} → defends vs attack.`),
+    };
+  } else {
+    // Normal assignment: resolve the face immediately against the target.
+    s = applyFaceEffect(s, face, targetUid);
+  }
+
+  s = {
+    ...s,
     assignments: {
-      ...state.assignments,
-      [poolId]: { poolId, targetUid, resolved: false },
+      ...s.assignments,
+      [poolId]: { poolId, targetUid, resolved: true },
     },
   };
+  // v3: assignments resolve immediately, so a kill can end combat mid-pool.
+  if (isVictory(s)) return finalize(s, "victory");
+  return s;
 }
 
-export function clearAssignment(state: DiceCombatState, poolId: number): DiceCombatState {
-  const next = { ...state.assignments };
-  delete next[poolId];
-  return { ...state, assignments: next };
+/** v3 leaves this as a no-op — once resolved, an assignment cannot be cleared. Kept
+ * for API compatibility with old callers; returns state unchanged. */
+export function clearAssignment(state: DiceCombatState, _poolId: number): DiceCombatState {
+  return state;
 }
 
 export function allAssigned(state: DiceCombatState): boolean {
@@ -375,6 +478,9 @@ export function allAssigned(state: DiceCombatState): boolean {
     const face = getFace(pf.faceId);
     if (!face) continue;
     if (face.target === "none") continue;
+    // Defensive faces are optional — leaving them unassigned wastes them but
+    // does not block turn end.
+    if (hasDefensiveSymbol(face)) continue;
     if (!state.assignments[pf.poolId]) return false;
   }
   return true;
@@ -384,51 +490,303 @@ export function allAssigned(state: DiceCombatState): boolean {
  * RESOLVE TURN
  * ───────────────────────────────────────────────────────────────────────── */
 
+/** Build the enemy attack queue: front-row enemies first, each contributing one
+ * entry per rolled face (or a single legacy entry if they still use intents).
+ * Stunned/dead/reassembling enemies are skipped (stun decrement happens when
+ * stepEnemyTurn encounters them via a synthetic skip — kept simple by handling
+ * stun in stepEnemyTurn itself, not at queue build time). */
+function buildEnemyQueue(state: DiceCombatState): EnemyQueueEntry[] {
+  const order = [...state.enemies].sort(
+    (a, b) => (a.row === "front" ? -1 : 1) - (b.row === "front" ? -1 : 1),
+  );
+  const queue: EnemyQueueEntry[] = [];
+  for (const e of order) {
+    if (e.hp <= 0 || e.untargetable || e.reassembleQueued) continue;
+    if (e.rolledFaces.length > 0) {
+      for (let i = 0; i < e.rolledFaces.length; i++) {
+        queue.push({ uid: e.uid, faceIndex: i });
+      }
+    } else {
+      queue.push({ uid: e.uid, faceIndex: null });
+    }
+  }
+  return queue;
+}
+
+/** v3: kicks off enemy phase by setting up the queue. UI then calls stepEnemyTurn
+ * repeatedly to walk through it. Bust path also routes through here. */
 export function resolveTurn(state: DiceCombatState): DiceCombatState {
   if (state.phase === "busted") {
-    let s: DiceCombatState = { ...state, phase: "resolving-enemies" };
-    s = resolveEnemyIntents(s);
-    if (isDefeat(s)) return finalize(s, "defeat");
-    s = endOfTurn(s);
-    if (isVictory(s)) return finalize(s, "victory");
-    if (isDefeat(s)) return finalize(s, "defeat");
-    s = telegraphIntents(s);
-    return s;
+    return { ...state, phase: "resolving-enemies", enemyQueue: buildEnemyQueue(state) };
   }
-
   if (state.phase !== "assigning") return state;
   if (!allAssigned(state)) return state;
+  if (isVictory(state)) return finalize(state, "victory");
+  return { ...state, phase: "resolving-enemies", enemyQueue: buildEnemyQueue(state) };
+}
 
-  let s: DiceCombatState = { ...state, phase: "resolving-player" };
-  s = resolvePlayerPool(s);
-  if (isVictory(s)) return finalize(s, "victory");
-
-  s = { ...s, phase: "resolving-enemies" };
-  s = resolveEnemyIntents(s);
-  if (isDefeat(s)) return finalize(s, "defeat");
-
-  s = endOfTurn(s);
-  if (isVictory(s)) return finalize(s, "victory");
-  if (isDefeat(s)) return finalize(s, "defeat");
-
-  s = telegraphIntents(s);
+/** Drain the entire enemy queue synchronously. Used by tests and as the
+ * fallback path; the UI prefers stepEnemyTurn for animation. */
+export function runEnemyTurnSync(state: DiceCombatState): DiceCombatState {
+  let s = state;
+  let safety = 100;
+  while (s.phase === "resolving-enemies" && safety-- > 0) {
+    s = stepEnemyTurn(s);
+  }
   return s;
 }
 
-function resolvePlayerPool(state: DiceCombatState): DiceCombatState {
+/** v3: process exactly ONE entry from the enemy queue. Caller (UI) ticks this on a
+ * timer so the player can see attacks land one at a time. When the queue empties,
+ * runs end-of-turn cleanup and starts the next player turn. */
+export function stepEnemyTurn(state: DiceCombatState): DiceCombatState {
+  if (state.phase !== "resolving-enemies") return state;
+
+  // Queue empty → finish the turn.
+  if (state.enemyQueue.length === 0) {
+    let s = endOfTurn(state);
+    if (isVictory(s)) return finalize(s, "victory");
+    if (isDefeat(s)) return finalize(s, "defeat");
+    s = telegraphIntents(s);
+    return { ...s, lastEnemyAction: null };
+  }
+
+  const head = state.enemyQueue[0];
+  const rest = state.enemyQueue.slice(1);
+  const enemy = state.enemies.find((e) => e.uid === head.uid);
+  if (!enemy || enemy.hp <= 0) {
+    return { ...state, enemyQueue: rest, lastEnemyAction: head };
+  }
+  // Stun: the entire enemy skips this turn — drop ALL remaining entries for this uid.
+  if (enemy.statuses.stun && enemy.statuses.stun > 0) {
+    const s: DiceCombatState = {
+      ...state,
+      enemies: state.enemies.map((x) =>
+        x.uid === enemy.uid
+          ? { ...x, statuses: { ...x.statuses, stun: Math.max(0, (x.statuses.stun ?? 0) - 1) } }
+          : x,
+      ),
+      log: appendLog(state, "system", `${enemy.name} is stunned.`),
+      enemyQueue: rest.filter((q) => q.uid !== enemy.uid),
+      lastEnemyAction: head,
+    };
+    return s;
+  }
   let s = state;
-  // Resolve in pool order (the order the player rolled).
-  for (const pf of s.pool) {
-    const face = getFace(pf.faceId);
-    if (!face) continue;
-    const a = s.assignments[pf.poolId];
-    if (face.target !== "none" && !a && face.target !== "self") {
-      // unassigned non-self face — skip (shouldn't happen if allAssigned)
+  if (head.faceIndex === null) {
+    // Legacy fixed intent.
+    const intent = enemy.intent;
+    const def = getEnemyDef(enemy.id);
+    if (intent && intent.damage !== undefined) {
+      s = damagePlayer(s, intent.damage, enemy.name, intent.label);
+    }
+    if (def?.resolveIntent && intent) {
+      const refreshed = s.enemies.find((x) => x.uid === enemy.uid);
+      if (refreshed) s = def.resolveIntent(refreshed, s, intent);
+    }
+  } else {
+    const rf = enemy.rolledFaces[head.faceIndex];
+    const face = rf ? getFace(rf.faceId) : null;
+    if (rf && face) {
+      s = applyEnemyFace(s, enemy.uid, face, rf.targetUid, head.faceIndex);
+    }
+    // After the LAST rolledFace for this enemy, fire resolveIntent so aux effects
+    // (Necromancer summon, Grave Robber pilfer, False Sacrarium force, Salt Revenant
+    // lock, Larva animate, Vampire Lord heal, Lich phase logic) still run.
+    const moreFromThisEnemy = rest.some((q) => q.uid === enemy.uid);
+    if (!moreFromThisEnemy) {
+      const def = getEnemyDef(enemy.id);
+      if (def?.resolveIntent && enemy.intent) {
+        const refreshed = s.enemies.find((x) => x.uid === enemy.uid);
+        if (refreshed && refreshed.hp > 0) {
+          s = def.resolveIntent(refreshed, s, enemy.intent);
+        }
+      }
+    }
+  }
+  if (isDefeat(s)) return finalize(s, "defeat");
+  // If the attacker died (riposte), drop its remaining queue entries.
+  const stillAlive = s.enemies.find((x) => x.uid === enemy.uid && x.hp > 0);
+  const filtered = stillAlive ? rest : rest.filter((q) => q.uid !== enemy.uid);
+  return { ...s, enemyQueue: filtered, lastEnemyAction: head };
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * v3 SYMBOL RESOLVER
+ *
+ * When a face declares `symbols`, we run it through here. The symbol bag is
+ * the authoritative effect spec; v2 effect fields are ignored. The resolver
+ * routes through the same damageEnemy/applyStatusToEnemy/cleansePlayer paths
+ * v2 uses, so redirects, resistances, and hooks all keep working.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+function hasTag(face: FaceDef, tag: FaceTag): boolean {
+  return face.tags?.includes(tag) ?? false;
+}
+
+function symbolDamageType(face: FaceDef): DamageType {
+  if (hasTag(face, "heavy")) return "bludgeoning";
+  if (hasTag(face, "pierce")) return "pierce";
+  if (hasTag(face, "holy")) return "holy";
+  // Fire damage is symbol-driven (flame symbol uses "fire"); sword default is slash.
+  return "slash";
+}
+
+function rowAdjacent(state: DiceCombatState, uid: string): readonly string[] {
+  const target = state.enemies.find((e) => e.uid === uid);
+  if (!target) return [];
+  const sameRow = state.enemies.filter((e) => e.hp > 0 && e.row === target.row);
+  const idx = sameRow.findIndex((e) => e.uid === uid);
+  if (idx < 0) return [];
+  const out: string[] = [];
+  if (idx > 0) out.push(sameRow[idx - 1].uid);
+  if (idx < sameRow.length - 1) out.push(sameRow[idx + 1].uid);
+  return out;
+}
+
+function applySymbolsToTargets(
+  state: DiceCombatState,
+  face: FaceDef,
+  symbols: readonly SymbolKey[],
+  primaryUid: string | null,
+): DiceCombatState {
+  let s = state;
+  if (!primaryUid) return s;
+
+  // Build the actual target list — primary + adjacency if `area`.
+  const offensiveUids: string[] = [primaryUid];
+  if (hasTag(face, "area")) {
+    for (const adj of rowAdjacent(s, primaryUid)) {
+      if (!offensiveUids.includes(adj)) offensiveUids.push(adj);
+    }
+  }
+
+  for (const sym of symbols) {
+    if (sym === "sword" || sym === "riposte") {
+      // Riposte without attack-targeting collapses to "free pre-emptive 1 damage".
+      const dt = symbolDamageType(face);
+      const seen = new Set<string>();
+      for (const uid of offensiveUids) {
+        const actual = resolveDamageRedirect(s, uid);
+        if (seen.has(actual)) continue;
+        seen.add(actual);
+        s = damageEnemy(s, actual, 1, dt, face.label);
+      }
+    } else if (sym === "flame") {
+      const seen = new Set<string>();
+      for (const uid of offensiveUids) {
+        const actual = resolveDamageRedirect(s, uid);
+        if (seen.has(actual)) continue;
+        seen.add(actual);
+        s = damageEnemy(s, actual, 1, "fire", face.label);
+      }
+    } else if (sym === "drop") {
+      for (const uid of offensiveUids) s = applyStatusToEnemy(s, uid, "bleed", 1, face.label);
+    } else if (sym === "spark") {
+      for (const uid of offensiveUids) s = applyStatusToEnemy(s, uid, "stun", 1, face.label);
+    } else if (sym === "bolt") {
+      for (const uid of offensiveUids) s = applyStatusToEnemy(s, uid, "weaken", 1, face.label);
+    } else if (sym === "mark") {
+      for (const uid of offensiveUids) s = applyStatusToEnemy(s, uid, "mark", 1, face.label);
+    } else if (sym === "push") {
+      for (const uid of offensiveUids) s = pushEnemyToOppositeRow(s, uid, face.label);
+    } else if (sym === "cleanse") {
+      // Targeted to enemy: remove a status off it. (Self cleanse handled in self-buff pass.)
+      for (const uid of offensiveUids) {
+        const e = s.enemies.find((x) => x.uid === uid);
+        if (!e) continue;
+        const keys = Object.keys(e.statuses).filter(
+          (k) => (e.statuses as Record<string, number>)[k] > 0,
+        );
+        if (keys.length === 0) continue;
+        const next = { ...e.statuses } as Record<string, number>;
+        delete next[keys[0]];
+        s = {
+          ...s,
+          enemies: s.enemies.map((x) =>
+            x.uid === uid ? { ...x, statuses: next as DiceEnemy["statuses"] } : x,
+          ),
+        };
+      }
+    }
+    // sword/flame/etc above; symbols not relevant to enemies (heart, shield, sun, etc.) handled in self pass.
+  }
+  return s;
+}
+
+function applyFaceSymbols(
+  state: DiceCombatState,
+  face: FaceDef,
+  targetUid: string | null,
+): DiceCombatState {
+  let s = state;
+  const symbols = face.symbols ?? [];
+
+  // Self-affecting symbols first.
+  // NOTE: shield/dodge/riposte are *only* meaningful when assigned to a specific
+  // enemy attack. If a defensive face was self-applied (fallback when no attacks
+  // remain to defend), those symbols simply waste — they do not feed a block soup.
+  for (const sym of symbols) {
+    if (sym === "shield" || sym === "dodge" || sym === "riposte") {
       continue;
     }
-    s = applyFaceEffect(s, face, a?.targetUid ?? null);
-    if (isVictory(s)) break;
+    if (sym === "heart") {
+      // Heart heals friendly. In single-player "friendly" = self.
+      const newHp = Math.min(s.player.maxHp, s.player.hp + 1);
+      const healed = newHp - s.player.hp;
+      if (healed > 0) {
+        s = {
+          ...s,
+          player: { ...s.player, hp: newHp },
+          log: appendLog(s, "player", `${face.label}: healed ${healed}.`),
+        };
+      }
+    } else if (sym === "crystal") {
+      s = {
+        ...s,
+        player: { ...s.player, salt: s.player.salt + 1 },
+        log: appendLog(s, "player", `${face.label}: +1 salt.`),
+      };
+    } else if (sym === "power") {
+      s = {
+        ...s,
+        player: { ...s.player, powerCharges: s.player.powerCharges + 1 },
+        log: appendLog(s, "player", `${face.label}: +1 power.`),
+      };
+    } else if (sym === "sun") {
+      // Bolster on self.
+      const cur = (s.player.statuses.bolster ?? 0) + 1;
+      s = {
+        ...s,
+        player: { ...s.player, statuses: { ...s.player.statuses, bolster: cur } },
+        log: appendLog(s, "player", `${face.label}: +1 Bolster.`),
+      };
+    } else if (sym === "cleanse" && (face.target === "self" || targetUid === null)) {
+      s = cleansePlayer(s, 1, face.label);
+    }
   }
+
+  // Offensive symbols routed through targets.
+  if (face.target !== "self" && face.target !== "none" && targetUid) {
+    s = applySymbolsToTargets(s, face, symbols, targetUid);
+  }
+
+  // Meta-effects that don't have a symbol equivalent — coexist with the symbol bag.
+  if (face.grantHymnHum) {
+    s = { ...s, player: { ...s.player, hymnHumActive: true } };
+  }
+  if (face.grantResonance) {
+    s = { ...s, player: { ...s.player, resonanceCharges: s.player.resonanceCharges + 1 } };
+  }
+  if (face.breakSlotLock && s.player.slotLocks.length > 0) {
+    const removed = s.player.slotLocks[0];
+    s = {
+      ...s,
+      player: { ...s.player, slotLocks: s.player.slotLocks.slice(1) },
+      log: appendLog(s, "player", `${face.label}: broke ${removed} lock.`),
+    };
+  }
+
   return s;
 }
 
@@ -437,6 +795,11 @@ function applyFaceEffect(
   face: FaceDef,
   targetUid: string | null,
 ): DiceCombatState {
+  // v3: when a face declares symbols, the symbol bag is authoritative.
+  if (face.symbols && face.symbols.length > 0) {
+    return applyFaceSymbols(state, face, targetUid);
+  }
+
   let s = state;
 
   // Self-buffs first.
@@ -585,6 +948,9 @@ function damageEnemy(
   let dmg = base;
   if (state.player.powerCharges > 0) dmg += state.player.powerCharges;
   if (state.player.twoHandedActive) dmg += 1;
+  // v3 Bolster: each stack adds +1 to damage symbols this turn.
+  const bolster = state.player.statuses.bolster ?? 0;
+  if (bolster > 0) dmg += bolster;
   // Robes Censer +1 vs undead.
   if (type === "fire" && source === "Censer" && isUndead(enemy)) {
     dmg += 1;
@@ -603,13 +969,50 @@ function damageEnemy(
 
   dmg = Math.max(0, dmg);
 
+  // v3: Mark doubles the next damage instance, then consumes a stack.
+  let mark = enemy.statuses.mark ?? 0;
+  if (mark > 0 && dmg > 0) {
+    dmg = dmg * 2;
+    mark -= 1;
+  }
+  // v3: enemy `warded` stacks act as block. Pierce ignores.
+  let warded = enemy.statuses.warded ?? 0;
+  let absorbed = 0;
+  if (warded > 0 && dmg > 0 && type !== "pierce") {
+    absorbed = Math.min(warded, dmg);
+    dmg -= absorbed;
+    warded -= absorbed;
+  }
+
+  const newStatuses: Record<string, number> = { ...enemy.statuses, warded, mark };
+  if (warded === 0) delete newStatuses.warded;
+  if (mark === (enemy.statuses.mark ?? 0)) {
+    /* unchanged */
+  } else if (mark === 0) {
+    delete newStatuses.mark;
+  }
+
   const newHp = Math.max(0, enemy.hp - dmg);
-  const enemies = state.enemies.map((e) => (e.uid === uid ? { ...e, hp: newHp } : e));
+  const enemies = state.enemies.map((e) =>
+    e.uid === uid ? { ...e, hp: newHp, statuses: newStatuses as DiceEnemy["statuses"] } : e,
+  );
+  const baseLog = appendLog(state, "player", `${source}: ${dmg} ${type} → ${enemy.name}.`);
+  const logAfterAbsorb =
+    absorbed > 0
+      ? [
+          ...baseLog,
+          {
+            turn: state.turn,
+            source: "system" as const,
+            text: `${enemy.name} absorbs ${absorbed}.`,
+          },
+        ]
+      : baseLog;
   let s: DiceCombatState = {
     ...state,
     enemies,
     player: { ...state.player, powerCharges: 0 },
-    log: appendLog(state, "player", `${source}: ${dmg} ${type} → ${enemy.name}.`),
+    log: logAfterAbsorb,
   };
 
   // afterDamaged hook (Vampire Lord threshold heal).
@@ -727,49 +1130,205 @@ function cleansePlayer(state: DiceCombatState, count: number, source: string): D
  * ───────────────────────────────────────────────────────────────────────── */
 
 function telegraphIntents(state: DiceCombatState): DiceCombatState {
+  let rng = state.rng;
   const enemies = state.enemies.map((e) => {
-    if (e.hp <= 0 || e.reassembleQueued) return { ...e, intent: null };
+    if (e.hp <= 0 || e.reassembleQueued) return { ...e, intent: null, rolledFaces: [] };
     const def = getEnemyDef(e.id);
     if (!def) return e;
-    return { ...e, intent: def.selectIntent(e, state) };
+    // v3: if the enemy has dice, roll them and stash rolledFaces.
+    if (def.dice && def.dice.length > 0) {
+      const rolled: { dieId: string; faceId: string; targetUid: string }[] = [];
+      for (const die of def.dice) {
+        const r = rollD6(rng);
+        rng = r.seed;
+        const faceId = die.faces[r.face];
+        // Targeting: offensive faces point at "player"; self/defensive at the enemy itself.
+        const targetUid = die.defaultTarget === "self" ? e.uid : "player";
+        rolled.push({ dieId: die.id, faceId, targetUid });
+      }
+      return { ...e, intent: def.selectIntent(e, state), rolledFaces: rolled };
+    }
+    return { ...e, intent: def.selectIntent(e, state), rolledFaces: [] };
   });
-  return { ...state, enemies };
+  return { ...state, enemies, rng };
 }
 
-function resolveEnemyIntents(state: DiceCombatState): DiceCombatState {
+function applyEnemyFace(
+  state: DiceCombatState,
+  attackerUid: string,
+  face: FaceDef,
+  _defaultTargetUid: string,
+  faceIndex: number,
+): DiceCombatState {
   let s = state;
-  // Front row first.
-  const order = [...s.enemies].sort(
-    (a, b) => (a.row === "front" ? -1 : 1) - (b.row === "front" ? -1 : 1),
-  );
-  for (const e of order) {
-    const fresh = s.enemies.find((x) => x.uid === e.uid);
-    if (!fresh || fresh.hp <= 0 || fresh.untargetable || fresh.reassembleQueued) continue;
-    if (fresh.statuses.stun && fresh.statuses.stun > 0) {
+  let attacker = s.enemies.find((e) => e.uid === attackerUid);
+  if (!attacker) return s;
+
+  const symbols = face.symbols ?? [];
+  const unblockable = face.tags?.includes("unblockable") ?? false;
+  const undodgeable = face.tags?.includes("undodgeable") ?? false;
+
+  // v3: consult per-attack mitigations the player set during assignment.
+  const mitigationKey = `${attackerUid}:${faceIndex}`;
+  const mit = s.attackMitigations[mitigationKey];
+
+  // Riposte fires before any of the face's symbols. Pre-empt damage to attacker.
+  if (mit && mit.riposteDamage > 0) {
+    s = damageEnemy(s, attackerUid, mit.riposteDamage, "slash", "Riposte");
+    attacker = s.enemies.find((e) => e.uid === attackerUid);
+    // If riposte killed the attacker, the attack is cancelled.
+    if (!attacker || attacker.hp <= 0) {
+      return s;
+    }
+  }
+  // Targeted dodge cancels this whole attack face (if not undodgeable).
+  if (mit && mit.dodge && !undodgeable) {
+    s = {
+      ...s,
+      log: appendLog(s, "player", `Dodged ${attacker.name}'s ${face.label}.`),
+    };
+    return s;
+  }
+  // Targeted block budget for this attack.
+  let attackBlock = unblockable ? 0 : (mit?.block ?? 0);
+
+  for (const sym of symbols) {
+    if (sym === "sword") {
+      // 1 damage to player, respecting unblockable / undodgeable.
+      let dmg = 1;
+      if (s.player.statuses.weaken && s.player.statuses.weaken > 0) dmg = Math.max(0, dmg - 1);
+      if (!undodgeable && s.player.dodgeActive) {
+        s = {
+          ...s,
+          player: { ...s.player, dodgeActive: false },
+          log: appendLog(s, "player", `Dodged ${attacker.name}'s ${face.label}.`),
+        };
+        continue;
+      }
+      // Per-attack targeted block (from attackMitigations).
+      if (attackBlock > 0 && dmg > 0) {
+        const absorbed = Math.min(attackBlock, dmg);
+        dmg -= absorbed;
+        attackBlock -= absorbed;
+        s = {
+          ...s,
+          log: appendLog(s, "system", `Shield absorbs ${absorbed} of ${attacker.name}'s damage.`),
+        };
+      }
+      // Soup block (legacy / non-targeted). Untargeted shield faces still drop here.
+      if (!unblockable && s.player.block > 0 && dmg > 0) {
+        const absorbed = Math.min(s.player.block, dmg);
+        dmg -= absorbed;
+        s = {
+          ...s,
+          player: { ...s.player, block: s.player.block - absorbed },
+          log: appendLog(s, "system", `Blocked ${absorbed} of ${attacker.name}'s damage.`),
+        };
+      }
+      if (dmg > 0) {
+        const newHp = Math.max(0, s.player.hp - dmg);
+        s = {
+          ...s,
+          player: { ...s.player, hp: newHp },
+          log: appendLog(s, "enemy", `${attacker.name}'s ${face.label} hits for ${dmg}.`),
+        };
+        if (isDefeat(s)) return s;
+      }
+    } else if (sym === "spark") {
+      // Stun applies to player as the existing stun status (one whole intent skipped).
+      const cur = (s.player.statuses.stun ?? 0) + 1;
+      s = {
+        ...s,
+        player: { ...s.player, statuses: { ...s.player.statuses, stun: cur } },
+        log: appendLog(s, "enemy", `${attacker.name}: +1 Stun.`),
+      };
+    } else if (sym === "bolt") {
+      const cur = (s.player.statuses.weaken ?? 0) + 1;
+      s = {
+        ...s,
+        player: { ...s.player, statuses: { ...s.player.statuses, weaken: cur } },
+        log: appendLog(s, "enemy", `${attacker.name}: +1 Weaken.`),
+      };
+    } else if (sym === "drop") {
+      const cur = (s.player.statuses.bleed ?? 0) + 1;
+      s = {
+        ...s,
+        player: { ...s.player, statuses: { ...s.player.statuses, bleed: cur } },
+        log: appendLog(s, "enemy", `${attacker.name}: +1 Bleed.`),
+      };
+    } else if (sym === "shield") {
+      // Self-block on the attacker — `warded` stacks act as block (consumed by
+      // `damageEnemy`). Always lands on the attacker, regardless of where the
+      // face's offensive symbols are pointing.
       s = {
         ...s,
         enemies: s.enemies.map((x) =>
-          x.uid === fresh.uid
+          x.uid === attackerUid
             ? {
                 ...x,
-                statuses: { ...x.statuses, stun: Math.max(0, (x.statuses.stun ?? 0) - 1) },
+                statuses: { ...x.statuses, warded: (x.statuses.warded ?? 0) + 1 },
               }
             : x,
         ),
-        log: appendLog(s, "system", `${fresh.name} is stunned.`),
+        log: appendLog(s, "enemy", `${attacker.name} braces (+1 armor).`),
       };
-      continue;
-    }
-    const intent = fresh.intent;
-    if (!intent) continue;
-    const def = getEnemyDef(fresh.id);
-    if (intent.damage !== undefined) {
-      s = damagePlayer(s, intent.damage, fresh.name, intent.label);
-      if (isDefeat(s)) return s;
-    }
-    if (def?.resolveIntent) {
-      const refreshed = s.enemies.find((x) => x.uid === fresh.uid);
-      if (refreshed) s = def.resolveIntent(refreshed, s, intent);
+    } else if (sym === "heart") {
+      // Self-heal on the attacker (e.g. Vampire's Drain).
+      s = {
+        ...s,
+        enemies: s.enemies.map((x) =>
+          x.uid === attackerUid ? { ...x, hp: Math.min(x.maxHp, x.hp + 1) } : x,
+        ),
+        log: appendLog(s, "enemy", `${attacker.name} heals 1.`),
+      };
+    } else if (sym === "steal") {
+      const stolen = Math.min(1, s.player.salt);
+      if (stolen > 0) {
+        s = {
+          ...s,
+          player: { ...s.player, salt: s.player.salt - stolen },
+          log: appendLog(s, "enemy", `${attacker.name} pilfers ${stolen} salt.`),
+        };
+      } else {
+        s = { ...s, log: appendLog(s, "enemy", `${attacker.name} finds no salt.`) };
+      }
+    } else if (sym === "reproduce") {
+      // Spawn a same-id enemy in the same row, capped at 5 of this id alive.
+      const sameKind = s.enemies.filter((x) => x.id === attacker.id && x.hp > 0).length;
+      if (sameKind < 5) {
+        const def = getEnemyDef(attacker.id);
+        if (def) {
+          const r = nextRng(s.rng);
+          const newEnemy: DiceEnemy = {
+            uid: `${attacker.id}_spawn_${r.value}`,
+            id: def.id,
+            name: def.name,
+            icon: def.icon,
+            hp: def.maxHp,
+            maxHp: def.maxHp,
+            row: attacker.row,
+            statuses: {},
+            resistances: def.resistances,
+            vulnerabilities: def.vulnerabilities,
+            isBoss: def.isBoss,
+            intent: null,
+            untargetable: false,
+            reassembleQueued: false,
+            reassembleCountdown: 0,
+            turnsAlive: 0,
+            phaseIndex: 0,
+            thresholdHealUsed: false,
+            intangible: false,
+            rolledFaces: [],
+          };
+          s = {
+            ...s,
+            rng: r.seed,
+            enemies: [...s.enemies, newEnemy],
+            log: appendLog(s, "enemy", `${attacker.name} reproduces — a new ${def.name} arrives.`),
+          };
+        }
+      }
     }
   }
   return s;
@@ -814,7 +1373,8 @@ function damagePlayer(
  * ───────────────────────────────────────────────────────────────────────── */
 
 function endOfTurn(state: DiceCombatState): DiceCombatState {
-  let s = state;
+  // v3: clear per-attack mitigations — they apply only to this turn's enemy roll.
+  let s: DiceCombatState = { ...state, attackMitigations: {} };
 
   // 1. Heap of Bones countdowns.
   s = {
@@ -841,9 +1401,6 @@ function endOfTurn(state: DiceCombatState): DiceCombatState {
     }),
   };
 
-  // 2. Rat merge: at end of turn, two rats become a stronger rat.
-  s = mergeRats(s);
-
   // 3. Tick player statuses.
   s = tickPlayerStatuses(s);
 
@@ -860,22 +1417,6 @@ function endOfTurn(state: DiceCombatState): DiceCombatState {
   // 7. Run start-of-next-player-turn hooks.
   s = startOfPlayerTurn(s);
   return s;
-}
-
-function mergeRats(state: DiceCombatState): DiceCombatState {
-  const rats = state.enemies.filter((e) => e.id === "rat" && e.hp > 0);
-  if (rats.length < 2) return state;
-  const [a, b] = rats;
-  const mergedHp = a.hp + b.hp + 1;
-  const mergedMax = a.maxHp + b.maxHp + 1;
-  const enemies = state.enemies
-    .filter((e) => e.uid !== b.uid)
-    .map((e) => (e.uid === a.uid ? { ...e, hp: mergedHp, maxHp: mergedMax } : e));
-  return {
-    ...state,
-    enemies,
-    log: appendLog(state, "system", "Two rats merge into a larger one."),
-  };
 }
 
 function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
@@ -901,6 +1442,19 @@ function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
       player: { ...s.player, hp: newHp },
       log: appendLog(s, "system", `Poison: -${poison} HP.`),
     };
+  }
+  // v3: Bolster expires at end of turn (one-turn buff per stack-application).
+  // Weaken decays one stack per turn.
+  if ((s.player.statuses.bolster ?? 0) > 0) {
+    const next = { ...s.player.statuses };
+    delete next.bolster;
+    s = { ...s, player: { ...s.player, statuses: next } };
+  }
+  if ((s.player.statuses.weaken ?? 0) > 0) {
+    const cur = (s.player.statuses.weaken ?? 0) - 1;
+    const next = { ...s.player.statuses, weaken: cur };
+    if (cur === 0) delete (next as Record<string, number>).weaken;
+    s = { ...s, player: { ...s.player, statuses: next } };
   }
   return s;
 }

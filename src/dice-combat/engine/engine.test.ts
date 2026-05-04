@@ -2,12 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   assignFace,
   initDiceCombat,
-  resolveTurn,
+  resolveTurn as _resolveTurn,
+  runEnemyTurnSync,
   rollSlot,
   stopRolling,
   effectiveColor,
   dieForSlot,
 } from "./index";
+
+/** Test helper: end-the-turn the way the old API did — sync resolve through
+ * the new queue-based enemy phase. */
+function resolveTurn(s: DiceCombatState): DiceCombatState {
+  return runEnemyTurnSync(_resolveTurn(s));
+}
 import { ABILITY_STARTING_FACES, getFace } from "../dice-defs";
 import type { DiceCombatState, DieSlot, PoolFace } from "../types";
 
