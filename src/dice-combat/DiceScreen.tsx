@@ -796,6 +796,24 @@ function DiceTray({
   );
 }
 
+function wouldBust(state: DiceCombatState, colorId: FaceColor, isSilent: boolean): boolean {
+  if (isSilent) return false;
+  const seenByColor = new Map<FaceColor, number>();
+  for (const pf of state.pool) {
+    let c = pf.color;
+    if (state.player.hymnHumActive && c === "echo") continue;
+    const fd = getFace(pf.faceId);
+    if (fd?.tags?.includes("silent")) continue;
+    if (state.player.invertedColor && c === state.player.invertedColor) c = "brine";
+    seenByColor.set(c, (seenByColor.get(c) ?? 0) + 1);
+  }
+  let effectiveColor = colorId;
+  if (state.player.hymnHumActive && effectiveColor === "echo") return false;
+  if (state.player.invertedColor && effectiveColor === state.player.invertedColor)
+    effectiveColor = "brine";
+  return (seenByColor.get(effectiveColor) ?? 0) >= 1;
+}
+
 function DieView({
   state,
   slot,
@@ -811,12 +829,28 @@ function DieView({
   const locked = state.player.slotLocks.includes(slot);
   const canRoll = state.phase === "rolling" && !locked;
   const corruptions = state.player.corruptedFaces.filter((c) => c.slot === slot);
+  const hasBustRisk =
+    canRoll &&
+    die.faces.some((faceId) => {
+      const face = getFace(faceId);
+      if (!face) return false;
+      const corruption = corruptions.find((c) => c.faceIndex === die.faces.indexOf(faceId));
+      const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
+      return wouldBust(state, colorId, face.tags?.includes("silent") ?? false);
+    });
+  const border = locked
+    ? "2px solid #c0392b"
+    : hasBustRisk
+      ? "2px solid #E8821F"
+      : canRoll
+        ? "2px solid #27ae60"
+        : "1px solid #3a2a1c";
   return (
     <div
       onClick={canRoll ? onRoll : undefined}
       style={{
         background: locked ? "#2a0c0c" : "#1c1410",
-        border: locked ? "2px solid #c0392b" : canRoll ? "2px solid #27ae60" : "1px solid #3a2a1c",
+        border,
         borderRadius: "6px",
         padding: "0.5rem",
         minWidth: "150px",
@@ -844,6 +878,8 @@ function DieView({
           const corruption = corruptions.find((c) => c.faceIndex === idx);
           const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
           const color = COLORS[colorId];
+          const isSilent = face.tags?.includes("silent") ?? false;
+          const bust = canRoll && wouldBust(state, colorId, isSilent);
           return (
             <div
               key={idx}
@@ -857,15 +893,36 @@ function DieView({
             >
               <span
                 style={{
-                  width: "8px",
-                  height: "8px",
+                  width: "0.8rem",
+                  flexShrink: 0,
+                  textAlign: "center",
+                  lineHeight: 1,
+                  fontSize: "0.8rem",
+                  color: "#ff6b00",
+                }}
+                title={bust ? "Would bust!" : undefined}
+              >
+                {bust ? "⚠" : ""}
+              </span>
+              <span
+                style={{
+                  width: "10px",
+                  height: "10px",
                   background: color.hex,
                   borderRadius: "2px",
-                  display: "inline-block",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   border: corruption ? "1px solid #f1c40f" : "none",
+                  flexShrink: 0,
+                  fontSize: "0.5rem",
+                  lineHeight: 1,
+                  color: "#000",
+                  fontWeight: "bold",
                 }}
-              />
-              <span style={{ width: "10px", textAlign: "center" }}>{color.badge}</span>
+              >
+                {color.badge}
+              </span>
               <span style={{ flex: 1, display: "flex", alignItems: "center", gap: "0.25rem" }}>
                 <FaceGlyphs face={face} size="0.85rem" />
                 <span style={{ opacity: 0.6 }}>{face.label}</span>
