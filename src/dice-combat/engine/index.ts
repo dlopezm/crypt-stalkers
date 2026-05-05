@@ -357,6 +357,11 @@ function hasDefensiveSymbol(face: FaceDef): boolean {
   return face.symbols?.some((s) => s === "shield" || s === "dodge" || s === "riposte") ?? false;
 }
 
+/** True if the face has a *damaging* symbol — what shield/dodge can mitigate. */
+function hasDamagingSymbol(face: FaceDef): boolean {
+  return face.symbols?.some((s) => s === "sword" || s === "flame") ?? false;
+}
+
 export function canAssign(
   state: DiceCombatState,
   poolId: number,
@@ -378,7 +383,18 @@ export function canAssign(
     if (atk.idx < 0 || atk.idx >= enemy.rolledFaces.length) {
       return { ok: false, reason: "Invalid attack glyph." };
     }
+    // Block/dodge/riposte only mitigate damaging attacks. Reproduce, brace,
+    // pilfer, force-face — non-damaging effects — cannot be defended this way.
+    const targetFace = getFace(enemy.rolledFaces[atk.idx].faceId);
+    if (!targetFace || !hasDamagingSymbol(targetFace)) {
+      return { ok: false, reason: "Nothing damaging to block here." };
+    }
     return { ok: true };
+  }
+  // Defensive faces cannot be self-applied — they only have meaning against a
+  // specific incoming attack. If no targetable attack remains, the face wastes.
+  if (targetUid === null && hasDefensiveSymbol(face)) {
+    return { ok: false, reason: "Defensive face — assign to an enemy attack." };
   }
   return validateTarget(state, face, targetUid);
 }
@@ -1131,18 +1147,17 @@ function cleansePlayer(state: DiceCombatState, count: number, source: string): D
 
 function telegraphIntents(state: DiceCombatState): DiceCombatState {
   let rng = state.rng;
+  // First pass: roll dice, collect rolledFaces.
   const enemies = state.enemies.map((e) => {
     if (e.hp <= 0 || e.reassembleQueued) return { ...e, intent: null, rolledFaces: [] };
     const def = getEnemyDef(e.id);
     if (!def) return e;
-    // v3: if the enemy has dice, roll them and stash rolledFaces.
     if (def.dice && def.dice.length > 0) {
       const rolled: { dieId: string; faceId: string; targetUid: string }[] = [];
       for (const die of def.dice) {
         const r = rollD6(rng);
         rng = r.seed;
         const faceId = die.faces[r.face];
-        // Targeting: offensive faces point at "player"; self/defensive at the enemy itself.
         const targetUid = die.defaultTarget === "self" ? e.uid : "player";
         rolled.push({ dieId: die.id, faceId, targetUid });
       }
@@ -1150,7 +1165,25 @@ function telegraphIntents(state: DiceCombatState): DiceCombatState {
     }
     return { ...e, intent: def.selectIntent(e, state), rolledFaces: [] };
   });
-  return { ...state, enemies, rng };
+
+  // v3 Option A: apply enemy `shield` symbols NOW (telegraph time), so the
+  // armor is set BEFORE the player's turn starts. Symmetric with player defense
+  // (set during player turn, consumed during enemy turn). Other symbols stay
+  // queued for attack-resolve time.
+  const armored = enemies.map((e) => {
+    if (!e.rolledFaces || e.rolledFaces.length === 0) return e;
+    let warded = e.statuses.warded ?? 0;
+    for (const rf of e.rolledFaces) {
+      const f = getFace(rf.faceId);
+      if (!f?.symbols) continue;
+      for (const sym of f.symbols) {
+        if (sym === "shield") warded += 1;
+      }
+    }
+    if (warded === (e.statuses.warded ?? 0)) return e;
+    return { ...e, statuses: { ...e.statuses, warded } };
+  });
+  return { ...state, enemies: armored, rng };
 }
 
 function applyEnemyFace(
@@ -1215,16 +1248,8 @@ function applyEnemyFace(
           log: appendLog(s, "system", `Shield absorbs ${absorbed} of ${attacker.name}'s damage.`),
         };
       }
-      // Soup block (legacy / non-targeted). Untargeted shield faces still drop here.
-      if (!unblockable && s.player.block > 0 && dmg > 0) {
-        const absorbed = Math.min(s.player.block, dmg);
-        dmg -= absorbed;
-        s = {
-          ...s,
-          player: { ...s.player, block: s.player.block - absorbed },
-          log: appendLog(s, "system", `Blocked ${absorbed} of ${attacker.name}'s damage.`),
-        };
-      }
+      // v3: shields *only* land via per-attack mitigations (attackMitigations).
+      // There is no global block soup.
       if (dmg > 0) {
         const newHp = Math.max(0, s.player.hp - dmg);
         s = {
@@ -1257,21 +1282,9 @@ function applyEnemyFace(
         log: appendLog(s, "enemy", `${attacker.name}: +1 Bleed.`),
       };
     } else if (sym === "shield") {
-      // Self-block on the attacker — `warded` stacks act as block (consumed by
-      // `damageEnemy`). Always lands on the attacker, regardless of where the
-      // face's offensive symbols are pointing.
-      s = {
-        ...s,
-        enemies: s.enemies.map((x) =>
-          x.uid === attackerUid
-            ? {
-                ...x,
-                statuses: { ...x.statuses, warded: (x.statuses.warded ?? 0) + 1 },
-              }
-            : x,
-        ),
-        log: appendLog(s, "enemy", `${attacker.name} braces (+1 armor).`),
-      };
+      // No-op at attack-resolve: shields were applied at telegraph time so the
+      // armor is in place BEFORE the player's turn (and could be chipped by
+      // their attacks). See telegraphIntents.
     } else if (sym === "heart") {
       // Self-heal on the attacker (e.g. Vampire's Drain).
       s = {
@@ -1342,21 +1355,12 @@ function damagePlayer(
 ): DiceCombatState {
   let dmg = amount;
   if (state.player.statuses.weaken && state.player.statuses.weaken > 0) dmg = Math.max(0, dmg - 1);
-  let s = state;
+  const s = state;
   if (s.player.dodgeActive) {
     return {
       ...s,
       player: { ...s.player, dodgeActive: false },
       log: appendLog(s, "player", `Dodged ${source}'s ${label}.`),
-    };
-  }
-  if (s.player.block > 0) {
-    const absorbed = Math.min(s.player.block, dmg);
-    dmg -= absorbed;
-    s = {
-      ...s,
-      player: { ...s.player, block: s.player.block - absorbed },
-      log: appendLog(s, "system", `Blocked ${absorbed} of ${source}'s damage.`),
     };
   }
   if (dmg <= 0) return s;
@@ -1470,6 +1474,9 @@ function tickEnemyStatuses(state: DiceCombatState): DiceCombatState {
       hp = Math.max(0, hp - bleed);
       statuses.bleed = bleed - 1;
     }
+    // v3: enemy `warded` (block) is one-turn-only — symmetric with the player's
+    // shields, which also expire at end of turn since they're per-attack.
+    if (statuses.warded) delete statuses.warded;
     enemies.push({ ...e, hp, statuses });
   }
   s = { ...s, enemies };

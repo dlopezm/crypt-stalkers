@@ -134,7 +134,9 @@ describe("damage + resistances", () => {
     });
     s = {
       ...s,
-      enemies: s.enemies.map((e) => (e.uid === "sk_1" ? { ...e, hp: 1 } : e)),
+      // Strip armor too — skeleton's Armor Die rolls warded at telegraph, which
+      // would absorb the test's 1-damage probe.
+      enemies: s.enemies.map((e) => (e.uid === "sk_1" ? { ...e, hp: 1, statuses: {} } : e)),
     };
     s = pushFace(s, "main", "dagger_stab"); // 1 slash, crimson
     s = stopRolling(s);
@@ -152,7 +154,9 @@ describe("damage + resistances", () => {
     });
     s = {
       ...s,
-      enemies: s.enemies.map((e) => (e.uid === "sk_1" ? { ...e, hp: 1 } : e)),
+      // Strip armor too — skeleton's Armor Die rolls warded at telegraph, which
+      // would absorb the test's 1-damage probe.
+      enemies: s.enemies.map((e) => (e.uid === "sk_1" ? { ...e, hp: 1, statuses: {} } : e)),
     };
     s = pushFace(s, "main", "hammer_smash"); // 2 bludg, crimson
     s = stopRolling(s);

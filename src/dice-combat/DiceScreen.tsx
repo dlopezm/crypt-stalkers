@@ -16,7 +16,83 @@ import {
 } from "./engine";
 import { COLORS, getFace, SLOT_ORDER } from "./dice-defs";
 import { getEnemyDef } from "./enemy-defs";
-import type { DiceCombatState, DiceLoadout, DieDef, DieSlot, FaceColor, PoolFace } from "./types";
+import type {
+  DiceCombatState,
+  DiceLoadout,
+  DieDef,
+  DieSlot,
+  FaceColor,
+  FaceDef,
+  PoolFace,
+  SymbolKey,
+} from "./types";
+
+/* ── v3 symbol glyphs ──
+ * A face's printed identity: each symbol is one glyph. Renders show the bag
+ * directly so the player reads "🗡🗡💧" instead of relying on a label. */
+const SYMBOL_GLYPH: Record<SymbolKey, string> = {
+  sword: "🗡",
+  shield: "🛡",
+  heart: "❤",
+  flame: "🔥",
+  drop: "💧",
+  spark: "✦",
+  crystal: "◇",
+  bolt: "↯",
+  sun: "☼",
+  riposte: "⤺",
+  cleanse: "⟲",
+  mark: "⚹",
+  power: "↑",
+  dodge: "✷",
+  reproduce: "🐀",
+  steal: "🪙",
+  push: "⇄",
+};
+
+const SYMBOL_LABEL: Record<SymbolKey, string> = {
+  sword: "1 damage",
+  shield: "1 block",
+  heart: "1 heal",
+  flame: "1 fire",
+  drop: "+1 Bleed",
+  spark: "+1 Stun",
+  crystal: "+1 Salt",
+  bolt: "+1 Weaken",
+  sun: "+1 Bolster",
+  riposte: "Riposte",
+  cleanse: "Cleanse",
+  mark: "Mark",
+  power: "+1 Power",
+  dodge: "Dodge",
+  reproduce: "Reproduce",
+  steal: "Steal salt",
+  push: "Push row",
+};
+
+function FaceGlyphs({ face, size = "0.95rem" }: { face: FaceDef; size?: string }) {
+  const symbols = face.symbols ?? [];
+  if (symbols.length === 0) {
+    // Legacy / non-symbol face: fall back to its bespoke icon.
+    return <span style={{ fontSize: size }}>{face.icon || COLORS[face.color].badge}</span>;
+  }
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        gap: "0.1rem",
+        alignItems: "center",
+        fontSize: size,
+        lineHeight: 1,
+      }}
+      title={symbols.map((s) => SYMBOL_LABEL[s]).join(", ")}
+    >
+      {symbols.map((s, i) => (
+        <span key={i}>{SYMBOL_GLYPH[s]}</span>
+      ))}
+    </span>
+  );
+}
 
 interface Props {
   readonly loadout: DiceLoadout;
@@ -456,8 +532,8 @@ function EnemyCard({
                   opacity: cancelled ? 0.5 : 1,
                 }}
               >
-                <span>{face.icon}</span>
-                <span>{face.label}</span>
+                <FaceGlyphs face={face} size="0.85rem" />
+                <span style={{ opacity: 0.55 }}>{face.label}</span>
                 {face.tags?.includes("unblockable") ? <span title="unblockable">⛓🛡</span> : null}
                 {face.tags?.includes("area") ? <span title="area">⤧</span> : null}
                 {mit?.block ? <span style={{ color: "#3FA3D6" }}>🛡{mit.block}</span> : null}
@@ -527,7 +603,6 @@ function PlayerStats({ state }: { state: DiceCombatState }) {
       <div>
         ❤️ HP {p.hp}/{p.maxHp}
       </div>
-      <div>🛡️ Block {p.block}</div>
       <div>💎 Salt {p.salt}</div>
       {p.powerCharges > 0 ? <div>💪 Power +{p.powerCharges}</div> : null}
       {p.twoHandedActive ? <div>⚔️ Edge +1</div> : null}
@@ -647,9 +722,9 @@ function PoolFaceCard({
         <span style={{ fontSize: "0.9rem", marginRight: "0.2rem", opacity: 0.7 }}>
           {color.badge}
         </span>
-        {face.icon}
+        <FaceGlyphs face={face} size="1.3rem" />
       </div>
-      <div style={{ fontSize: "0.75rem", textAlign: "center" }}>{face.label}</div>
+      <div style={{ fontSize: "0.65rem", textAlign: "center", opacity: 0.7 }}>{face.label}</div>
       <div style={{ fontSize: "0.62rem", opacity: 0.6, textAlign: "center" }}>
         {pf.slot} · {color.label}
       </div>
@@ -791,7 +866,10 @@ function DieView({
                 }}
               />
               <span style={{ width: "10px", textAlign: "center" }}>{color.badge}</span>
-              <span style={{ flex: 1 }}>{face.label}</span>
+              <span style={{ flex: 1, display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                <FaceGlyphs face={face} size="0.85rem" />
+                <span style={{ opacity: 0.6 }}>{face.label}</span>
+              </span>
             </div>
           );
         })}
@@ -843,9 +921,12 @@ function ActionBar({
   onSelfApply: () => void;
 }) {
   const phase = state.phase;
+  const isDefensive =
+    selectedFace?.symbols?.some((s) => s === "shield" || s === "dodge" || s === "riposte") ?? false;
   const canSelfApply =
     phase === "assigning" &&
     selectedFace !== null &&
+    !isDefensive &&
     (selectedFace.target === "self" ||
       selectedFace.target === "none" ||
       selectedFace.target === "all-front" ||
@@ -984,8 +1065,16 @@ function DieLearnDialog({
                   {color.badge}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "0.9rem" }}>
-                    {face.icon} {face.label}{" "}
+                  <div
+                    style={{
+                      fontSize: "0.9rem",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                    }}
+                  >
+                    <FaceGlyphs face={face} size="1.1rem" />
+                    <span style={{ opacity: 0.7 }}>{face.label}</span>
                     <span style={{ fontSize: "0.7rem", opacity: 0.6 }}>
                       ({color.label}
                       {corruption ? " — corrupted" : ""})
@@ -1155,7 +1244,8 @@ function EnemyDieDialog({
                           alignItems: "center",
                         }}
                       >
-                        {face.icon} {face.label}
+                        <FaceGlyphs face={face} size="1.1rem" />
+                        <span style={{ opacity: 0.7 }}>{face.label}</span>
                         {face.tags?.includes("unblockable") ? (
                           <span
                             title="unblockable"
