@@ -1,7 +1,7 @@
-import type { DamageType, StatusKey } from "../../types";
+import type { StatusKey } from "../../types";
 import { DICE_BALANCE } from "../balance";
 import { COLORS, getDieForSlot, getFace, SLOT_ORDER, ABILITY_STARTING_FACES } from "../dice-defs";
-import { DICE_ENEMY_DEFS, getEnemyDef } from "../enemy-defs";
+import { DICE_ENEMY_DEFS, getEnemyDef, spawnEnemy, lockSlot } from "../enemy-defs";
 import type {
   AttackMitigation,
   DiceCombatInit,
@@ -42,8 +42,6 @@ export function initDiceCombat(init: DiceCombatInit): DiceCombatState {
       maxHp: def.maxHp,
       row: def.defaultRow,
       statuses: {},
-      resistances: def.resistances,
-      vulnerabilities: def.vulnerabilities,
       isBoss: def.isBoss,
       intent: null,
       untargetable: false,
@@ -517,19 +515,16 @@ export function allAssigned(state: DiceCombatState): boolean {
  * ───────────────────────────────────────────────────────────────────────── */
 
 /** Build the enemy attack queue: front-row enemies first, each contributing one
- * entry per rolled face (or a single legacy entry if they still use intents).
- * Stunned/dead/reassembling enemies are skipped (stun decrement happens when
- * stepEnemyTurn encounters them via a synthetic skip — kept simple by handling
- * stun in stepEnemyTurn itself, not at queue build time). */
+ * entry per rolled face. Stunned/dead/untargetable enemies are skipped. */
 function buildEnemyQueue(state: DiceCombatState): EnemyQueueEntry[] {
   const order = [...state.enemies].sort(
     (a, b) => (a.row === "front" ? -1 : 1) - (b.row === "front" ? -1 : 1),
   );
   const queue: EnemyQueueEntry[] = [];
   for (const e of order) {
-    if (e.hp <= 0 || e.untargetable || e.reassembleQueued) continue;
-    // Enemies that advanced to front this turn (no intent, no rolled faces) skip their turn.
-    if (e.rolledFaces.length === 0 && e.intent === null) continue;
+    if (e.hp <= 0 || e.untargetable) continue;
+    // Enemies that advanced to front this turn (no rolled faces) skip their turn.
+    if (e.rolledFaces.length === 0) continue;
     if (e.rolledFaces.length > 0) {
       for (let i = 0; i < e.rolledFaces.length; i++) {
         queue.push({ uid: e.uid, faceIndex: i });
@@ -611,35 +606,11 @@ export function stepEnemyTurn(state: DiceCombatState): DiceCombatState {
     if (isDefeat(s)) return finalize(s, "defeat");
     return { ...s, enemyQueue: rest, lastEnemyAction: head };
   }
-  if (head.faceIndex === null) {
-    // Legacy fixed intent.
-    const intent = enemy.intent;
-    const def = getEnemyDef(enemy.id);
-    if (intent && intent.damage !== undefined) {
-      s = damagePlayer(s, intent.damage, enemy.name, intent.label);
-    }
-    if (def?.resolveIntent && intent) {
-      const refreshed = s.enemies.find((x) => x.uid === enemy.uid);
-      if (refreshed) s = def.resolveIntent(refreshed, s, intent);
-    }
-  } else {
+  if (head.faceIndex !== null && head.faceIndex >= 0) {
     const rf = enemy.rolledFaces[head.faceIndex];
     const face = rf ? getFace(rf.faceId) : null;
     if (rf && face) {
       s = applyEnemyFace(s, enemy.uid, face, rf.targetUid, head.faceIndex);
-    }
-    // After the LAST rolledFace for this enemy, fire resolveIntent so aux effects
-    // (Necromancer summon, Grave Robber pilfer, False Sacrarium force, Salt Revenant
-    // lock, Larva animate, Vampire Lord heal, Lich phase logic) still run.
-    const moreFromThisEnemy = rest.some((q) => q.uid === enemy.uid);
-    if (!moreFromThisEnemy) {
-      const def = getEnemyDef(enemy.id);
-      if (def?.resolveIntent && enemy.intent) {
-        const refreshed = s.enemies.find((x) => x.uid === enemy.uid);
-        if (refreshed && refreshed.hp > 0) {
-          s = def.resolveIntent(refreshed, s, enemy.intent);
-        }
-      }
     }
   }
   if (isDefeat(s)) return finalize(s, "defeat");
@@ -660,14 +631,6 @@ export function stepEnemyTurn(state: DiceCombatState): DiceCombatState {
 
 function hasTag(face: FaceDef, tag: FaceTag): boolean {
   return face.tags?.includes(tag) ?? false;
-}
-
-function symbolDamageType(face: FaceDef): DamageType {
-  if (hasTag(face, "heavy")) return "bludgeoning";
-  if (hasTag(face, "pierce")) return "pierce";
-  if (hasTag(face, "holy")) return "holy";
-  // Fire damage is symbol-driven (flame symbol uses "fire"); sword default is slash.
-  return "slash";
 }
 
 function rowAdjacent(state: DiceCombatState, uid: string): readonly string[] {
@@ -700,23 +663,13 @@ function applySymbolsToTargets(
   }
 
   for (const sym of symbols) {
-    if (sym === "sword" || sym === "riposte") {
-      // Riposte without attack-targeting collapses to "free pre-emptive 1 damage".
-      const dt = symbolDamageType(face);
+    if (sym === "sword" || sym === "riposte" || sym === "flame") {
       const seen = new Set<string>();
       for (const uid of offensiveUids) {
         const actual = resolveDamageRedirect(s, uid);
         if (seen.has(actual)) continue;
         seen.add(actual);
-        s = damageEnemy(s, actual, 1, dt, face.label);
-      }
-    } else if (sym === "flame") {
-      const seen = new Set<string>();
-      for (const uid of offensiveUids) {
-        const actual = resolveDamageRedirect(s, uid);
-        if (seen.has(actual)) continue;
-        seen.add(actual);
-        s = damageEnemy(s, actual, 1, "fire", face.label);
+        s = damageEnemy(s, actual, 1, face.label);
       }
     } else if (sym === "drop") {
       for (const uid of offensiveUids) s = applyStatusToEnemy(s, uid, "bleed", 1, face.label);
@@ -898,7 +851,7 @@ function applyFaceSymbols(
           return { ...e, statuses };
         }),
       };
-      s = damageEnemy(s, actual, bleedStacks, "pierce", "Hemorrhage");
+      s = damageEnemy(s, actual, bleedStacks, "Hemorrhage");
       s = {
         ...s,
         log: appendLog(s, "player", `Hemorrhage: ${bleedStacks} Bleed consumed as burst damage.`),
@@ -933,7 +886,7 @@ function applyFaceEffect(
     const isBodyguard = redirected !== targetUid;
     // If targeting the bodyguard directly, deal 4. Otherwise deal 2 directly (no redirect).
     const dmg = isBodyguard ? 2 : 4;
-    let s = damageEnemy(state, targetUid, dmg, "bludgeoning", "Called Strike");
+    let s = damageEnemy(state, targetUid, dmg, "Called Strike");
     // Also apply the spark (stun) from the symbol — bypass redirect for stun too.
     s = applyStatusToEnemy(s, targetUid, "stun", 1, "Called Strike");
     return s;
@@ -1023,7 +976,7 @@ function applyFaceEffect(
       const actual = resolveDamageRedirect(s, uid);
       if (seen.has(actual)) continue;
       seen.add(actual);
-      s = damageEnemy(s, actual, face.damage, face.damageType, face.label);
+      s = damageEnemy(s, actual, face.damage, face.label);
     }
   }
 
@@ -1083,7 +1036,6 @@ function damageEnemy(
   state: DiceCombatState,
   uid: string,
   base: number,
-  type: DamageType,
   source: string,
 ): DiceCombatState {
   const enemy = state.enemies.find((e) => e.uid === uid);
@@ -1092,37 +1044,27 @@ function damageEnemy(
   let dmg = base;
   if (state.player.powerCharges > 0) dmg += state.player.powerCharges;
   if (state.player.twoHandedActive) dmg += 1;
-  // v3 Bolster: each stack adds +1 to damage symbols this turn.
   const bolster = state.player.statuses.bolster ?? 0;
   if (bolster > 0) dmg += bolster;
-  // Robes Censer +1 vs undead.
-  if (type === "fire" && source === "Censer" && isUndead(enemy)) {
-    dmg += 1;
-  }
 
-  const resist = enemy.resistances[type];
-  const vuln = enemy.vulnerabilities[type];
-  if (resist !== undefined) dmg = Math.floor(dmg * resist);
-  if (vuln !== undefined) dmg = Math.floor(dmg * vuln);
-
-  // Per-enemy damage modifier (Ghost intangibility, etc.).
+  // Per-enemy damage modifier (Ghost intangibility).
   const def = getEnemyDef(enemy.id);
   if (def?.modifyIncomingDamage) {
-    dmg = def.modifyIncomingDamage(enemy, state, dmg, type);
+    dmg = def.modifyIncomingDamage(enemy, state, dmg);
   }
 
   dmg = Math.max(0, dmg);
 
-  // v3: Mark doubles the next damage instance, then consumes a stack.
+  // Mark doubles the next damage instance, then consumes a stack.
   let mark = enemy.statuses.mark ?? 0;
   if (mark > 0 && dmg > 0) {
     dmg = dmg * 2;
     mark -= 1;
   }
-  // v3: enemy `warded` stacks act as block. Pierce ignores.
+  // Warded stacks act as block.
   let warded = enemy.statuses.warded ?? 0;
   let absorbed = 0;
-  if (warded > 0 && dmg > 0 && type !== "pierce") {
+  if (warded > 0 && dmg > 0) {
     absorbed = Math.min(warded, dmg);
     dmg -= absorbed;
     warded -= absorbed;
@@ -1130,18 +1072,14 @@ function damageEnemy(
 
   const newStatuses: Record<string, number> = { ...enemy.statuses, warded, mark };
   if (warded === 0) delete newStatuses.warded;
-  if (mark === (enemy.statuses.mark ?? 0)) {
-    /* unchanged */
-  } else if (mark === 0) {
-    delete newStatuses.mark;
-  }
+  if (mark === 0) delete newStatuses.mark;
 
   const newHp = Math.max(0, enemy.hp - dmg);
   const enemies = state.enemies.map((e) =>
     e.uid === uid ? { ...e, hp: newHp, statuses: newStatuses as DiceEnemy["statuses"] } : e,
   );
-  const baseLog = appendLog(state, "player", `${source}: ${dmg} ${type} → ${enemy.name}.`);
-  const logAfterAbsorb =
+  const baseLog = appendLog(state, "player", `${source}: ${dmg} → ${enemy.name}.`);
+  const log =
     absorbed > 0
       ? [
           ...baseLog,
@@ -1152,54 +1090,24 @@ function damageEnemy(
           },
         ]
       : baseLog;
-  let s: DiceCombatState = {
-    ...state,
-    enemies,
-    player: { ...state.player, powerCharges: 0 },
-    log: logAfterAbsorb,
-  };
+  let s: DiceCombatState = { ...state, enemies, player: { ...state.player, powerCharges: 0 }, log };
 
-  // afterDamaged hook (Vampire Lord threshold heal).
   if (def?.afterDamaged && newHp > 0) {
     const fresh = s.enemies.find((e) => e.uid === uid);
     if (fresh) s = def.afterDamaged(fresh, s);
   }
 
-  if (newHp === 0) {
-    s = handleEnemyDeath(s, enemy, type);
-  }
+  if (newHp === 0) s = handleEnemyDeath(s, enemy);
   return s;
 }
 
-function isUndead(enemy: DiceEnemy): boolean {
-  return [
-    "skeleton",
-    "heap_of_bones",
-    "zombie",
-    "ghost",
-    "vampire",
-    "banshee",
-    "necromancer",
-    "ghoul",
-    "shadow",
-    "boss_skeleton_lord",
-    "boss_vampire_lord",
-    "boss_lich",
-  ].includes(enemy.id);
-}
-
-function handleEnemyDeath(
-  state: DiceCombatState,
-  enemy: DiceEnemy,
-  killingType: DamageType,
-): DiceCombatState {
+function handleEnemyDeath(state: DiceCombatState, enemy: DiceEnemy): DiceCombatState {
   const def = getEnemyDef(enemy.id);
   let s: DiceCombatState = {
     ...state,
     enemies: state.enemies.filter((e) => e.uid !== enemy.uid),
     log: appendLog(state, "system", `${enemy.name} falls.`),
   };
-  // Clear corruptions sourced from this enemy.
   if (s.player.corruptedFaces.some((c) => c.sourceUid === enemy.uid)) {
     s = {
       ...s,
@@ -1210,9 +1118,7 @@ function handleEnemyDeath(
       log: appendLog(s, "system", `${enemy.name}'s corruption fades.`),
     };
   }
-  if (def?.onDeath) {
-    s = def.onDeath(enemy, s, killingType);
-  }
+  if (def?.onDeath) s = def.onDeath(enemy, s);
   return s;
 }
 
@@ -1276,37 +1182,47 @@ function cleansePlayer(state: DiceCombatState, count: number, source: string): D
 function telegraphIntents(state: DiceCombatState): DiceCombatState {
   let rng = state.rng;
 
-  // First pass: roll dice, collect rolledFaces. Back-row enemies with no ranged
-  // attacks advance to front and forego all actions this turn.
+  // Roll dice for every living enemy. Ghost intangibility is cleared here and only
+  // re-granted if the intangible die lands Phase this turn.
   const enemies = state.enemies.map((e) => {
-    if (e.hp <= 0 || e.reassembleQueued) return { ...e, intent: null, rolledFaces: [] };
     const def = getEnemyDef(e.id);
     if (!def) return e;
 
-    // Back-row advance: front-row enemies pushed to back row always advance back to
-    // front and forfeit their turn. Native back-row enemies (casters) never advance.
+    if (e.hp <= 0) return { ...e, intent: null, rolledFaces: [] };
+
+    // Back-row advance: front-row enemies pushed to back row advance back and forfeit turn.
     if (e.row === "back" && def.defaultRow === "front") {
-      return { ...e, row: "front" as const, intent: null, rolledFaces: [] };
+      return { ...e, row: "front" as const, intent: null, rolledFaces: [], intangible: false };
     }
 
+    // Clear intangibility — the intangible-die face re-grants it at telegraph time below.
+    const base = e.id === "ghost" ? { ...e, intangible: false } : e;
+
     if (def.dice && def.dice.length > 0) {
+      // Lich King: pick the active phase die based on phaseIndex.
+      const dice = def.phaseDice ? (def.phaseDice[base.phaseIndex] ?? def.dice) : def.dice;
       const rolled: { dieId: string; faceId: string; targetUid: string }[] = [];
-      for (const die of def.dice) {
+      for (const die of dice) {
         const r = rollD6(rng);
         rng = r.seed;
         const faceId = die.faces[r.face];
-        const targetUid = die.defaultTarget === "self" ? e.uid : "player";
+        const targetUid = die.defaultTarget === "self" ? base.uid : "player";
         rolled.push({ dieId: die.id, faceId, targetUid });
       }
-      return { ...e, intent: def.selectIntent(e, state), rolledFaces: rolled };
+      // Apply intangible symbol at telegraph time (symmetric with shield).
+      let intangible = base.intangible;
+      for (const rf of rolled) {
+        const f = getFace(rf.faceId);
+        if (f?.symbols?.includes("intangible")) intangible = true;
+      }
+      return { ...base, intent: null, rolledFaces: rolled, intangible };
     }
-    return { ...e, intent: def.selectIntent(e, state), rolledFaces: [] };
+    return { ...base, intent: null, rolledFaces: [] };
   });
 
-  // v3 Option A: apply enemy `shield` symbols NOW (telegraph time), so the
-  // armor is set BEFORE the player's turn starts. Symmetric with player defense
-  // (set during player turn, consumed during enemy turn). Other symbols stay
-  // queued for attack-resolve time.
+  // Apply enemy `shield` symbols at telegraph time so armor is set before the player's turn.
+  // Also apply `intangible` symbol (already handled above per-enemy, but shield needs the
+  // armored pass for warded count).
   const armored = enemies.map((e) => {
     if (!e.rolledFaces || e.rolledFaces.length === 0) return e;
     let warded = e.statuses.warded ?? 0;
@@ -1344,7 +1260,7 @@ function applyEnemyFace(
 
   // Riposte fires before any of the face's symbols. Pre-empt damage to attacker.
   if (mit && mit.riposteDamage > 0) {
-    s = damageEnemy(s, attackerUid, mit.riposteDamage, "slash", "Riposte");
+    s = damageEnemy(s, attackerUid, mit.riposteDamage, "Riposte");
     attacker = s.enemies.find((e) => e.uid === attackerUid);
     // If riposte killed the attacker, the attack is cancelled.
     if (!attacker || attacker.hp <= 0) {
@@ -1452,6 +1368,112 @@ function applyEnemyFace(
       } else {
         s = { ...s, log: appendLog(s, "enemy", `${attacker.name} finds no salt.`) };
       }
+    } else if (sym === "intangible") {
+      // Applied at telegraph time; no-op at resolve time.
+    } else if (sym === "reform") {
+      // Heap of Bones: immediately convert self into a Skeleton at half HP.
+      const skelDef = DICE_ENEMY_DEFS.skeleton;
+      s = {
+        ...s,
+        enemies: s.enemies.map((e) =>
+          e.uid === attackerUid
+            ? {
+                ...e,
+                id: skelDef.id,
+                name: skelDef.name,
+                icon: skelDef.icon,
+                maxHp: skelDef.maxHp,
+                hp: Math.max(1, Math.ceil(skelDef.maxHp / 2)),
+                reassembleQueued: false,
+                reassembleCountdown: 0,
+                statuses: {},
+              }
+            : e,
+        ),
+        log: appendLog(s, "enemy", `The Heap of Bones reforms — a Skeleton rises.`),
+      };
+      // Reformed enemy no longer attacks this face; skip remaining symbols.
+      return s;
+    } else if (sym === "summon") {
+      // Necromancer: animate an existing Heap → Skeleton, or spawn a Zombie.
+      const heap = s.enemies.find((e) => e.id === "heap_of_bones" && e.hp > 0);
+      if (heap) {
+        const skelDef = DICE_ENEMY_DEFS.skeleton;
+        s = {
+          ...s,
+          enemies: s.enemies.map((e) =>
+            e.uid === heap.uid
+              ? {
+                  ...e,
+                  id: skelDef.id,
+                  name: skelDef.name,
+                  icon: skelDef.icon,
+                  maxHp: skelDef.maxHp,
+                  hp: skelDef.maxHp,
+                  reassembleQueued: false,
+                  reassembleCountdown: 0,
+                }
+              : e,
+          ),
+          log: appendLog(s, "enemy", `The Necromancer animates a Heap of Bones into a Skeleton.`),
+        };
+      } else {
+        s = spawnEnemy(s, "zombie");
+        s = { ...s, log: appendLog(s, "enemy", `The Necromancer raises a Zombie.`) };
+      }
+    } else if (sym === "invert") {
+      // False Sacrarium: identify the player's most-rolled color; next turn it counts as Brine.
+      const counts = new Map<string, number>();
+      for (const pf of s.pool) {
+        if (pf.color === "blank") continue;
+        counts.set(pf.color, (counts.get(pf.color) ?? 0) + 1);
+      }
+      if (counts.size > 0) {
+        let topColor = "crimson";
+        let topCount = 0;
+        for (const [color, count] of counts) {
+          if (count > topCount) {
+            topCount = count;
+            topColor = color;
+          }
+        }
+        if (topColor !== "brine") {
+          s = {
+            ...s,
+            player: { ...s.player, invertedColor: topColor as FaceColor },
+            log: appendLog(
+              s,
+              "enemy",
+              `Blessing Inversion — your ${topColor} faces count as Brine next turn.`,
+            ),
+          };
+        }
+      }
+    } else if (sym === "bind") {
+      // Salt Revenant / salt-grapple: lock the first unlocked die slot.
+      const candidates: DieSlot[] = ["main", "ability", "offhand", "armor"];
+      const target = candidates.find((slot) => !s.player.slotLocks.includes(slot));
+      if (target) {
+        s = lockSlot(s, target);
+        s = {
+          ...s,
+          log: appendLog(
+            s,
+            "enemy",
+            `${attacker.name} locks your ${target} die — spend an Iron face to break free.`,
+          ),
+        };
+      }
+    } else if (sym === "burrow_spawn") {
+      // Gutborn Larva: surface (become targetable, move to front) and spawn a Zombie.
+      s = {
+        ...s,
+        enemies: s.enemies.map((e) =>
+          e.uid === attackerUid ? { ...e, row: "front" as const, untargetable: false } : e,
+        ),
+      };
+      s = spawnEnemy(s, "zombie");
+      s = { ...s, log: appendLog(s, "enemy", `The Larva surfaces and animates a corpse.`) };
     } else if (sym === "reproduce") {
       // Spawn a same-id enemy in the same row, capped at 5 of this id alive.
       const sameKind = s.enemies.filter((x) => x.id === attacker.id && x.hp > 0).length;
@@ -1468,8 +1490,6 @@ function applyEnemyFace(
             maxHp: def.maxHp,
             row: attacker.row,
             statuses: {},
-            resistances: def.resistances,
-            vulnerabilities: def.vulnerabilities,
             isBoss: def.isBoss,
             intent: null,
             untargetable: false,
@@ -1527,31 +1547,6 @@ function damagePlayer(
 function endOfTurn(state: DiceCombatState): DiceCombatState {
   // v3: clear per-attack mitigations — they apply only to this turn's enemy roll.
   let s: DiceCombatState = { ...state, attackMitigations: {} };
-
-  // 1. Heap of Bones countdowns.
-  s = {
-    ...s,
-    enemies: s.enemies.map((e) => {
-      if (!e.reassembleQueued) return e;
-      if (e.reassembleCountdown <= 1) {
-        const def = DICE_ENEMY_DEFS.skeleton;
-        return {
-          ...e,
-          id: def.id,
-          name: def.name,
-          icon: def.icon,
-          maxHp: def.maxHp,
-          hp: Math.max(1, Math.ceil(def.maxHp / 2)),
-          resistances: def.resistances,
-          vulnerabilities: def.vulnerabilities,
-          reassembleQueued: false,
-          reassembleCountdown: 0,
-          statuses: {},
-        };
-      }
-      return { ...e, reassembleCountdown: e.reassembleCountdown - 1 };
-    }),
-  };
 
   // 3. Tick player statuses.
   s = tickPlayerStatuses(s);
@@ -1634,7 +1629,7 @@ function tickEnemyStatuses(state: DiceCombatState): DiceCombatState {
   }
   s = { ...s, enemies };
   // Drop dead enemies (status-tick deaths bypass onDeath).
-  return { ...s, enemies: s.enemies.filter((e) => e.hp > 0 || e.reassembleQueued) };
+  return { ...s, enemies: s.enemies.filter((e) => e.hp > 0) };
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -1642,7 +1637,7 @@ function tickEnemyStatuses(state: DiceCombatState): DiceCombatState {
  * ───────────────────────────────────────────────────────────────────────── */
 
 function isVictory(state: DiceCombatState): boolean {
-  return state.enemies.every((e) => e.hp <= 0 && !e.reassembleQueued);
+  return state.enemies.every((e) => e.hp <= 0);
 }
 
 function isDefeat(state: DiceCombatState): boolean {

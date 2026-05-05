@@ -62,7 +62,7 @@ describe("initDiceCombat", () => {
     expect(s.phase).toBe("rolling");
     expect(s.enemies).toHaveLength(1);
     expect(s.enemies[0].name).toBe("Ravager Rat");
-    expect(s.enemies[0].intent).not.toBeNull();
+    expect(s.enemies[0].rolledFaces.length).toBeGreaterThan(0);
   });
 
   it("skips unknown enemy ids", () => {
@@ -146,7 +146,7 @@ describe("damage + resistances", () => {
     expect(heap).toBeDefined();
   });
 
-  it("bludgeoning kill of a skeleton leaves no heap", () => {
+  it("any kill of a skeleton always leaves a heap", () => {
     let s = startFight({
       enemies: [{ id: "skeleton", uid: "sk_1" }],
       startingHp: 99,
@@ -154,16 +154,14 @@ describe("damage + resistances", () => {
     });
     s = {
       ...s,
-      // Strip armor too — skeleton's Armor Die rolls warded at telegraph, which
-      // would absorb the test's 1-damage probe.
       enemies: s.enemies.map((e) => (e.uid === "sk_1" ? { ...e, hp: 1, statuses: {} } : e)),
     };
-    s = pushFace(s, "main", "hammer_smash"); // 2 bludg, crimson
+    s = pushFace(s, "main", "hammer_smash"); // 2 bludgeoning
     s = stopRolling(s);
     s = assignFace(s, s.pool[0].poolId, "sk_1");
     s = resolveTurn(s);
     const heap = s.enemies.find((e) => e.id === "heap_of_bones");
-    expect(heap).toBeUndefined();
+    expect(heap).toBeDefined();
   });
 });
 

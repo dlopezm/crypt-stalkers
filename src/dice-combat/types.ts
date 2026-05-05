@@ -1,4 +1,4 @@
-import type { DamageType, StatusKey } from "../types";
+import type { StatusKey } from "../types";
 
 /* ── Dice + Faces ── */
 
@@ -57,7 +57,13 @@ export type SymbolKey =
   | "dodge" // ✷ negate one specific incoming attack (assign to attack glyph)
   | "reproduce" // 🐀 enemy-only: spawn a same-kind enemy
   | "steal" // 🪙 enemy-only: steal 1 salt from player
-  | "push"; // ⇄ push target to opposite row
+  | "push" // ⇄ push target to opposite row
+  | "reform" // 🦴 heap-only: immediately convert self into a Skeleton
+  | "intangible" // 👻 ghost-only: become intangible this turn (fire/holy still lands)
+  | "summon" // ⚰️ necromancer: animate a Heap → Skeleton, or spawn a Zombie
+  | "invert" // 🦠 false-sacrarium: player's most-rolled color counts as Brine next turn
+  | "bind" // ⛓️ salt-revenant: lock one of the player's die slots
+  | "burrow_spawn"; // 🪱 larva: surface and spawn a Zombie
 
 export type FaceTag =
   | "ranged" // assignable to back row
@@ -82,7 +88,7 @@ export interface FaceDef {
   readonly tags?: readonly FaceTag[];
   /** v2 fields — retained for legacy faces. Ignored when `symbols` is set. */
   readonly damage?: number;
-  readonly damageType?: DamageType;
+  readonly damageType?: string;
   readonly heal?: number;
   readonly block?: number;
   readonly applyStatus?: { readonly status: StatusKey; readonly stacks: number };
@@ -169,8 +175,6 @@ export interface DiceEnemy {
   readonly maxHp: number;
   readonly row: Row;
   readonly statuses: import("../types").Statuses;
-  readonly resistances: Partial<Record<DamageType, number>>;
-  readonly vulnerabilities: Partial<Record<DamageType, number>>;
   readonly isBoss: boolean;
   readonly intent: DiceEnemyIntent | null;
   readonly untargetable: boolean;
@@ -315,21 +319,12 @@ export interface DiceEnemyDef {
   readonly maxHp: number;
   readonly defaultRow: Row;
   readonly isBoss: boolean;
-  readonly resistances: Partial<Record<DamageType, number>>;
-  readonly vulnerabilities: Partial<Record<DamageType, number>>;
   /** v3: enemy dice. When present, the engine rolls these instead of calling selectIntent. */
   readonly dice?: readonly EnemyDieDef[];
-  readonly selectIntent: (self: DiceEnemy, state: DiceCombatState) => DiceEnemyIntent | null;
-  readonly resolveIntent?: (
-    self: DiceEnemy,
-    state: DiceCombatState,
-    intent: DiceEnemyIntent,
-  ) => DiceCombatState;
-  readonly onDeath?: (
-    self: DiceEnemy,
-    state: DiceCombatState,
-    killingDamageType: DamageType | null,
-  ) => DiceCombatState;
+  /** Phase-switched dice (e.g. Lich King). Index matches DiceEnemy.phaseIndex; falls back to dice. */
+  readonly phaseDice?: readonly (readonly EnemyDieDef[])[];
+  readonly selectIntent?: (self: DiceEnemy, state: DiceCombatState) => DiceEnemyIntent | null;
+  readonly onDeath?: (self: DiceEnemy, state: DiceCombatState) => DiceCombatState;
   /** Hook: called once when this enemy enters the battle (initial spawn or summon). */
   readonly onSpawn?: (self: DiceEnemy, state: DiceCombatState) => DiceCombatState;
   /** Hook: called at the start of every player turn. Used for passive auras and start-of-turn effects. */
@@ -347,12 +342,7 @@ export interface DiceEnemyDef {
     intendedUid: string,
   ) => string;
   /** Hook: incoming damage is computed; this lets the enemy modify it (Ghost intangibility). */
-  readonly modifyIncomingDamage?: (
-    self: DiceEnemy,
-    state: DiceCombatState,
-    base: number,
-    damageType: DamageType,
-  ) => number;
+  readonly modifyIncomingDamage?: (self: DiceEnemy, state: DiceCombatState, base: number) => number;
   /** Hook: after taking damage, may queue follow-ups (Vampire Lord threshold heal). */
   readonly afterDamaged?: (self: DiceEnemy, state: DiceCombatState) => DiceCombatState;
 }

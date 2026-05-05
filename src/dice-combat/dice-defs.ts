@@ -1267,19 +1267,19 @@ export const FACES: Record<string, FaceDef> = {
     id: "enemy_animate",
     label: "Animate",
     icon: "⚰️",
-    desc: "Animates a corpse next turn.",
+    desc: "Animates a Heap into a Skeleton, or summons a Zombie.",
     color: "coldfire",
     target: "self",
-    symbols: [],
+    symbols: ["summon"],
   },
   enemy_summon: {
     id: "enemy_summon",
     label: "Raise Dead",
     icon: "⚰️",
-    desc: "Animates a Heap or summons.",
+    desc: "Animates a Heap into a Skeleton, or summons a Zombie.",
     color: "coldfire",
     target: "self",
-    symbols: [],
+    symbols: ["summon"],
   },
   enemy_force_face: {
     id: "enemy_force_face",
@@ -1297,7 +1297,7 @@ export const FACES: Record<string, FaceDef> = {
     desc: "Locks one of your dice.",
     color: "salt",
     target: "self",
-    symbols: [],
+    symbols: ["bind"],
   },
   enemy_crush: {
     id: "enemy_crush",
@@ -1367,6 +1367,129 @@ export const FACES: Record<string, FaceDef> = {
     color: "echo",
     target: "self",
     symbols: ["sword", "sword", "sword", "bolt"],
+    tags: ["unblockable"],
+  },
+
+  // Heap of Bones — rises immediately into a Skeleton on this face
+  enemy_reform: {
+    id: "enemy_reform",
+    label: "Reform",
+    icon: "🦴",
+    desc: "Bones knit back together — rises as a Skeleton.",
+    color: "iron",
+    target: "self",
+    symbols: ["reform"],
+  },
+
+  // Ghost intangibility
+  enemy_intangible: {
+    id: "enemy_intangible",
+    label: "Phase",
+    icon: "👻",
+    desc: "Becomes intangible — physical attacks deal 0 this turn.",
+    color: "echo",
+    target: "self",
+    symbols: ["intangible"],
+  },
+
+  // Forsworn guard strike
+  enemy_guard_strike: {
+    id: "enemy_guard_strike",
+    label: "Guard Strike",
+    icon: "🛡️",
+    desc: "3 bludgeoning — redirects attacks targeting allies.",
+    color: "iron",
+    target: "self",
+    symbols: ["sword", "sword", "sword"],
+    tags: ["heavy"],
+  },
+
+  // Salt Revenant slot lock
+  enemy_salt_grapple: {
+    id: "enemy_salt_grapple",
+    label: "Salt-Grapple",
+    icon: "💎",
+    desc: "2 damage and locks one of your dice.",
+    color: "salt",
+    target: "self",
+    symbols: ["sword", "sword", "bind"],
+  },
+
+  // Gutborn Larva — surfaces immediately and spawns a Zombie
+  enemy_burrow: {
+    id: "enemy_burrow",
+    label: "Burrow",
+    icon: "🪱",
+    desc: "Untargetable — surfaces with a Zombie.",
+    color: "brine",
+    target: "self",
+    symbols: ["burrow_spawn"],
+  },
+
+  // False Sacrarium curse
+  enemy_litany: {
+    id: "enemy_litany",
+    label: "Blessing Inversion",
+    icon: "🦠",
+    desc: "Your most-rolled color counts as Brine for bust next turn.",
+    color: "coldfire",
+    target: "self",
+    symbols: ["invert"],
+  },
+
+  // Boss: Skeleton Lord
+  enemy_bone_cleave_boss: {
+    id: "enemy_bone_cleave_boss",
+    label: "Bone Cleave",
+    icon: "🦴",
+    desc: "6 bludgeoning — area.",
+    color: "crimson",
+    target: "self",
+    symbols: ["sword", "sword", "sword", "sword", "sword", "sword"],
+    tags: ["heavy", "area"],
+  },
+
+  // Boss: Vampire Lord
+  enemy_sanguine_drain: {
+    id: "enemy_sanguine_drain",
+    label: "Sanguine Drain",
+    icon: "🩸",
+    desc: "6 damage + heal self 3.",
+    color: "brine",
+    target: "self",
+    symbols: ["sword", "sword", "sword", "sword", "sword", "sword", "heart", "heart", "heart"],
+  },
+
+  // Boss: Lich King — phase 1
+  enemy_lich_cold_lamp: {
+    id: "enemy_lich_cold_lamp",
+    label: "Cold Lamp",
+    icon: "🔮",
+    desc: "5 unblockable damage + Weaken.",
+    color: "coldfire",
+    target: "self",
+    symbols: ["sword", "sword", "sword", "sword", "sword", "bolt"],
+    tags: ["unblockable"],
+  },
+  // Boss: Lich King — phase 2
+  enemy_lich_tithe_mark: {
+    id: "enemy_lich_tithe_mark",
+    label: "Tithe-Mark",
+    icon: "🩸",
+    desc: "4 damage + Mark.",
+    color: "brine",
+    target: "self",
+    symbols: ["sword", "sword", "sword", "sword", "mark"],
+  },
+  // Boss: Lich King — phase 3
+  enemy_lich_hymn_break: {
+    id: "enemy_lich_hymn_break",
+    label: "Hymn-Break",
+    icon: "🎵",
+    desc: "3 unblockable damage.",
+    color: "echo",
+    target: "self",
+    symbols: ["sword", "sword", "sword"],
     tags: ["unblockable"],
   },
 };

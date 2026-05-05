@@ -48,6 +48,12 @@ const SYMBOL_GLYPH: Record<SymbolKey, string> = {
   reproduce: "🐀",
   steal: "🪙",
   push: "⇄",
+  reform: "🦴",
+  intangible: "👻",
+  summon: "⚰️",
+  invert: "🦠",
+  bind: "⛓️",
+  burrow_spawn: "🪱",
 };
 
 const SYMBOL_LABEL: Record<SymbolKey, string> = {
@@ -68,6 +74,12 @@ const SYMBOL_LABEL: Record<SymbolKey, string> = {
   reproduce: "Reproduce",
   steal: "Steal salt",
   push: "Push row",
+  reform: "Reform",
+  intangible: "Phase",
+  summon: "Raise Dead",
+  invert: "Invert",
+  bind: "Bind die",
+  burrow_spawn: "Surface + Zombie",
 };
 
 function FaceGlyphs({ face, size = "0.95rem" }: { face: FaceDef; size?: string }) {

@@ -1,24 +1,7 @@
-import type {
-  DiceCombatState,
-  DiceEnemy,
-  DiceEnemyDef,
-  DiceEnemyIntent,
-  DieSlot,
-  FaceColor,
-} from "./types";
+import type { DiceCombatState, DiceEnemy, DiceEnemyDef, DieSlot, FaceColor } from "./types";
 import { DICE_BALANCE } from "./balance";
 
 /* ── Helpers ── */
-
-function intent(
-  id: string,
-  label: string,
-  icon: string,
-  damage?: number,
-  tooltip?: string,
-): DiceEnemyIntent {
-  return { id, label, icon, damage, tooltip };
-}
 
 function appendLog(
   state: DiceCombatState,
@@ -44,8 +27,6 @@ function spawnEnemy(state: DiceCombatState, defId: string, uidPrefix?: string): 
     maxHp: def.maxHp,
     row: def.defaultRow,
     statuses: {},
-    resistances: def.resistances,
-    vulnerabilities: def.vulnerabilities,
     isBoss: def.isBoss,
     intent: null,
     untargetable: false,
@@ -100,12 +81,9 @@ const RAT: DiceEnemyDef = {
   id: "rat",
   name: "Ravager Rat",
   icon: "🐀",
-  maxHp: 2,
+  maxHp: 1,
   defaultRow: "front",
   isBoss: false,
-  resistances: {},
-  vulnerabilities: {},
-  // v3: rolls one die; faces include reproduce (1/6), bite, rake, cower, blank.
   dice: [
     {
       id: "rat_die",
@@ -113,7 +91,7 @@ const RAT: DiceEnemyDef = {
       icon: "🐀",
       faces: [
         "enemy_bite_1",
-        "enemy_rake_2",
+        "enemy_bite_1",
         "enemy_rake_2",
         "enemy_reproduce",
         "enemy_cower",
@@ -122,7 +100,6 @@ const RAT: DiceEnemyDef = {
       defaultTarget: "player",
     },
   ],
-  selectIntent: () => intent("bite", "Bite", "🦷", 1, "Rolls a rat die."),
 };
 
 /* ── 2. Skeleton ── */
@@ -131,12 +108,9 @@ const SKELETON: DiceEnemyDef = {
   id: "skeleton",
   name: "Skeleton",
   icon: "💀",
-  maxHp: 16,
+  maxHp: 4,
   defaultRow: "front",
   isBoss: false,
-  resistances: { pierce: 0.5 },
-  vulnerabilities: { bludgeoning: 1.5 },
-  // v3: Bone Die (offense) + Armor Die (self-block).
   dice: [
     {
       id: "bone_die",
@@ -167,26 +141,19 @@ const SKELETON: DiceEnemyDef = {
       defaultTarget: "self",
     },
   ],
-  selectIntent: () => intent("bash", "Bash", "🦴", 4, "Strikes for 4."),
-  onDeath: (self, state, killingType) => {
-    // Iron / bludgeoning or Fire kill it permanently. Anything else leaves a Heap.
-    if (killingType === "bludgeoning" || killingType === "fire" || killingType === "holy") {
-      return appendLog(state, "system", `${self.name} is shattered for good.`);
-    }
+  onDeath: (self, state) => {
     const heap: DiceEnemy = {
       ...self,
-      hp: 3,
-      maxHp: 3,
-      reassembleQueued: true,
-      // +1 because endOfTurn ticks once on the same turn the skeleton dies.
-      reassembleCountdown: DICE_BALANCE.HEAP_RISE_TURNS + 1,
+      hp: 2,
+      maxHp: 2,
+      reassembleQueued: false,
+      reassembleCountdown: 0,
       untargetable: false,
       intent: null,
+      rolledFaces: [],
       id: "heap_of_bones",
       name: "Heap of Bones",
       icon: "🦴",
-      vulnerabilities: { bludgeoning: 2.0, fire: 2.0 },
-      resistances: { pierce: 0.5 },
     };
     return {
       ...state,
@@ -196,7 +163,7 @@ const SKELETON: DiceEnemyDef = {
         {
           turn: state.turn,
           source: "system",
-          text: `${self.name} collapses into a Heap of Bones — rises in ${DICE_BALANCE.HEAP_RISE_TURNS} turns.`,
+          text: `${self.name} collapses into a Heap of Bones — it may yet reform.`,
         },
       ],
     };
@@ -209,12 +176,18 @@ const HEAP_OF_BONES: DiceEnemyDef = {
   id: "heap_of_bones",
   name: "Heap of Bones",
   icon: "🦴",
-  maxHp: 3,
+  maxHp: 1,
   defaultRow: "front",
   isBoss: false,
-  resistances: { pierce: 0.5 },
-  vulnerabilities: { bludgeoning: 2.0, fire: 2.0 },
-  selectIntent: () => null, // No attack — just a countdown.
+  dice: [
+    {
+      id: "reform_die",
+      name: "Reform Die",
+      icon: "🦴",
+      faces: ["enemy_reform", "enemy_reform", "enemy_reform", "blank", "blank", "blank"],
+      defaultTarget: "self",
+    },
+  ],
   // Drains one Salt face from the player's rollable pool each turn it lives.
   // Makes the Heap a time/resource problem distinct from the Skeleton (damage-type problem).
   onPlayerTurnStart: (_self, state) => {
@@ -246,11 +219,9 @@ const ZOMBIE: DiceEnemyDef = {
   id: "zombie",
   name: "Rotting Zombie",
   icon: "🧟",
-  maxHp: 8,
+  maxHp: 3,
   defaultRow: "front",
   isBoss: false,
-  resistances: {},
-  vulnerabilities: {},
   // v3: rolls a slow shamble die. Necromancer-buffing flavor moves to a passive bolster
   // applied by the Necromancer (stretch — for now zombies just shamble for 1).
   dice: [
@@ -271,7 +242,6 @@ const ZOMBIE: DiceEnemyDef = {
       defaultTarget: "player",
     },
   ],
-  selectIntent: () => intent("shamble", "Shamble", "🧟", undefined, "Rolls a zombie die."),
 };
 
 /* ── 5. Mournful Ghost ── */
@@ -280,12 +250,10 @@ const GHOST: DiceEnemyDef = {
   id: "ghost",
   name: "Mournful Ghost",
   icon: "👻",
-  maxHp: 12,
+  maxHp: 3,
   defaultRow: "front",
   isBoss: false,
-  resistances: { slash: 0.5, pierce: 0.5 },
-  vulnerabilities: {},
-  // v3: phantom strikes that bypass shields.
+  // v3: phantom strikes that bypass shields. Second die gives 50% chance of intangibility.
   dice: [
     {
       id: "ghost_die",
@@ -301,28 +269,22 @@ const GHOST: DiceEnemyDef = {
       ],
       defaultTarget: "player",
     },
+    {
+      id: "intangible_die",
+      name: "Intangible Die",
+      icon: "👻",
+      faces: [
+        "enemy_intangible",
+        "enemy_intangible",
+        "enemy_intangible",
+        "blank",
+        "blank",
+        "blank",
+      ],
+      defaultTarget: "self",
+    },
   ],
-  selectIntent: (self) =>
-    intent(
-      self.intangible ? "phased" : "phantom",
-      self.intangible ? "Phantom (intangible)" : "Phantom",
-      "👻",
-      undefined,
-      self.intangible ? "Crimson damage deals 0 this turn." : "Rolls a phantom die.",
-    ),
-  onPlayerTurnStart: (self, state) => {
-    // Toggle intangibility every turn.
-    return {
-      ...state,
-      enemies: state.enemies.map((e) =>
-        e.uid === self.uid ? { ...e, intangible: !e.intangible } : e,
-      ),
-    };
-  },
-  modifyIncomingDamage: (self, _state, base, type) => {
-    if (self.intangible && type !== "fire" && type !== "holy") return 0;
-    return base;
-  },
+  modifyIncomingDamage: (self, _state, base) => (self.intangible ? 0 : base),
 };
 
 /* ── 6. Blood Wraith ── */
@@ -331,11 +293,9 @@ const VAMPIRE: DiceEnemyDef = {
   id: "vampire",
   name: "Blood Wraith",
   icon: "🧛",
-  maxHp: 20,
+  maxHp: 4,
   defaultRow: "front",
   isBoss: false,
-  resistances: {},
-  vulnerabilities: {},
   // v3: rolls a Blood Die — drain attacks heal self via heart symbol.
   dice: [
     {
@@ -353,8 +313,6 @@ const VAMPIRE: DiceEnemyDef = {
       defaultTarget: "player",
     },
   ],
-  selectIntent: () => intent("drain", "Drain", "🩸", undefined, "Rolls a blood die."),
-  resolveIntent: (_self, state) => state,
   onPlayerBust: (self, state, poolSize) => {
     const heal = poolSize;
     if (heal <= 0) return state;
@@ -381,11 +339,9 @@ const BANSHEE: DiceEnemyDef = {
   id: "banshee",
   name: "Wailing Banshee",
   icon: "👁️",
-  maxHp: 12,
+  maxHp: 4,
   defaultRow: "back",
   isBoss: false,
-  resistances: {},
-  vulnerabilities: {},
   // v3: rolls a Wail die. Wail and Drone are unblockable (terror attacks).
   dice: [
     {
@@ -396,8 +352,6 @@ const BANSHEE: DiceEnemyDef = {
       defaultTarget: "player",
     },
   ],
-  selectIntent: () => intent("wail", "Wail", "📢", undefined, "Rolls a wail die — terror."),
-  resolveIntent: (_self, state) => state,
   onSpawn: (self, state) => {
     const s = corruptFace(state, "main", 0, "coldfire", self.uid);
     return appendLog(s, "enemy", `${self.name}'s wail rewrites a face on your weapon.`);
@@ -410,11 +364,9 @@ const NECROMANCER: DiceEnemyDef = {
   id: "necromancer",
   name: "Necromancer",
   icon: "🧙",
-  maxHp: 8,
+  maxHp: 2,
   defaultRow: "back",
   isBoss: false,
-  resistances: {},
-  vulnerabilities: {},
   // v3: rolls a Curse die. Area + undodgeable + unblockable.
   dice: [
     {
@@ -425,40 +377,6 @@ const NECROMANCER: DiceEnemyDef = {
       defaultTarget: "player",
     },
   ],
-  selectIntent: () =>
-    intent("raise", "Raise Dead", "⚰️", undefined, "Animates a Heap or summons a zombie."),
-  resolveIntent: (_self, state) => {
-    // Prefer animating an existing Heap into a Skeleton; else summon a Zombie.
-    const heap = state.enemies.find((e) => e.id === "heap_of_bones" && e.hp > 0);
-    if (heap) {
-      const skel = DICE_ENEMY_DEFS.skeleton;
-      const animated: DiceEnemy = {
-        ...heap,
-        id: skel.id,
-        name: skel.name,
-        icon: skel.icon,
-        maxHp: skel.maxHp,
-        hp: skel.maxHp,
-        resistances: skel.resistances,
-        vulnerabilities: skel.vulnerabilities,
-        reassembleQueued: false,
-        reassembleCountdown: 0,
-      };
-      return {
-        ...state,
-        enemies: state.enemies.map((e) => (e.uid === heap.uid ? animated : e)),
-        log: [
-          ...state.log,
-          {
-            turn: state.turn,
-            source: "enemy",
-            text: `The Necromancer animates a Heap of Bones into a Skeleton.`,
-          },
-        ],
-      };
-    }
-    return spawnEnemy(state, "zombie");
-  },
 };
 
 /* ── 9. Lurking Ghoul ── */
@@ -467,11 +385,9 @@ const GHOUL: DiceEnemyDef = {
   id: "ghoul",
   name: "Lurking Ghoul",
   icon: "👹",
-  maxHp: 14,
+  maxHp: 4,
   defaultRow: "front",
   isBoss: false,
-  resistances: {},
-  vulnerabilities: {},
   // v3: rolls 1 die normally; on first turn, an extra ambush face is appended via onSpawn.
   dice: [
     {
@@ -489,7 +405,6 @@ const GHOUL: DiceEnemyDef = {
       defaultTarget: "player",
     },
   ],
-  selectIntent: () => intent("rake", "Rake", "💢", undefined, "Rolls a ghoul die."),
   onSpawn: (self, state) => {
     return {
       ...state,
@@ -523,11 +438,9 @@ const SHADOW: DiceEnemyDef = {
   id: "shadow",
   name: "The Shadow",
   icon: "🌑",
-  maxHp: 16,
+  maxHp: 3,
   defaultRow: "front",
   isBoss: false,
-  resistances: {},
-  vulnerabilities: {},
   // v3: shadow strikes are unblockable; aura (blanks → coldfire) handled passively.
   dice: [
     {
@@ -545,8 +458,6 @@ const SHADOW: DiceEnemyDef = {
       defaultTarget: "player",
     },
   ],
-  selectIntent: () =>
-    intent("drain_light", "Drain Light", "🌑", undefined, "Rolls a shadow die. Blanks → Coldfire."),
 };
 
 /* ── 11. Grave Robber ── */
@@ -555,12 +466,9 @@ const GRAVE_ROBBER: DiceEnemyDef = {
   id: "grave_robber",
   name: "Grave Robber",
   icon: "🕵️",
-  maxHp: 10,
+  maxHp: 4,
   defaultRow: "front",
   isBoss: false,
-  resistances: {},
-  vulnerabilities: {},
-  // v3: rolls a die — most faces pilfer; some are blank. Pilfer logic stays in resolveIntent.
   dice: [
     {
       id: "robber_die",
@@ -570,20 +478,6 @@ const GRAVE_ROBBER: DiceEnemyDef = {
       defaultTarget: "self",
     },
   ],
-  selectIntent: () =>
-    intent("steal", "Pilfer", "🪙", undefined, "Steals 1 salt if it rolls pilfer."),
-  resolveIntent: (_self, state) => {
-    const stolen = Math.min(1, state.player.salt);
-    if (stolen <= 0) return appendLog(state, "enemy", "The Grave Robber finds nothing to take.");
-    return {
-      ...state,
-      player: { ...state.player, salt: state.player.salt - stolen },
-      log: [
-        ...state.log,
-        { turn: state.turn, source: "enemy", text: `The Grave Robber pilfers ${stolen} salt.` },
-      ],
-    };
-  },
 };
 
 /* ── 12. Gutborn Larva ── */
@@ -595,31 +489,28 @@ const GUTBORN_LARVA: DiceEnemyDef = {
   maxHp: 1,
   defaultRow: "back", // starts untargetable by melee — different from Rat (front row, area kill)
   isBoss: false,
-  resistances: {},
-  vulnerabilities: { fire: 2.0 },
-  selectIntent: (self) =>
-    self.turnsAlive === 0
-      ? intent("burrow", "Burrow", "🪱", undefined, "Burrowing — untargetable by melee.")
-      : intent("infest", "Infest", "🪱", undefined, "Spawns a Zombie."),
+  dice: [
+    {
+      id: "larva_die",
+      name: "Larva Die",
+      icon: "🪱",
+      faces: [
+        "enemy_burrow",
+        "enemy_burrow",
+        "enemy_burrow",
+        "enemy_burrow",
+        "enemy_burrow",
+        "enemy_burrow",
+      ],
+      defaultTarget: "self",
+    },
+  ],
   onSpawn: (self, state) => ({
     ...state,
     enemies: state.enemies.map((e) =>
       e.uid === self.uid ? { ...e, row: "back" as const, untargetable: true } : e,
     ),
   }),
-  // Turn 1 in back row: move to front, spawn Zombie, become targetable.
-  onPlayerTurnStart: (self, state) => {
-    if (self.turnsAlive !== 1) return state;
-    let s: DiceCombatState = {
-      ...state,
-      enemies: state.enemies.map((e) =>
-        e.uid === self.uid ? { ...e, row: "front" as const, untargetable: false } : e,
-      ),
-    };
-    s = spawnEnemy(s, "zombie");
-    return appendLog(s, "enemy", "The Larva surfaces and animates a corpse.");
-  },
-  resolveIntent: (_self, state) => spawnEnemy(state, "zombie"),
 };
 
 /* ── 13. The Forsworn ── */
@@ -628,13 +519,25 @@ const FORSWORN: DiceEnemyDef = {
   id: "forsworn",
   name: "The Forsworn",
   icon: "⚔️",
-  maxHp: 22,
+  maxHp: 6,
   defaultRow: "front",
   isBoss: false,
-  resistances: { slash: 0.5, pierce: 0.5 },
-  vulnerabilities: { bludgeoning: 1.5, holy: 1.5, fire: 1.5 },
-  selectIntent: () =>
-    intent("guard_strike", "Guard Strike", "🛡️", 3, "Strikes for 3 and guards allies."),
+  dice: [
+    {
+      id: "forsworn_die",
+      name: "Forsworn Die",
+      icon: "⚔️",
+      faces: [
+        "enemy_guard_strike",
+        "enemy_guard_strike",
+        "enemy_guard_strike",
+        "enemy_crush",
+        "enemy_armor_2",
+        "blank",
+      ],
+      defaultTarget: "player",
+    },
+  ],
   redirectDamageTo: (self, state, intendedUid) => {
     if (intendedUid === self.uid) return intendedUid;
     // Redirect any damage targeting allies to the Forsworn.
@@ -650,53 +553,25 @@ const FALSE_SACRARIUM: DiceEnemyDef = {
   id: "false_sacrarium",
   name: "The False Sacrarium",
   icon: "⛪",
-  maxHp: 12,
+  maxHp: 5,
   defaultRow: "back",
   isBoss: false,
-  resistances: { slash: 0.5, pierce: 0.5 },
-  vulnerabilities: { holy: 1.5, fire: 1.5 },
-  selectIntent: () =>
-    intent(
-      "litany",
-      "Blessing Inversion",
-      "🦠",
-      undefined,
-      "Identifies your most-rolled color. Next turn that color counts as Brine for bust.",
-    ),
-  resolveIntent: (_self, state) => {
-    // Count colors the player rolled this turn (from pool).
-    const counts = new Map<string, number>();
-    for (const pf of state.pool) {
-      if (pf.color === "blank") continue;
-      counts.set(pf.color, (counts.get(pf.color) ?? 0) + 1);
-    }
-    if (counts.size === 0) return state;
-    // Find most-rolled color.
-    let topColor = "crimson";
-    let topCount = 0;
-    for (const [color, count] of counts) {
-      if (count > topCount) {
-        topCount = count;
-        topColor = color;
-      }
-    }
-    if (topColor === "brine") return state; // already Brine, no effect
-    return {
-      ...state,
-      player: {
-        ...state.player,
-        invertedColor: topColor as import("./types").FaceColor,
-      },
-      log: [
-        ...state.log,
-        {
-          turn: state.turn,
-          source: "enemy" as const,
-          text: `Blessing Inversion — your ${topColor} faces count as Brine next turn.`,
-        },
+  dice: [
+    {
+      id: "sacrarium_die",
+      name: "Litany Die",
+      icon: "⛪",
+      faces: [
+        "enemy_litany",
+        "enemy_litany",
+        "enemy_litany",
+        "enemy_litany",
+        "enemy_chant",
+        "blank",
       ],
-    };
-  },
+      defaultTarget: "self",
+    },
+  ],
 };
 
 /* ── 15. Salt Revenant ── */
@@ -705,30 +580,25 @@ const SALT_REVENANT: DiceEnemyDef = {
   id: "salt_revenant",
   name: "Salt Revenant",
   icon: "💎",
-  maxHp: 18,
+  maxHp: 6,
   defaultRow: "front",
   isBoss: false,
-  resistances: { pierce: 0.5 },
-  vulnerabilities: { bludgeoning: 1.5 },
-  selectIntent: () =>
-    intent("grapple", "Salt-Grapple", "💎", 2, "2 damage and locks one of your dice."),
-  resolveIntent: (_self, state) => {
-    // Lock the most-loaded die: prefer "main" then "ability" then "offhand" then "armor".
-    const candidates: DieSlot[] = ["main", "ability", "offhand", "armor"];
-    const target = candidates.find((slot) => !state.player.slotLocks.includes(slot));
-    if (!target) return state;
-    return {
-      ...lockSlot(state, target),
-      log: [
-        ...state.log,
-        {
-          turn: state.turn,
-          source: "enemy",
-          text: `Salt Revenant locks your ${target} die — spend an Iron face to break free.`,
-        },
+  dice: [
+    {
+      id: "revenant_die",
+      name: "Revenant Die",
+      icon: "💎",
+      faces: [
+        "enemy_salt_grapple",
+        "enemy_salt_grapple",
+        "enemy_salt_grapple",
+        "enemy_bind",
+        "enemy_crush",
+        "blank",
       ],
-    };
-  },
+      defaultTarget: "player",
+    },
+  ],
 };
 
 /* ── 16. Skeleton Lord (boss) ── */
@@ -737,16 +607,26 @@ const SKELETON_LORD: DiceEnemyDef = {
   id: "boss_skeleton_lord",
   name: "Skeleton Lord",
   icon: "💀",
-  maxHp: 35,
+  maxHp: 10,
   defaultRow: "front",
   isBoss: true,
-  resistances: { pierce: 0.75 },
-  vulnerabilities: { bludgeoning: 1.25, fire: 1.5, holy: 1.5 },
-  selectIntent: () => intent("greatsmash", "Bone Cleave", "🦴", 6, "Cleaves for 6."),
-  onDeath: (self, state, killingType) => {
-    if (killingType === "fire" || killingType === "holy") {
-      return appendLog(state, "system", `${self.name} burns to ash. The bones cannot rise.`);
-    }
+  dice: [
+    {
+      id: "lord_die",
+      name: "Lord Die",
+      icon: "💀",
+      faces: [
+        "enemy_bone_cleave_boss",
+        "enemy_bone_cleave_boss",
+        "enemy_great_cleave",
+        "enemy_crush",
+        "enemy_armor_2",
+        "blank",
+      ],
+      defaultTarget: "player",
+    },
+  ],
+  onDeath: (self, state) => {
     let s = appendLog(state, "system", `${self.name} shatters into three lesser Skeletons.`);
     for (let i = 0; i < 3; i++) s = spawnEnemy(s, "skeleton", `lord_split_${i}`);
     return s;
@@ -759,22 +639,25 @@ const VAMPIRE_LORD: DiceEnemyDef = {
   id: "boss_vampire_lord",
   name: "Vampire Lord",
   icon: "🧛",
-  maxHp: 45,
+  maxHp: 15,
   defaultRow: "front",
   isBoss: true,
-  resistances: {},
-  vulnerabilities: { fire: 1.25, holy: 1.5 },
-  selectIntent: () => intent("drain", "Sanguine Drain", "🩸", 6, "Drains 6 HP from the player."),
-  resolveIntent: (self, state) => ({
-    ...state,
-    enemies: state.enemies.map((e) =>
-      e.uid === self.uid ? { ...e, hp: Math.min(e.maxHp, e.hp + 3) } : e,
-    ),
-    log: [
-      ...state.log,
-      { turn: state.turn, source: "enemy", text: `${self.name} drinks — heals 3.` },
-    ],
-  }),
+  dice: [
+    {
+      id: "vlord_die",
+      name: "Blood Die",
+      icon: "🧛",
+      faces: [
+        "enemy_sanguine_drain",
+        "enemy_sanguine_drain",
+        "enemy_drain_heavy",
+        "enemy_drain",
+        "enemy_chant",
+        "blank",
+      ],
+      defaultTarget: "player",
+    },
+  ],
   onPlayerBust: (self, state, poolSize) => {
     const heal = poolSize * 2;
     if (heal <= 0) return state;
@@ -819,34 +702,62 @@ const LICH_KING: DiceEnemyDef = {
   id: "boss_lich",
   name: "The Lich King",
   icon: "☠️",
-  maxHp: 55,
+  maxHp: 8,
   defaultRow: "back",
   isBoss: true,
-  resistances: {},
-  vulnerabilities: { holy: 1.5, fire: 1.25 },
-  selectIntent: (self) => {
-    const ratio = self.hp / self.maxHp;
-    if (ratio > DICE_BALANCE.LICH_PHASE_2_AT)
-      return intent("cold_lamp", "Cold Lamp", "🔮", 5, "5 damage, applies Brand.");
-    if (ratio > DICE_BALANCE.LICH_PHASE_3_AT)
-      return intent("tithe_mark", "Tithe-Mark", "🩸", 4, "Corrupts a die face on hit.");
-    return intent("hymn_break", "Hymn-Break", "🎵", 3, "Echo faces are now bust-immune.");
-  },
-  resolveIntent: (_self, state, intentRes) => {
-    if (intentRes.id === "cold_lamp") {
-      return {
-        ...state,
-        player: {
-          ...state.player,
-          statuses: {
-            ...state.player.statuses,
-            weaken: (state.player.statuses.weaken ?? 0) + 1,
-          },
-        },
-      };
-    }
-    return state;
-  },
+  // Phase 0 (>67% HP): Cold Lamp die — unblockable + Weaken.
+  // Phase 1 (34-67%): Tithe-Mark die — damage + Mark.
+  // Phase 2 (<34%): Hymn-Break die — unblockable hits while granting Hymn-Hum.
+  phaseDice: [
+    [
+      {
+        id: "lich_p1_die",
+        name: "Cold Lamp",
+        icon: "🔮",
+        faces: [
+          "enemy_lich_cold_lamp",
+          "enemy_lich_cold_lamp",
+          "enemy_cold_lamp",
+          "enemy_brand",
+          "enemy_chant",
+          "blank",
+        ],
+        defaultTarget: "player",
+      },
+    ],
+    [
+      {
+        id: "lich_p2_die",
+        name: "Tithe-Mark",
+        icon: "🩸",
+        faces: [
+          "enemy_lich_tithe_mark",
+          "enemy_lich_tithe_mark",
+          "enemy_brand",
+          "enemy_cold_lamp",
+          "enemy_chant",
+          "blank",
+        ],
+        defaultTarget: "player",
+      },
+    ],
+    [
+      {
+        id: "lich_p3_die",
+        name: "Hymn-Break",
+        icon: "🎵",
+        faces: [
+          "enemy_lich_hymn_break",
+          "enemy_lich_hymn_break",
+          "enemy_echo_lance",
+          "enemy_brand",
+          "enemy_cold_lamp",
+          "blank",
+        ],
+        defaultTarget: "player",
+      },
+    ],
+  ],
   onPlayerTurnStart: (self, state) => {
     const ratio = self.hp / self.maxHp;
     let phaseIndex = self.phaseIndex;
