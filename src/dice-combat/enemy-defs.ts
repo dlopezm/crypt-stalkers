@@ -56,6 +56,7 @@ function spawnEnemy(state: DiceCombatState, defId: string, uidPrefix?: string): 
     thresholdHealUsed: false,
     intangible: false,
     rolledFaces: [],
+    frenzy: false,
   };
   let s: DiceCombatState = { ...state, enemies: [...state.enemies, newEnemy] };
   if (def.onSpawn) s = def.onSpawn(newEnemy, s);
@@ -214,6 +215,29 @@ const HEAP_OF_BONES: DiceEnemyDef = {
   resistances: { pierce: 0.5 },
   vulnerabilities: { bludgeoning: 2.0, fire: 2.0 },
   selectIntent: () => null, // No attack — just a countdown.
+  // Drains one Salt face from the player's rollable pool each turn it lives.
+  // Makes the Heap a time/resource problem distinct from the Skeleton (damage-type problem).
+  onPlayerTurnStart: (_self, state) => {
+    const saltInPool = state.pool.filter((pf) => pf.color === "salt" && !pf.forced);
+    if (saltInPool.length === 0) return state;
+    // Suppress the first Salt face for this turn by marking it suppressed via invertedColor
+    // is not the right mechanic here — instead we inject a one-turn "saltDrained" status
+    // that the engine's bust check and roll logic reads. Simplest approach: reduce pool
+    // by removing the Salt face and logging it. The face is gone for this turn only.
+    const target = saltInPool[0];
+    return {
+      ...state,
+      pool: state.pool.filter((pf) => pf.poolId !== target.poolId),
+      log: [
+        ...state.log,
+        {
+          turn: state.turn,
+          source: "enemy" as const,
+          text: "The Heap of Bones absorbs your ward — one Salt face is lost.",
+        },
+      ],
+    };
+  },
 };
 
 /* ── 4. Rotting Zombie ── */
@@ -234,7 +258,16 @@ const ZOMBIE: DiceEnemyDef = {
       id: "zombie_die",
       name: "Zombie Die",
       icon: "🧟",
-      faces: ["enemy_shamble", "enemy_shamble", "enemy_grasp", "enemy_shamble", "blank", "blank"],
+      // enemy_grasp replaced with enemy_grasp_drag (undodgeable, applies Dragged).
+      // Makes Zombie explicitly counter Echo dodge — Ghost requires dodge, Zombie removes it.
+      faces: [
+        "enemy_shamble",
+        "enemy_shamble",
+        "enemy_grasp_drag",
+        "enemy_shamble",
+        "blank",
+        "blank",
+      ],
       defaultTarget: "player",
     },
   ],
@@ -458,10 +491,28 @@ const GHOUL: DiceEnemyDef = {
   ],
   selectIntent: () => intent("rake", "Rake", "💢", undefined, "Rolls a ghoul die."),
   onSpawn: (self, state) => {
-    // Mark for ambush on the first turn — UI consumes turnsAlive==0 as the ambush window.
     return {
       ...state,
       enemies: state.enemies.map((e) => (e.uid === self.uid ? { ...e, intangible: false } : e)),
+    };
+  },
+  // Frenzy: if player HP drops below 50%, Ghoul adds a bonus Pounce after its normal attack.
+  // Tracked via the frenzy flag — once set it persists until Ghoul dies.
+  onPlayerTurnStart: (self, state) => {
+    if (self.frenzy) return state;
+    const ratio = state.player.hp / state.player.maxHp;
+    if (ratio >= 0.5) return state;
+    return {
+      ...state,
+      enemies: state.enemies.map((e) => (e.uid === self.uid ? { ...e, frenzy: true } : e)),
+      log: [
+        ...state.log,
+        {
+          turn: state.turn,
+          source: "enemy" as const,
+          text: "The Ghoul frenzies — it smells blood.",
+        },
+      ],
     };
   },
 };
@@ -542,16 +593,33 @@ const GUTBORN_LARVA: DiceEnemyDef = {
   name: "Gutborn Larva",
   icon: "🪱",
   maxHp: 1,
-  defaultRow: "front",
+  defaultRow: "back", // starts untargetable by melee — different from Rat (front row, area kill)
   isBoss: false,
   resistances: {},
   vulnerabilities: { fire: 2.0 },
-  selectIntent: () =>
-    intent("infest", "Infest", "🪱", undefined, "Animates a corpse into a Zombie next turn."),
-  resolveIntent: (_self, state) => {
-    // Without explicit corpses, the larva acts as a slow summoner.
-    return spawnEnemy(state, "zombie");
+  selectIntent: (self) =>
+    self.turnsAlive === 0
+      ? intent("burrow", "Burrow", "🪱", undefined, "Burrowing — untargetable by melee.")
+      : intent("infest", "Infest", "🪱", undefined, "Spawns a Zombie."),
+  onSpawn: (self, state) => ({
+    ...state,
+    enemies: state.enemies.map((e) =>
+      e.uid === self.uid ? { ...e, row: "back" as const, untargetable: true } : e,
+    ),
+  }),
+  // Turn 1 in back row: move to front, spawn Zombie, become targetable.
+  onPlayerTurnStart: (self, state) => {
+    if (self.turnsAlive !== 1) return state;
+    let s: DiceCombatState = {
+      ...state,
+      enemies: state.enemies.map((e) =>
+        e.uid === self.uid ? { ...e, row: "front" as const, untargetable: false } : e,
+      ),
+    };
+    s = spawnEnemy(s, "zombie");
+    return appendLog(s, "enemy", "The Larva surfaces and animates a corpse.");
   },
+  resolveIntent: (_self, state) => spawnEnemy(state, "zombie"),
 };
 
 /* ── 13. The Forsworn ── */
@@ -590,29 +658,45 @@ const FALSE_SACRARIUM: DiceEnemyDef = {
   selectIntent: () =>
     intent(
       "litany",
-      "Putrid Litany",
+      "Blessing Inversion",
       "🦠",
       undefined,
-      "Adds a forced Brine face to your next pool.",
+      "Identifies your most-rolled color. Next turn that color counts as Brine for bust.",
     ),
-  resolveIntent: (self, state) => ({
-    ...state,
-    player: {
-      ...state.player,
-      forcedFacesNextTurn: [
-        ...state.player.forcedFacesNextTurn,
-        { faceId: "dagger_open_vein", sourceUid: self.uid },
-      ],
-    },
-    log: [
-      ...state.log,
-      {
-        turn: state.turn,
-        source: "enemy",
-        text: `${self.name} chants — a Brine face will be forced into your next pool.`,
+  resolveIntent: (_self, state) => {
+    // Count colors the player rolled this turn (from pool).
+    const counts = new Map<string, number>();
+    for (const pf of state.pool) {
+      if (pf.color === "blank") continue;
+      counts.set(pf.color, (counts.get(pf.color) ?? 0) + 1);
+    }
+    if (counts.size === 0) return state;
+    // Find most-rolled color.
+    let topColor = "crimson";
+    let topCount = 0;
+    for (const [color, count] of counts) {
+      if (count > topCount) {
+        topCount = count;
+        topColor = color;
+      }
+    }
+    if (topColor === "brine") return state; // already Brine, no effect
+    return {
+      ...state,
+      player: {
+        ...state.player,
+        invertedColor: topColor as import("./types").FaceColor,
       },
-    ],
-  }),
+      log: [
+        ...state.log,
+        {
+          turn: state.turn,
+          source: "enemy" as const,
+          text: `Blessing Inversion — your ${topColor} faces count as Brine next turn.`,
+        },
+      ],
+    };
+  },
 };
 
 /* ── 15. Salt Revenant ── */

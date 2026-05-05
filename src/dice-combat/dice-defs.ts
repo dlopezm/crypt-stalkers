@@ -879,7 +879,127 @@ export const FACES: Record<string, FaceDef> = {
     symbols: ["sword", "drop"],
   },
 
+  /* ── New player faces (enemy-counter gaps) ── */
+
+  // Coldfire: penetrates Ghost intangibility for one hit; also Weakens.
+  coldfire_haunting_mark: {
+    id: "coldfire_haunting_mark",
+    label: "Haunting Mark",
+    icon: "☠️",
+    desc: "Mark + 1 Weaken. Removes Ghost intangibility for 1 hit.",
+    color: "coldfire",
+    target: "any-enemy",
+    symbols: ["mark", "bolt"],
+    tags: ["silent", "ranged"],
+  },
+
+  // Fire: dispels The Shadow's blank→Coldfire aura for this roll turn.
+  fire_solar_ward: {
+    id: "fire_solar_ward",
+    label: "Solar Ward",
+    icon: "☀️",
+    desc: "2 fire (+holy). Dispels Shadow aura — Blanks stay Blank this turn.",
+    color: "fire",
+    target: "any-enemy",
+    symbols: ["sun", "flame"],
+    tags: ["holy", "ranged"],
+  },
+
+  // Brine: cash out Bleed stacks as burst (or re-apply if none). Vampire Lord kill window.
+  brine_hemorrhage: {
+    id: "brine_hemorrhage",
+    label: "Hemorrhage",
+    icon: "🩸",
+    desc: "If target is Bleeding: deal damage = Bleed stacks and remove all Bleed. Else: +2 Bleed.",
+    color: "brine",
+    target: "front-enemy",
+    symbols: ["drop", "sword"],
+    tags: ["pierce"],
+  },
+
+  // Salt: removes slot-lock (Salt Revenant counter). Fallback: 2 block.
+  salt_unclasp: {
+    id: "salt_unclasp",
+    label: "Unclasp",
+    icon: "🔓",
+    desc: "Remove all Locked from one die slot. If nothing is locked: 2 block instead.",
+    color: "salt",
+    target: "self",
+    symbols: ["cleanse", "shield"],
+    tags: ["silent"],
+  },
+
+  // Echo: pushes all front-row enemies back + dodge their attacks this turn. Delays, doesn't kill.
+  echo_scatter: {
+    id: "echo_scatter",
+    label: "Scatter",
+    icon: "🌀",
+    desc: "Push all front-row enemies to back row. Dodge all front-row attacks this turn.",
+    color: "echo",
+    target: "all-front",
+    symbols: ["push", "dodge"],
+    tags: ["area", "silent"],
+  },
+
+  // Iron: bypasses Forsworn bodyguard redirection. Chips back-row enemies at reduced efficiency.
+  iron_called_strike: {
+    id: "iron_called_strike",
+    label: "Called Strike",
+    icon: "🎯",
+    desc: "2 damage, ignoring bodyguard redirection. 4 damage if targeting the bodyguard itself.",
+    color: "iron",
+    target: "any-enemy",
+    symbols: ["spark", "sword"],
+    tags: ["pierce", "heavy", "ranged"],
+  },
+
+  // Iron: armor-break — reduces enemy block pool by 1 permanently for the encounter.
+  iron_armor_shatter: {
+    id: "iron_armor_shatter",
+    label: "Armor Shatter",
+    icon: "⚒️",
+    desc: "2 damage. Reduce target's armor (warded) by 1 permanently.",
+    color: "iron",
+    target: "front-enemy",
+    symbols: ["sword", "sword"],
+    tags: ["pierce", "heavy"],
+  },
+
+  // Crimson: 1 damage + Mark on same target — enables follow-up doubling.
+  crimson_marked_flesh: {
+    id: "crimson_marked_flesh",
+    label: "Marked Flesh",
+    icon: "🩸",
+    desc: "1 damage + Mark (next damage to this target is doubled).",
+    color: "crimson",
+    target: "front-enemy",
+    symbols: ["sword", "mark"],
+  },
+
+  // Fire: Weaken rider on fire damage — bridges Fire+Coldfire naturally on Torch.
+  fire_consuming_blaze: {
+    id: "fire_consuming_blaze",
+    label: "Consuming Blaze",
+    icon: "🔥",
+    desc: "1 fire + 1 Weaken.",
+    color: "fire",
+    target: "front-enemy",
+    symbols: ["flame", "bolt"],
+  },
+
   /* ── v3 enemy faces (player-targeting offensive symbols, or self-targeting for armor/heals) ── */
+
+  // Zombie Grasp variant: undodgeable, applies Dragged status (engine handles "dragged").
+  enemy_grasp_drag: {
+    id: "enemy_grasp_drag",
+    label: "Drag",
+    icon: "✋",
+    desc: "1 damage + 1 Bleed — undodgeable. Applies Dragged (dodge disabled 1 turn).",
+    color: "brine",
+    target: "self",
+    symbols: ["sword", "drop"],
+    tags: ["undodgeable"],
+  },
 
   enemy_bite_1: {
     id: "enemy_bite_1",
@@ -1266,10 +1386,11 @@ export const WEAPON_DICE: Record<string, DieDef> = {
     slot: "main",
     name: "Dagger",
     icon: "🗡️",
+    // dagger_twist removed (Iron color broke Crimson identity). crimson_marked_flesh added.
     faces: [
       "dagger_stab",
       "dagger_quick",
-      "dagger_twist",
+      "crimson_marked_flesh",
       "dagger_open_vein",
       "dagger_flit",
       "blank",
@@ -1280,10 +1401,11 @@ export const WEAPON_DICE: Record<string, DieDef> = {
     slot: "main",
     name: "Warhammer",
     icon: "🔨",
+    // hammer_stagger (weak solo spark) replaced with iron_armor_shatter (pierce+heavy, explicit Wound Lock enabler).
     faces: [
       "hammer_smash",
       "hammer_crush",
-      "hammer_stagger",
+      "iron_armor_shatter",
       "hammer_heavybash",
       "hammer_windup",
       "blank",
@@ -1347,11 +1469,12 @@ export const OFFHAND_DICE: Record<string, DieDef> = {
     slot: "offhand",
     name: "Torch",
     icon: "🔥",
+    // torch_ward_off (Salt — wrong color) replaced with fire_consuming_blaze (Fire+Weaken bridge).
     faces: [
       "torch_brand",
       "torch_sear",
       "torch_sidestep",
-      "torch_ward_off",
+      "fire_consuming_blaze",
       "torch_sweep",
       "blank",
     ],
@@ -1403,7 +1526,15 @@ export const OFFHAND_DICE: Record<string, DieDef> = {
     slot: "offhand",
     name: "Vials of Brine",
     icon: "💧",
-    faces: ["vials_pour", "vials_splash", "vials_drench", "vials_cure", "vials_steady", "blank"],
+    // vials_steady (Salt block — wrong color) replaced with brine_hemorrhage (Bleed cashout face).
+    faces: [
+      "vials_pour",
+      "vials_splash",
+      "vials_drench",
+      "vials_cure",
+      "brine_hemorrhage",
+      "blank",
+    ],
   },
 };
 

@@ -188,6 +188,8 @@ export interface DiceEnemy {
   readonly intangible: boolean;
   /** v3: faces this enemy rolled at start of its turn. Visible to player before they roll. */
   readonly rolledFaces: readonly EnemyRolledFace[];
+  /** Lurking Ghoul: entered frenzy (player HP dropped below 50%). */
+  readonly frenzy: boolean;
 }
 
 /* ── Player state ── */
@@ -227,6 +229,8 @@ export interface DicePlayer {
   readonly corruptedFaces: readonly CorruptedFace[];
   /** Forced faces injected next turn (e.g. False Sacrarium accrual). */
   readonly forcedFacesNextTurn: readonly { readonly faceId: string; readonly sourceUid: string }[];
+  /** False Sacrarium: the color that counts as Brine for bust purposes this turn. */
+  readonly invertedColor: FaceColor | null;
 }
 
 /* ── Combat state ── */

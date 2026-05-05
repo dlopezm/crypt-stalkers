@@ -10,7 +10,8 @@ export type StatusKey =
   | "bolster"
   | "dice_stun"
   | "mark"
-  | "warded";
+  | "warded"
+  | "dragged"; // Zombie Drag: dodge faces don't prevent damage for 1 turn
 export type Statuses = Partial<Record<StatusKey, number>>;
 
 /* ── Damage & Equipment ── */

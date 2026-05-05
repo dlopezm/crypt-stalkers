@@ -11,6 +11,7 @@ export const STATUS_COLORS: Record<StatusKey, string> = {
   dice_stun: "#f1c40f",
   mark: "#E8821F",
   warded: "#bcbcbc",
+  dragged: "#5d6d7e",
 };
 
 export const STATUS_ICONS: Record<StatusKey, string> = {
@@ -24,6 +25,7 @@ export const STATUS_ICONS: Record<StatusKey, string> = {
   dice_stun: "\u2728",
   mark: "\u2739",
   warded: "\u{1F6E1}",
+  dragged: "\u{1F9DF}",
 };
 
 export const STATUS_DESC: Record<StatusKey, string> = {
@@ -37,4 +39,5 @@ export const STATUS_DESC: Record<StatusKey, string> = {
   dice_stun: "One rolled die does nothing",
   mark: "Next damage doubled",
   warded: "Block (absorbs damage)",
+  dragged: "Dodge faces don't prevent damage",
 };

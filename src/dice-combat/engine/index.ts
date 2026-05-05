@@ -54,6 +54,7 @@ export function initDiceCombat(init: DiceCombatInit): DiceCombatState {
       thresholdHealUsed: false,
       intangible: false,
       rolledFaces: [],
+      frenzy: false,
     });
   }
 
@@ -76,6 +77,7 @@ export function initDiceCombat(init: DiceCombatInit): DiceCombatState {
       slotLocks: [],
       corruptedFaces: [],
       forcedFacesNextTurn: [],
+      invertedColor: null,
     },
     enemies,
     pool: [],
@@ -121,6 +123,7 @@ function startOfPlayerTurn(state: DiceCombatState): DiceCombatState {
       resonanceCharges: 0,
       dodgeActive: false,
       hymnHumActive: false,
+      invertedColor: null,
     },
     phase: "rolling",
   };
@@ -190,9 +193,11 @@ export function effectiveColor(
   if (corruption) return corruption.recoloredTo;
 
   // Shadow Coldfire Mark: while a Shadow lives, blanks recolor to Coldfire.
+  // Solar Ward (fire_solar_ward) suppresses this by setting invertedColor = "blank".
   if (faceDef.color === "blank") {
     const shadowAlive = state.enemies.some((e) => e.id === "shadow" && e.hp > 0);
-    if (shadowAlive) return "coldfire";
+    const solarWardActive = state.player.invertedColor === "blank";
+    if (shadowAlive && !solarWardActive) return "coldfire";
   }
   return faceDef.color;
 }
@@ -256,12 +261,14 @@ interface BustCheckResult {
 function computeBust(state: DiceCombatState): BustCheckResult {
   const seenByColor = new Map<FaceColor, number>();
   for (const pf of state.pool) {
-    const c = pf.color;
+    let c = pf.color;
     // Hymn-Hum: Echo faces count as wildcards (don't contribute to a clash).
     if (state.player.hymnHumActive && c === "echo") continue;
     // v3: faces tagged `silent` don't count for the bust check.
     const fd = getFace(pf.faceId);
     if (fd?.tags?.includes("silent")) continue;
+    // False Sacrarium Blessing Inversion: the player's most-rolled color counts as Brine.
+    if (state.player.invertedColor && c === state.player.invertedColor) c = "brine";
     seenByColor.set(c, (seenByColor.get(c) ?? 0) + 1);
   }
   for (const [color, count] of seenByColor) {
@@ -415,9 +422,12 @@ function validateTarget(
   if (!targetUid) return { ok: false, reason: "Pick a target." };
   const enemy = state.enemies.find((e) => e.uid === targetUid && e.hp > 0 && !e.untargetable);
   if (!enemy) return { ok: false, reason: "Invalid target." };
-  // `ranged` tag overrides front-row restriction.
+  // `ranged` tag or no living front-row enemies overrides front-row restriction.
   if (kind === "front-enemy" && enemy.row !== "front" && !ranged) {
-    return { ok: false, reason: "Front-row only." };
+    const hasFrontEnemy = state.enemies.some(
+      (e) => e.hp > 0 && !e.untargetable && e.row === "front",
+    );
+    if (hasFrontEnemy) return { ok: false, reason: "Front-row only." };
   }
   return { ok: true };
 }
@@ -518,12 +528,18 @@ function buildEnemyQueue(state: DiceCombatState): EnemyQueueEntry[] {
   const queue: EnemyQueueEntry[] = [];
   for (const e of order) {
     if (e.hp <= 0 || e.untargetable || e.reassembleQueued) continue;
+    // Enemies that advanced to front this turn (no intent, no rolled faces) skip their turn.
+    if (e.rolledFaces.length === 0 && e.intent === null) continue;
     if (e.rolledFaces.length > 0) {
       for (let i = 0; i < e.rolledFaces.length; i++) {
         queue.push({ uid: e.uid, faceIndex: i });
       }
     } else {
       queue.push({ uid: e.uid, faceIndex: null });
+    }
+    // Ghoul frenzy: add an extra Pounce entry after normal attacks.
+    if (e.id === "ghoul" && e.frenzy) {
+      queue.push({ uid: e.uid, faceIndex: -1 }); // faceIndex -1 = frenzy pounce sentinel
     }
   }
   return queue;
@@ -589,6 +605,12 @@ export function stepEnemyTurn(state: DiceCombatState): DiceCombatState {
     return s;
   }
   let s = state;
+  if (head.faceIndex === -1) {
+    // Ghoul frenzy sentinel: deal a bonus Pounce (3 damage).
+    s = damagePlayer(s, 3, enemy.name, "Frenzy Pounce");
+    if (isDefeat(s)) return finalize(s, "defeat");
+    return { ...s, enemyQueue: rest, lastEnemyAction: head };
+  }
   if (head.faceIndex === null) {
     // Legacy fixed intent.
     const intent = enemy.intent;
@@ -803,6 +825,96 @@ function applyFaceSymbols(
     };
   }
 
+  // ── Special face hooks ──────────────────────────────────────────────────────
+
+  // salt_unclasp: remove all slot-locks from first locked slot. Fallback: 2 block (handled
+  // via sun symbol already giving bolster — here we override with block for that face only).
+  if (face.id === "salt_unclasp") {
+    if (s.player.slotLocks.length > 0) {
+      const slot = s.player.slotLocks[0];
+      s = {
+        ...s,
+        player: { ...s.player, slotLocks: [] },
+        log: appendLog(s, "player", `Unclasp: unlocked ${slot} die.`),
+      };
+    } else {
+      // Fallback: 2 block (the cleanse symbol already fired; add extra block).
+      s = {
+        ...s,
+        player: { ...s.player, block: s.player.block + 2 },
+        log: appendLog(s, "player", "Unclasp: nothing locked — 2 block instead."),
+      };
+    }
+  }
+
+  // fire_solar_ward: dispel Shadow aura for this roll turn. The sun symbol grants Bolster
+  // (already processed above). We also mark the player's pool so blank→Coldfire recolor
+  // doesn't apply to subsequently rolled faces this turn. We do this by granting hymnHumActive
+  // for blank faces specifically — handled in effectiveColor below via a new solarWardActive flag.
+  // Simpler: set hymnHumActive = true covers Echo; Shadow blanks are separate. Use invertedColor
+  // mechanism in reverse — set a turn flag on player. We reuse invertedColor = "blank" as the
+  // signal that blanks should NOT be recolored this turn.
+  if (face.id === "fire_solar_ward") {
+    s = {
+      ...s,
+      player: { ...s.player, invertedColor: "blank" as FaceColor },
+      log: appendLog(s, "player", "Solar Ward: Shadow's aura suppressed this roll."),
+    };
+  }
+
+  // iron_armor_shatter: permanently reduce target's warded (block pool) by 1 for this encounter.
+  // The drop symbol already applied Bleed and the sword symbols dealt damage (via symbols above).
+  // Armor reduction is a separate effect: we cap the enemy's warded at (current - 1) now AND
+  // add a negative warded floor for future telegraphs. Simplest: reduce current warded by 1 min 0.
+  if (face.id === "iron_armor_shatter" && targetUid) {
+    const actual = resolveDamageRedirect(s, targetUid);
+    s = {
+      ...s,
+      enemies: s.enemies.map((e) => {
+        if (e.uid !== actual) return e;
+        const newWarded = Math.max(0, (e.statuses.warded ?? 0) - 1);
+        const statuses = { ...e.statuses, warded: newWarded };
+        if (newWarded === 0) delete (statuses as Record<string, number>).warded;
+        return { ...e, statuses };
+      }),
+      log: appendLog(s, "player", `Armor Shatter: reduced ${actual}'s armor.`),
+    };
+  }
+
+  // brine_hemorrhage: if target is Bleeding, consume all Bleed stacks and deal that as damage.
+  // If not Bleeding, the drop+sword symbols already handled +2 Bleed above — nothing else needed.
+  if (face.id === "brine_hemorrhage" && targetUid) {
+    const actual = resolveDamageRedirect(s, targetUid);
+    const enemy = s.enemies.find((e) => e.uid === actual);
+    const bleedStacks = enemy?.statuses.bleed ?? 0;
+    if (bleedStacks > 0) {
+      // Consume all Bleed and deal burst damage equal to stacks.
+      s = {
+        ...s,
+        enemies: s.enemies.map((e) => {
+          if (e.uid !== actual) return e;
+          const statuses = { ...e.statuses };
+          delete (statuses as Record<string, number>).bleed;
+          return { ...e, statuses };
+        }),
+      };
+      s = damageEnemy(s, actual, bleedStacks, "pierce", "Hemorrhage");
+      s = {
+        ...s,
+        log: appendLog(s, "player", `Hemorrhage: ${bleedStacks} Bleed consumed as burst damage.`),
+      };
+    }
+    // If no bleed: the symbols already applied +2 Bleed via drop symbol — nothing extra.
+  }
+
+  // iron_called_strike: 2 damage bypassing bodyguard, OR 4 damage if targeting the bodyguard.
+  // The spark+sword symbols fired normally (including redirect). We need to re-deal damage
+  // directly without redirect. We undo the redirected damage and apply the correct called version.
+  // Simpler: we handle called_strike in applyFaceEffect override below by skipping normal symbol
+  // resolution. But we're already IN applyFaceSymbols. Flag for post-processing: just note that
+  // called_strike already fired spark+sword via symbols — the bypass is handled by overriding
+  // resolveDamageRedirect for this face. See the applyFaceEffect override below.
+
   return s;
 }
 
@@ -811,6 +923,22 @@ function applyFaceEffect(
   face: FaceDef,
   targetUid: string | null,
 ): DiceCombatState {
+  // iron_called_strike: bypass bodyguard redirection entirely.
+  // Deal 2 damage to the intended target (ignoring Forsworn), or 4 if targeting the bodyguard.
+  if (face.id === "iron_called_strike" && targetUid) {
+    const target = state.enemies.find((e) => e.uid === targetUid && e.hp > 0);
+    if (!target) return state;
+    // Check if any bodyguard would normally redirect this.
+    const redirected = resolveDamageRedirect(state, targetUid);
+    const isBodyguard = redirected !== targetUid;
+    // If targeting the bodyguard directly, deal 4. Otherwise deal 2 directly (no redirect).
+    const dmg = isBodyguard ? 2 : 4;
+    let s = damageEnemy(state, targetUid, dmg, "bludgeoning", "Called Strike");
+    // Also apply the spark (stun) from the symbol — bypass redirect for stun too.
+    s = applyStatusToEnemy(s, targetUid, "stun", 1, "Called Strike");
+    return s;
+  }
+
   // v3: when a face declares symbols, the symbol bag is authoritative.
   if (face.symbols && face.symbols.length > 0) {
     return applyFaceSymbols(state, face, targetUid);
@@ -1147,11 +1275,20 @@ function cleansePlayer(state: DiceCombatState, count: number, source: string): D
 
 function telegraphIntents(state: DiceCombatState): DiceCombatState {
   let rng = state.rng;
-  // First pass: roll dice, collect rolledFaces.
+
+  // First pass: roll dice, collect rolledFaces. Back-row enemies with no ranged
+  // attacks advance to front and forego all actions this turn.
   const enemies = state.enemies.map((e) => {
     if (e.hp <= 0 || e.reassembleQueued) return { ...e, intent: null, rolledFaces: [] };
     const def = getEnemyDef(e.id);
     if (!def) return e;
+
+    // Back-row advance: front-row enemies pushed to back row always advance back to
+    // front and forfeit their turn. Native back-row enemies (casters) never advance.
+    if (e.row === "back" && def.defaultRow === "front") {
+      return { ...e, row: "front" as const, intent: null, rolledFaces: [] };
+    }
+
     if (def.dice && def.dice.length > 0) {
       const rolled: { dieId: string; faceId: string; targetUid: string }[] = [];
       for (const die of def.dice) {
@@ -1230,7 +1367,9 @@ function applyEnemyFace(
       // 1 damage to player, respecting unblockable / undodgeable.
       let dmg = 1;
       if (s.player.statuses.weaken && s.player.statuses.weaken > 0) dmg = Math.max(0, dmg - 1);
-      if (!undodgeable && s.player.dodgeActive) {
+      // Dragged status (from Zombie's Drag) disables dodge for this turn.
+      const isDragged = (s.player.statuses.dragged ?? 0) > 0;
+      if (!undodgeable && !isDragged && s.player.dodgeActive) {
         s = {
           ...s,
           player: { ...s.player, dodgeActive: false },
@@ -1281,6 +1420,14 @@ function applyEnemyFace(
         player: { ...s.player, statuses: { ...s.player.statuses, bleed: cur } },
         log: appendLog(s, "enemy", `${attacker.name}: +1 Bleed.`),
       };
+      // enemy_grasp_drag: apply Dragged (disables dodge for 1 player turn).
+      if (face.id === "enemy_grasp_drag") {
+        s = {
+          ...s,
+          player: { ...s.player, statuses: { ...s.player.statuses, bleed: cur, dragged: 1 } },
+          log: appendLog(s, "enemy", `${attacker.name} drags you — dodge disabled next roll.`),
+        };
+      }
     } else if (sym === "shield") {
       // No-op at attack-resolve: shields were applied at telegraph time so the
       // armor is in place BEFORE the player's turn (and could be chipped by
@@ -1333,6 +1480,7 @@ function applyEnemyFace(
             thresholdHealUsed: false,
             intangible: false,
             rolledFaces: [],
+            frenzy: false,
           };
           s = {
             ...s,
@@ -1448,10 +1596,15 @@ function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
     };
   }
   // v3: Bolster expires at end of turn (one-turn buff per stack-application).
-  // Weaken decays one stack per turn.
+  // Weaken and Dragged decay one stack per turn.
   if ((s.player.statuses.bolster ?? 0) > 0) {
     const next = { ...s.player.statuses };
     delete next.bolster;
+    s = { ...s, player: { ...s.player, statuses: next } };
+  }
+  if ((s.player.statuses.dragged ?? 0) > 0) {
+    const next = { ...s.player.statuses, dragged: (s.player.statuses.dragged ?? 1) - 1 };
+    if (next.dragged === 0) delete (next as Record<string, number>).dragged;
     s = { ...s, player: { ...s.player, statuses: next } };
   }
   if ((s.player.statuses.weaken ?? 0) > 0) {
