@@ -27,10 +27,11 @@ export const FACES: Record<string, FaceDef> = {
   blank: {
     id: "blank",
     label: "Blank",
-    icon: "·",
+    icon: "",
     desc: "No effect.",
     color: "blank",
     target: "none",
+    symbols: [],
   },
 
   /* ── Dagger (main hand) ── */
