@@ -544,12 +544,29 @@ function buildEnemyQueue(state: DiceCombatState): EnemyQueueEntry[] {
  * repeatedly to walk through it. Bust path also routes through here. */
 export function resolveTurn(state: DiceCombatState): DiceCombatState {
   if (state.phase === "busted") {
-    return { ...state, phase: "resolving-enemies", enemyQueue: buildEnemyQueue(state) };
+    return {
+      ...clearEnemyWarded(state),
+      phase: "resolving-enemies",
+      enemyQueue: buildEnemyQueue(state),
+    };
   }
   if (state.phase !== "assigning") return state;
   if (!allAssigned(state)) return state;
   if (isVictory(state)) return finalize(state, "victory");
-  return { ...state, phase: "resolving-enemies", enemyQueue: buildEnemyQueue(state) };
+  const s = clearEnemyWarded(state);
+  return { ...s, phase: "resolving-enemies", enemyQueue: buildEnemyQueue(s) };
+}
+
+function clearEnemyWarded(state: DiceCombatState): DiceCombatState {
+  return {
+    ...state,
+    enemies: state.enemies.map((e) => {
+      if (!e.statuses.warded) return e;
+      const statuses = { ...e.statuses };
+      delete statuses.warded;
+      return { ...e, statuses };
+    }),
+  };
 }
 
 /** Drain the entire enemy queue synchronously. Used by tests and as the
@@ -1220,23 +1237,7 @@ function telegraphIntents(state: DiceCombatState): DiceCombatState {
     return { ...base, intent: null, rolledFaces: [] };
   });
 
-  // Apply enemy `shield` symbols at telegraph time so armor is set before the player's turn.
-  // Also apply `intangible` symbol (already handled above per-enemy, but shield needs the
-  // armored pass for warded count).
-  const armored = enemies.map((e) => {
-    if (!e.rolledFaces || e.rolledFaces.length === 0) return e;
-    let warded = e.statuses.warded ?? 0;
-    for (const rf of e.rolledFaces) {
-      const f = getFace(rf.faceId);
-      if (!f?.symbols) continue;
-      for (const sym of f.symbols) {
-        if (sym === "shield") warded += 1;
-      }
-    }
-    if (warded === (e.statuses.warded ?? 0)) return e;
-    return { ...e, statuses: { ...e.statuses, warded } };
-  });
-  return { ...state, enemies: armored, rng };
+  return { ...state, enemies, rng };
 }
 
 function applyEnemyFace(
@@ -1344,10 +1345,6 @@ function applyEnemyFace(
           log: appendLog(s, "enemy", `${attacker.name} drags you — dodge disabled next roll.`),
         };
       }
-    } else if (sym === "shield") {
-      // No-op at attack-resolve: shields were applied at telegraph time so the
-      // armor is in place BEFORE the player's turn (and could be chipped by
-      // their attacks). See telegraphIntents.
     } else if (sym === "heart") {
       // Self-heal on the attacker (e.g. Vampire's Drain).
       s = {
@@ -1368,6 +1365,16 @@ function applyEnemyFace(
       } else {
         s = { ...s, log: appendLog(s, "enemy", `${attacker.name} finds no salt.`) };
       }
+    } else if (sym === "shield") {
+      s = {
+        ...s,
+        enemies: s.enemies.map((e) =>
+          e.uid === attackerUid
+            ? { ...e, statuses: { ...e.statuses, warded: (e.statuses.warded ?? 0) + 1 } }
+            : e,
+        ),
+        log: appendLog(s, "enemy", `${attacker.name} raises its guard (+1 ward).`),
+      };
     } else if (sym === "intangible") {
       // Applied at telegraph time; no-op at resolve time.
     } else if (sym === "reform") {
@@ -1622,9 +1629,6 @@ function tickEnemyStatuses(state: DiceCombatState): DiceCombatState {
       hp = Math.max(0, hp - bleed);
       statuses.bleed = bleed - 1;
     }
-    // v3: enemy `warded` (block) is one-turn-only — symmetric with the player's
-    // shields, which also expire at end of turn since they're per-attack.
-    if (statuses.warded) delete statuses.warded;
     enemies.push({ ...e, hp, statuses });
   }
   s = { ...s, enemies };
