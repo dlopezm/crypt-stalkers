@@ -299,9 +299,7 @@ export function DiceScreen({
   // Latest log line for the strip
   const latestLog = state.log.length > 0 ? state.log[state.log.length - 1] : null;
 
-  // Enemy rows
-  const front = state.enemies.filter((e) => e.row === "front" && (e.hp > 0 || e.reassembleQueued));
-  const back = state.enemies.filter((e) => e.row === "back" && (e.hp > 0 || e.reassembleQueued));
+  const visibleEnemies = state.enemies.filter((e) => e.hp > 0 || e.reassembleQueued);
 
   function isTargetable(uid: string): boolean {
     if (selectedPoolId === null) return false;
@@ -426,60 +424,24 @@ export function DiceScreen({
         </div>
       )}
 
-      {/* Enemy rows */}
-      <div
-        style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}
-      >
-        {back.length > 0 && (
-          <div style={{ padding: "0 20px 0", position: "relative", zIndex: 3 }}>
-            <div className="eyebrow" style={{ marginBottom: 4, paddingLeft: 4 }}>
-              back row
-            </div>
-            <div className="enemies" style={{ padding: 0, justifyContent: "flex-start" }}>
-              {back.map((enemy) => (
-                <AlcoveCard
-                  key={enemy.uid}
-                  state={state}
-                  enemy={enemy}
-                  targetable={isTargetable(enemy.uid)}
-                  onClick={() => handleEnemyClick(enemy.uid)}
-                  isAttackTargetable={(idx) => isAttackTargetable(enemy.uid, idx)}
-                  onAttackClick={(idx) => handleAttackClick(enemy.uid, idx)}
-                  onInspect={() => setInspectEnemyUid(enemy.uid)}
-                  playerFlash={playerFlashUid === enemy.uid}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        {front.length > 0 && (
-          <div style={{ padding: "0 20px 0", position: "relative", zIndex: 3 }}>
-            {back.length > 0 && (
-              <div className="eyebrow" style={{ marginBottom: 4, paddingLeft: 4 }}>
-                front row
-              </div>
-            )}
-            <div className="enemies" style={{ padding: 0, justifyContent: "flex-start" }}>
-              {front.map((enemy) => (
-                <AlcoveCard
-                  key={enemy.uid}
-                  state={state}
-                  enemy={enemy}
-                  targetable={isTargetable(enemy.uid)}
-                  onClick={() => handleEnemyClick(enemy.uid)}
-                  isAttackTargetable={(idx) => isAttackTargetable(enemy.uid, idx)}
-                  onAttackClick={(idx) => handleAttackClick(enemy.uid, idx)}
-                  onInspect={() => setInspectEnemyUid(enemy.uid)}
-                  playerFlash={playerFlashUid === enemy.uid}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        {front.length === 0 && back.length === 0 && (
-          <div className="enemies">
-            <span style={{ opacity: 0.4, fontStyle: "italic" }}>(all enemies defeated)</span>
-          </div>
+      {/* Enemy row — back-row enemies shown at 60% scale, original order preserved */}
+      <div className="enemies" style={{ padding: "14px 20px 8px" }}>
+        {visibleEnemies.map((enemy) => (
+          <AlcoveCard
+            key={enemy.uid}
+            state={state}
+            enemy={enemy}
+            targetable={isTargetable(enemy.uid)}
+            onClick={() => handleEnemyClick(enemy.uid)}
+            isAttackTargetable={(idx) => isAttackTargetable(enemy.uid, idx)}
+            onAttackClick={(idx) => handleAttackClick(enemy.uid, idx)}
+            onInspect={() => setInspectEnemyUid(enemy.uid)}
+            playerFlash={playerFlashUid === enemy.uid}
+            backRow={enemy.row === "back"}
+          />
+        ))}
+        {visibleEnemies.length === 0 && (
+          <span style={{ opacity: 0.4, fontStyle: "italic" }}>(all enemies defeated)</span>
         )}
       </div>
 
@@ -655,6 +617,7 @@ function AlcoveCard({
   onAttackClick,
   onInspect,
   playerFlash,
+  backRow,
 }: {
   state: DiceCombatState;
   enemy: DiceCombatState["enemies"][number];
@@ -664,6 +627,7 @@ function AlcoveCard({
   onAttackClick: (idx: number) => void;
   onInspect: () => void;
   playerFlash: boolean;
+  backRow?: boolean;
 }) {
   const isReassembling = enemy.reassembleQueued;
   const isDead = enemy.hp <= 0 && !isReassembling;
@@ -672,11 +636,13 @@ function AlcoveCard({
   const def = getEnemyDef(enemy.id);
   const dice = def?.dice ?? [];
 
+  const flashStyle = playerFlash ? { filter: "drop-shadow(0 0 8px rgba(154,214,163,0.7))" } : {};
+
   return (
     <div
       className={`alcove ${isActing ? "active" : ""} ${targetable ? "targetable" : ""} ${isDead ? "dead" : ""}`}
       onClick={isDead ? undefined : onClick}
-      style={playerFlash ? { filter: "drop-shadow(0 0 8px rgba(154,214,163,0.7))" } : undefined}
+      style={{ ...flashStyle, ...(backRow ? { zoom: 0.6 } : {}) }}
     >
       {/* Inspect dice button */}
       {dice.length > 0 && (
@@ -776,7 +742,7 @@ function AlcoveCard({
               >
                 <div className="band" style={{ background: FACE_COLOR_CSS[face.color] }} />
                 <div className="sym">
-                  <FaceGlyphs face={face} size="9px" />
+                  <FaceGlyphs face={face} size="13px" />
                 </div>
               </div>
             </div>

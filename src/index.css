@@ -77,12 +77,13 @@ button {
 
 /* Stage */
 .stage {
-  min-height: 100vh;
+  height: 100vh;
   background: radial-gradient(ellipse at 50% -10%, #1a3838 0%, #0a1a1a 35%, #050a0a 80%);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   color: var(--bone);
 }
 .stage::before {
@@ -279,7 +280,7 @@ button {
 .alcove-dice {
   display: flex;
   gap: 3px;
-  height: 42px;
+  height: 62px;
   align-items: flex-end;
 }
 .alcove-dice .mini {
@@ -288,8 +289,8 @@ button {
 
 /* MINI DIE */
 .mini-die {
-  width: 30px;
-  height: 36px;
+  width: 45px;
+  height: 54px;
   background: var(--bone);
   color: var(--ink);
   border: 1.5px solid var(--ink);
@@ -299,7 +300,7 @@ button {
   position: relative;
 }
 .mini-die .band {
-  height: 7px;
+  height: 10px;
   border-bottom: 1px solid var(--ink);
 }
 .mini-die .sym {
@@ -308,7 +309,7 @@ button {
   align-items: center;
   justify-content: center;
   font-family: "Special Elite", monospace;
-  font-size: 11px;
+  font-size: 16px;
 }
 
 /* ALTAR */
@@ -321,7 +322,7 @@ button {
 }
 .altar {
   width: 100%;
-  max-width: 520px;
+  max-width: 680px;
   position: relative;
 }
 .torch-stand {
@@ -359,7 +360,7 @@ button {
     inset 0 0 30px rgba(0, 0, 0, 0.7),
     0 6px 0 #050a0a;
   padding: 10px 14px;
-  min-height: 110px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
 }
@@ -374,13 +375,13 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  min-height: 80px;
+  gap: 12px;
+  min-height: 100px;
   flex-wrap: wrap;
 }
 .pool-die {
-  width: 60px;
-  height: 72px;
+  width: 76px;
+  height: 90px;
   background: var(--bone);
   color: var(--ink);
   border: 1.5px solid var(--ink);
@@ -443,8 +444,8 @@ button {
   white-space: nowrap;
 }
 .pool-empty {
-  width: 60px;
-  height: 72px;
+  width: 76px;
+  height: 90px;
   border: 1.5px dashed var(--bone-faint);
   display: flex;
   align-items: center;
@@ -674,8 +675,8 @@ button {
 
 /* ART TILES (enemy portrait placeholders) */
 .art-img {
-  width: 96px;
-  height: 90px;
+  width: 130px;
+  height: 120px;
   position: relative;
   display: flex;
   align-items: flex-end;
