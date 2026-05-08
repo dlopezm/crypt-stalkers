@@ -1,5 +1,5 @@
+import { useState } from "react";
 import { btnStyle } from "../../styles";
-import { TRAP_INFO } from "../../data/rooms";
 import { ENEMY_TYPES } from "../../data/enemies";
 import { getActiveEffects, isHazardousRoom } from "../../data/environment";
 import { getActiveProps } from "../../utils/props";
@@ -23,7 +23,7 @@ function ThreatPanel({
           <p className="text-xs text-crypt-red uppercase tracking-widest mb-1">Threat Assessment</p>
           {threats.map((t, i) => (
             <p key={i} className="text-xs text-crypt-muted leading-relaxed">
-              {"\u26A0"} {t}
+              {"⚠"} {t}
             </p>
           ))}
         </div>
@@ -98,8 +98,6 @@ export function RoomPanel({
   currentTurn,
   onEnterRoom,
   onScout,
-  onSetTrap,
-  onBlockDoor,
   onExamineProp,
 }: {
   readonly node: AreaNode | null;
@@ -113,49 +111,70 @@ export function RoomPanel({
   readonly currentTurn: number;
   readonly onEnterRoom: (id: string) => void;
   readonly onScout: (level: number) => void;
-  readonly onSetTrap: (id: string, trap: string) => void;
-  readonly onBlockDoor: (id: string) => void;
   readonly onExamineProp: (roomId: string, propId: string) => void;
 }) {
+  const [showDesc, setShowDesc] = useState(false);
+
   if (!node) {
     return (
       <div className="panel">
-        <p className="text-base text-crypt-muted leading-relaxed">Click any visible room.</p>
+        <p className="text-sm text-crypt-muted leading-relaxed">Click any visible room.</p>
       </div>
     );
   }
 
+  const label =
+    !debugMode && node.state !== "visited" && node.id !== currentRoomId ? "???" : node.label;
+  const canSeeDesc = !!(
+    node.description &&
+    (node.state === "visited" || node.id === currentRoomId)
+  );
+
+  const envDescs =
+    node.state === "visited" || node.id === currentRoomId || node.scouted
+      ? (() => {
+          const d = getActiveEffects(node).map((e) => e.description);
+          if (node.looted?.length) d.push("Someone has been here before you. Drawers left open.");
+          return d;
+        })()
+      : [];
+
   return (
     <div className="panel">
-      <div className="text-lg font-bold text-crypt-text mb-2 leading-tight">
-        {!debugMode && node.state !== "visited" && node.id !== currentRoomId ? "???" : node.label}
+      {/* Room header — always visible */}
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div>
+          <div className="text-base font-bold text-crypt-text leading-tight">{label}</div>
+          {node.id === currentRoomId && (
+            <p className="text-xs text-crypt-gold mt-0.5">{"⚑"} You are here.</p>
+          )}
+        </div>
+        {canSeeDesc && (
+          <button
+            onClick={() => setShowDesc((v) => !v)}
+            className="text-xs text-crypt-dim/60 shrink-0 mt-0.5"
+            title={showDesc ? "Hide description" : "Show description"}
+          >
+            {showDesc ? "▴" : "▾"}
+          </button>
+        )}
       </div>
-      {node.id === currentRoomId && (
-        <p className="text-sm text-crypt-gold mb-1">{"\u2691"} You are here.</p>
-      )}
 
-      {node.description && (node.state === "visited" || node.id === currentRoomId) && (
+      {/* Description + env notes — collapsed by default */}
+      {showDesc && canSeeDesc && (
         <p className="text-sm text-crypt-muted mb-2 italic leading-relaxed">{node.description}</p>
       )}
 
-      {(node.state === "visited" || node.id === currentRoomId || node.scouted) &&
-        (() => {
-          const envDescs = getActiveEffects(node).map((e) => e.description);
-          if (node.looted?.length) {
-            envDescs.push("Someone has been here before you. Drawers left open.");
-          }
-          if (envDescs.length === 0) return null;
-          return (
-            <div className="text-xs text-crypt-dim mb-2 italic leading-relaxed border-l-2 border-crypt-purple/30 pl-2">
-              {envDescs.map((d, i) => (
-                <span key={i}>
-                  {d}
-                  {i < envDescs.length - 1 && " "}
-                </span>
-              ))}
-            </div>
-          );
-        })()}
+      {showDesc && envDescs.length > 0 && (
+        <div className="text-xs text-crypt-dim mb-2 italic leading-relaxed border-l-2 border-crypt-purple/30 pl-2">
+          {envDescs.map((d, i) => (
+            <span key={i}>
+              {d}
+              {i < envDescs.length - 1 && " "}
+            </span>
+          ))}
+        </div>
+      )}
 
       {node.id !== currentRoomId && node.enemies.length > 0 && !node.exit && (
         <div className="text-sm text-crypt-muted mb-2 leading-relaxed">
@@ -167,20 +186,6 @@ export function RoomPanel({
             <span className="text-crypt-dim italic">Unknown. Scout to learn more.</span>
           ) : (
             scoutResult
-          )}
-          {node.trap && (
-            <>
-              <br />
-              <span style={{ color: TRAP_INFO[node.trap].color }}>
-                {TRAP_INFO[node.trap].icon} {TRAP_INFO[node.trap].label} set.
-              </span>
-            </>
-          )}
-          {node.blocked && (
-            <>
-              <br />
-              <span className="text-crypt-blue">{"\u{1F6A7}"} Blocked.</span>
-            </>
           )}
         </div>
       )}
@@ -206,12 +211,13 @@ export function RoomPanel({
           return <ThreatPanel threats={threats} approachWarnings={warnings} />;
         })()}
 
+      {/* In-room props — hidden on mobile (tap them on the map), shown on desktop */}
       {node.id === currentRoomId &&
         (() => {
           const activeProps = getActiveProps(node.props, player.flags, node.propStates);
           if (activeProps.length === 0) return null;
           return (
-            <div className="mb-2 pt-2" style={{ borderTop: "1px solid #2a2015" }}>
+            <div className="hidden lg:block mb-2 pt-2" style={{ borderTop: "1px solid #2a2015" }}>
               <div className="text-xs text-crypt-dim mb-1 tracking-wider uppercase">
                 In this room
               </div>
@@ -228,7 +234,7 @@ export function RoomPanel({
                     >
                       <span style={{ fontSize: "1rem" }}>{p.icon}</span>
                       <span className="flex-1">{p.label}</span>
-                      {examined && <span style={{ color: "#8a7a5a" }}>{"\u2713"}</span>}
+                      {examined && <span style={{ color: "#8a7a5a" }}>{"✓"}</span>}
                     </button>
                   );
                 })}
@@ -238,7 +244,7 @@ export function RoomPanel({
         })()}
 
       <div className="flex flex-col gap-1.5">
-        {(adjacentIds.has(node.id) || debugMode) && !node.blocked && node.id !== currentRoomId && (
+        {(adjacentIds.has(node.id) || debugMode) && node.id !== currentRoomId && (
           <button
             style={btnStyle(node.exit ? "#8b6914" : "#8b0000")}
             onClick={() => onEnterRoom(node.id)}
@@ -246,7 +252,7 @@ export function RoomPanel({
             {node.exit
               ? `\u{1F6AA} Travel — ${node.label}`
               : isHazardousRoom(node)
-                ? "\u26A0 Enter (hazardous)"
+                ? "⚠ Enter (hazardous)"
                 : "Enter"}
           </button>
         )}
@@ -270,7 +276,7 @@ export function RoomPanel({
               {"\u{1F511}"} Peek
             </button>
             <button
-              title="Full scout \u2014 risky"
+              title={`Full scout — risky`}
               style={btnStyle("#5a3a10")}
               className={`text-xs! px-2! py-1! flex-1 ${scoutLevel >= 3 ? "opacity-50" : ""}`}
               onClick={() => onScout(3)}
@@ -280,45 +286,11 @@ export function RoomPanel({
           </div>
         )}
 
-        {(adjacentIds.has(node.id) || node.id === currentRoomId) &&
-          node.enemies.length > 0 &&
-          !node.exit &&
-          !node.trap && (
-            <div className="flex gap-1 flex-wrap">
-              {Object.entries(TRAP_INFO).map(([key, t]) => (
-                <button
-                  key={key}
-                  title={t.desc}
-                  style={btnStyle(t.color)}
-                  className="text-xs! px-2! py-1!"
-                  onClick={() => onSetTrap(node.id, key)}
-                >
-                  {t.icon} {t.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-        {(adjacentIds.has(node.id) || node.id === currentRoomId) &&
-          node.enemies.length > 0 &&
-          !node.exit &&
-          !node.blocked && (
-            <button
-              style={btnStyle("#2980b9")}
-              className="text-xs! px-2! py-1!"
-              onClick={() => onBlockDoor(node.id)}
-            >
-              {"\u{1F6A7}"} Block Door
-            </button>
-          )}
-
         {!debugMode &&
           node.state !== "locked" &&
           !adjacentIds.has(node.id) &&
           node.id !== currentRoomId && (
-            <div className="text-xs text-crypt-dim italic">
-              Not adjacent {"\u2014"} move closer.
-            </div>
+            <div className="text-xs text-crypt-dim italic">Not adjacent {"—"} move closer.</div>
           )}
       </div>
     </div>

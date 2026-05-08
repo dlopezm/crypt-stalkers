@@ -23,8 +23,6 @@ export function AreaMap({
   areaLog,
   onEnterRoom,
   onScout,
-  onSetTrap,
-  onBlockDoor,
   onRest,
   onSwitchWeapon,
   onEquipDiceItem,
@@ -45,8 +43,6 @@ export function AreaMap({
   areaLog: AreaLogEntry[];
   onEnterRoom: (id: string) => void;
   onScout: (id: string, level: number) => void;
-  onSetTrap: (id: string, trap: string) => void;
-  onBlockDoor: (id: string) => void;
   onRest: () => void;
   onSwitchWeapon: (weaponId: string) => void;
   onEquipDiceItem: (slot: EquipmentSlot, id: string) => void;
@@ -63,6 +59,8 @@ export function AreaMap({
   const [showWeaponPicker, setShowWeaponPicker] = useState(false);
   const [showEquipmentPicker, setShowEquipmentPicker] = useState(false);
   const [openProp, setOpenProp] = useState<{ roomId: string; propId: string } | null>(null);
+  const [showLog, setShowLog] = useState(false);
+  const [showStatus, setShowStatus] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
@@ -180,16 +178,6 @@ export function AreaMap({
     setSelected(id);
   }
 
-  function handleSetTrap(id: string, trap: string) {
-    onSetTrap(id, trap);
-    setSelected(id);
-  }
-
-  function handleBlockDoor(id: string) {
-    onBlockDoor(id);
-    setSelected(id);
-  }
-
   if (!areaGrid) return null;
 
   const mapPxW = areaGrid.width * CELL_PX;
@@ -207,74 +195,68 @@ export function AreaMap({
     }
   }
 
+  const visitedCount = area.filter((n) => n.state === "visited").length;
+  const total = area.length;
+  const pct = Math.round((visitedCount / total) * 100);
+
   return (
-    <div
-      className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center gap-3 relative overflow-hidden p-4
-                    lg:h-dvh lg:overflow-hidden"
-    >
+    <div className="bg-crypt-bg text-crypt-text font-serif flex flex-col relative overflow-hidden h-dvh">
       <div className="vignette" />
 
       {/* Top bar */}
-      <div className="flex gap-4 items-center relative z-1 flex-wrap justify-center shrink-0">
+      <div className="flex gap-3 items-center relative z-1 flex-wrap justify-between shrink-0 px-3 py-2">
         <h2
-          className="text-xl tracking-[0.15em] uppercase text-crypt-red-glow font-bold"
+          className="text-base tracking-[0.15em] uppercase text-crypt-red-glow font-bold"
           style={{ textShadow: "0 0 20px #8b0000" }}
         >
-          {"\u2620"} {areaName}
+          {"☠"} {areaName}
         </h2>
-        <div className="flex gap-4 items-center text-base">
+        <div className="flex gap-3 items-center text-sm">
           <span className="text-crypt-text">
-            {"\u2764"} {player.hp}/{player.maxHp}
+            {"❤"} {player.hp}/{player.maxHp}
           </span>
           <span className="text-crypt-gold">
             {"\u{1FA99}"} {player.salt}
           </span>
-          <span className="text-crypt-muted">
-            {"\u{1F5E1}\uFE0F"} {player.mainWeapon.name}
+          <span className="text-crypt-muted hidden sm:inline">
+            {"\u{1F5E1}️"} {player.mainWeapon.name}
           </span>
-        </div>
-        {(() => {
-          const visited = area.filter((n) => n.state === "visited").length;
-          const total = area.length;
-          const pct = Math.round((visited / total) * 100);
-          return (
-            <div className="flex items-center gap-2 text-xs text-crypt-dim">
+          <div className="flex items-center gap-1.5 text-xs text-crypt-dim">
+            <div
+              style={{
+                width: "48px",
+                height: "3px",
+                background: "#1a1510",
+                borderRadius: "2px",
+                overflow: "hidden",
+              }}
+            >
               <div
                 style={{
-                  width: "60px",
-                  height: "4px",
-                  background: "#1a1510",
-                  borderRadius: "2px",
-                  overflow: "hidden",
+                  width: `${pct}%`,
+                  height: "100%",
+                  background: "#c8982a",
+                  transition: "width 0.3s",
                 }}
-              >
-                <div
-                  style={{
-                    width: `${pct}%`,
-                    height: "100%",
-                    background: "#c8982a",
-                    transition: "width 0.3s",
-                  }}
-                />
-              </div>
-              <span>
-                {visited}/{total}
-              </span>
+              />
             </div>
-          );
-        })()}
+            <span>
+              {visitedCount}/{total}
+            </span>
+          </div>
+        </div>
       </div>
 
+      {/* Main content: map + sidebar */}
       <div
-        className="flex gap-6 relative z-1 flex-wrap justify-center items-start w-full flex-1 min-h-0
-                      lg:flex-nowrap lg:items-stretch"
+        className="flex relative z-1 w-full flex-1 min-h-0
+                      flex-col
+                      lg:flex-row lg:gap-4 lg:px-4 lg:pb-4 lg:items-stretch"
       >
-        {/* Map canvas — fills available space, inner box keeps square cells */}
+        {/* Map canvas — takes all available space on mobile */}
         <div
           ref={scrollRef}
-          className="relative flex-1 min-w-0 min-h-0 flex items-center justify-center
-                     w-full max-h-[calc(100vh-160px)]
-                     lg:max-h-full"
+          className="relative min-w-0 min-h-0 flex items-center justify-center flex-1"
         >
           <div
             className="relative rounded-md border border-crypt-border-dim"
@@ -308,8 +290,13 @@ export function AreaMap({
           </div>
         </div>
 
-        {/* Side panel */}
-        <div className="flex-1 min-w-[280px] max-w-[360px] flex flex-col gap-3 lg:overflow-y-auto lg:max-h-full">
+        {/* Sidebar — bottom strip on mobile, right column on desktop */}
+        <div
+          className="shrink-0 flex flex-col gap-2
+                        px-3 pb-3 overflow-y-auto
+                        lg:w-[320px] lg:max-w-[360px] lg:px-0 lg:pb-0 lg:overflow-y-auto lg:max-h-full"
+        >
+          {/* Room panel */}
           <RoomPanel
             node={node ?? null}
             currentRoomId={currentRoomId}
@@ -322,129 +309,151 @@ export function AreaMap({
             currentTurn={areaTurn}
             onEnterRoom={handleEnterRoom}
             onScout={handleScout}
-            onSetTrap={handleSetTrap}
-            onBlockDoor={handleBlockDoor}
             onExamineProp={handleExamineProp}
           />
 
-          {/* Player status */}
+          {/* Player status — collapsible on mobile */}
           <div className="panel">
-            <div className="text-sm text-crypt-dim mb-2 tracking-wider uppercase">
-              Your Status {"\u00B7"} Turn {areaTurn}
+            <button
+              className="w-full flex items-center justify-between text-sm text-crypt-dim tracking-wider uppercase"
+              onClick={() => setShowStatus((v) => !v)}
+            >
+              <span>
+                Status {"·"} T{areaTurn}
+              </span>
+              <span className="text-crypt-dim/60">{showStatus ? "▴" : "▾"}</span>
+            </button>
+            <div className="mt-1.5">
+              <HpBar current={player.hp} max={player.maxHp} color="#3ddc84" />
             </div>
-            <HpBar current={player.hp} max={player.maxHp} color="#3ddc84" />
-            <StatusBadges statuses={player.statuses} />
-            <div className="text-sm text-crypt-muted mt-2">
-              {"\u{1F392}"} {player.consumables.length} items
-            </div>
-            <div className="mt-2">
-              <button
-                style={btnStyle("#5a4a20")}
-                className="text-xs! px-2! py-1!"
-                onClick={() => setShowEquipmentPicker(true)}
-              >
-                {"⚙️"} Equipment
-              </button>
-            </div>
-            {player.ownedWeapons.length > 1 && (
-              <div className="mt-2">
-                <button
-                  style={btnStyle("#5a4a20")}
-                  className="text-xs! px-2! py-1!"
-                  onClick={() => setShowWeaponPicker((v) => !v)}
-                >
-                  {"\u{1F504}"} Switch Weapon
-                </button>
-                {showWeaponPicker && (
-                  <div className="flex gap-1 flex-wrap mt-1">
-                    {player.ownedWeapons
-                      .filter((w) => w.hand !== "offhand")
-                      .map((w) => (
-                        <button
-                          key={w.id}
-                          style={btnStyle(
-                            w.id === player.mainWeapon.id ? "#3a3020" : "#6a3a1a",
-                            w.id === player.mainWeapon.id,
-                          )}
-                          className="text-xs! px-2! py-1!"
-                          disabled={w.id === player.mainWeapon.id}
-                          onClick={() => {
-                            onSwitchWeapon(w.id);
-                            setShowWeaponPicker(false);
-                          }}
-                        >
-                          {w.icon} {w.name}
-                        </button>
-                      ))}
+            {showStatus && (
+              <div className="mt-2 flex flex-col gap-2">
+                <StatusBadges statuses={player.statuses} />
+                <div className="text-sm text-crypt-muted">
+                  {"\u{1F392}"} {player.consumables.length} items
+                </div>
+                <div className="flex gap-1 flex-wrap">
+                  <button
+                    style={btnStyle("#5a4a20")}
+                    className="text-xs! px-2! py-1!"
+                    onClick={() => setShowEquipmentPicker(true)}
+                  >
+                    {"⚙️"} Equipment
+                  </button>
+                  <button
+                    onClick={onRest}
+                    disabled={player.hp >= player.maxHp}
+                    style={btnStyle("#27ae60", player.hp >= player.maxHp)}
+                    className="text-xs! px-2! py-1!"
+                  >
+                    {"\u{1FA79}"} Rest (+{Math.floor(player.maxHp * REST_HEAL_FRACTION)} HP)
+                  </button>
+                </div>
+                {player.ownedWeapons.length > 1 && (
+                  <div>
+                    <button
+                      style={btnStyle("#5a4a20")}
+                      className="text-xs! px-2! py-1!"
+                      onClick={() => setShowWeaponPicker((v) => !v)}
+                    >
+                      {"\u{1F504}"} Switch Weapon
+                    </button>
+                    {showWeaponPicker && (
+                      <div className="flex gap-1 flex-wrap mt-1">
+                        {player.ownedWeapons
+                          .filter((w) => w.hand !== "offhand")
+                          .map((w) => (
+                            <button
+                              key={w.id}
+                              style={btnStyle(
+                                w.id === player.mainWeapon.id ? "#3a3020" : "#6a3a1a",
+                                w.id === player.mainWeapon.id,
+                              )}
+                              className="text-xs! px-2! py-1!"
+                              disabled={w.id === player.mainWeapon.id}
+                              onClick={() => {
+                                onSwitchWeapon(w.id);
+                                setShowWeaponPicker(false);
+                              }}
+                            >
+                              {w.icon} {w.name}
+                            </button>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <button
-            onClick={onRest}
-            disabled={player.hp >= player.maxHp}
-            style={btnStyle("#27ae60", player.hp >= player.maxHp)}
-          >
-            {"\u{1FA79}"} Rest (+{Math.floor(player.maxHp * REST_HEAL_FRACTION)} HP)
-          </button>
-
-          {/* Activity Log */}
-          <div className="panel" style={{ maxHeight: "240px", overflow: "hidden" }}>
-            <div className="text-sm text-crypt-dim mb-2 tracking-wider uppercase">Activity Log</div>
-            <div
-              className="flex flex-col gap-0.5"
-              style={{ maxHeight: "200px", overflowY: "auto" }}
+          {/* Activity Log — collapsed by default */}
+          <div className="panel">
+            <button
+              className="w-full flex items-center justify-between text-sm text-crypt-dim tracking-wider uppercase"
+              onClick={() => setShowLog((v) => !v)}
             >
-              {areaLog.length === 0 && (
-                <div className="text-xs text-crypt-dim italic">No activity yet.</div>
-              )}
-              {[...areaLog]
-                .filter((e) => !e.debugText)
-                .reverse()
-                .slice(0, 20)
-                .map((entry, i) => (
-                  <div
-                    key={i}
-                    className={`text-xs leading-relaxed ${
-                      entry.source === "monster"
-                        ? "text-red-400 font-bold"
-                        : entry.source === "player"
-                          ? "text-crypt-gold"
-                          : "text-crypt-muted"
-                    }`}
-                    style={{ opacity: Math.max(0.4, 1 - i * 0.04) }}
-                  >
-                    <span className="text-crypt-dim font-normal">T{entry.turn}</span> {entry.text}
-                  </div>
-                ))}
-            </div>
+              <span>Activity Log</span>
+              <span className="text-crypt-dim/60">{showLog ? "▴" : "▾"}</span>
+            </button>
+            {showLog && (
+              <div
+                className="flex flex-col gap-0.5 mt-2"
+                style={{ maxHeight: "200px", overflowY: "auto" }}
+              >
+                {areaLog.length === 0 && (
+                  <div className="text-xs text-crypt-dim italic">No activity yet.</div>
+                )}
+                {[...areaLog]
+                  .filter((e) => !e.debugText)
+                  .reverse()
+                  .slice(0, 20)
+                  .map((entry, i) => (
+                    <div
+                      key={i}
+                      className={`text-xs leading-relaxed ${
+                        entry.source === "monster"
+                          ? "text-red-400 font-bold"
+                          : entry.source === "player"
+                            ? "text-crypt-gold"
+                            : "text-crypt-muted"
+                      }`}
+                      style={{ opacity: Math.max(0.4, 1 - i * 0.04) }}
+                    >
+                      <span className="text-crypt-dim font-normal">T{entry.turn}</span> {entry.text}
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
-          <button onClick={onReturnToTitle} style={btnStyle("#3a2f25")} className="text-xs!">
-            {"\u{1F3F0}"} Abandon Run
-          </button>
-
-          <button
-            onClick={onToggleDebug}
-            style={btnStyle(debugMode ? "#9b59b6" : "#2a1f40")}
-            className="text-xs!"
-          >
-            {"\u{1F6E0}"} Debug {debugMode ? "ON" : "OFF"}
-          </button>
-
-          {debugMode && onOpenEditor && (
-            <button onClick={onOpenEditor} style={btnStyle("#2a1f40")} className="text-xs!">
-              {"\u{1F4DD}"} Editor
+          {/* Bottom actions */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={onReturnToTitle}
+              style={btnStyle("#3a2f25")}
+              className="text-xs! flex-1"
+            >
+              {"\u{1F3F0}"} Abandon Run
             </button>
-          )}
-
-          {debugMode && onAddSalt && (
-            <button onClick={onAddSalt} style={btnStyle("#2a1f40")} className="text-xs!">
-              +500 {"\u{1FA99}"}
+            <button
+              onClick={onToggleDebug}
+              style={btnStyle(debugMode ? "#9b59b6" : "#2a1f40")}
+              className="text-xs! flex-1"
+            >
+              {"\u{1F6E0}"} Debug {debugMode ? "ON" : "OFF"}
             </button>
-          )}
+            {debugMode && onOpenEditor && (
+              <button onClick={onOpenEditor} style={btnStyle("#2a1f40")} className="text-xs!">
+                {"\u{1F4DD}"} Editor
+              </button>
+            )}
+            {debugMode && onAddSalt && (
+              <button onClick={onAddSalt} style={btnStyle("#2a1f40")} className="text-xs!">
+                +500 {"\u{1FA99}"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

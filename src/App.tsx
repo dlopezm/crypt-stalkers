@@ -1,4 +1,4 @@
-import { TRAP_INFO, AREAS } from "./data/rooms";
+import { AREAS } from "./data/rooms";
 import { REST_HEAL_FRACTION, SAFE_REST_HEAL_FRACTION } from "./data/constants";
 import { WEAPONS } from "./data/weapons";
 import { CONSUMABLES } from "./data/consumables";
@@ -200,7 +200,6 @@ export default function App() {
     if (!area || !currentRoomId || !player || !areaGrid || !areaDef) return;
     const room = area.find((n) => n.id === roomId);
     if (!room) return;
-    if (room.blocked) return;
     const currentRoom = area.find((n) => n.id === currentRoomId);
     if (!debugMode && currentRoom && !currentRoom.connections.includes(roomId)) return;
 
@@ -329,32 +328,6 @@ export default function App() {
       const ownedAbilities = player.abilities ?? [];
       const next = ownedAbilities.includes(id) ? ownedAbilities : [...ownedAbilities, id];
       dispatch(setPlayer({ ...player, activeAbilityId: id, abilities: next }));
-    }
-  }
-
-  function onSetTrap(roomId: string, trapKey: string) {
-    if (!area || !currentRoomId) return;
-    const trapped = area.map((n) => (n.id === roomId ? { ...n, trap: trapKey } : n));
-    addLog(
-      [`\u{1FAA4} Trap set in ${area.find((n) => n.id === roomId)?.label || roomId}`],
-      "player",
-    );
-    const { newArea: afterAI } = tickAI(trapped, currentRoomId, "trap");
-    if (!checkAmbush(afterAI, currentRoomId)) {
-      dispatch(updateArea(afterAI));
-    }
-  }
-
-  function onBlockDoor(roomId: string) {
-    if (!area || !currentRoomId) return;
-    const blocked = area.map((n) => (n.id === roomId ? { ...n, blocked: true } : n));
-    addLog(
-      [`\u{1F6A7} Door blocked in ${area.find((n) => n.id === roomId)?.label || roomId}`],
-      "player",
-    );
-    const { newArea: afterAI } = tickAI(blocked, currentRoomId, "block");
-    if (!checkAmbush(afterAI, currentRoomId)) {
-      dispatch(updateArea(afterAI));
     }
   }
 
@@ -554,8 +527,6 @@ export default function App() {
                 {"\u2716"} ({n.enemies.map((e) => e.typeId).join(",")})
               </span>
             )}
-            {n.trap && <span className="text-orange-400"> {TRAP_INFO[n.trap]?.icon}</span>}
-            {n.blocked && <span className="text-crypt-blue"> {"\u{1F6A7}"}</span>}
             <button
               className="ml-2 bg-[#2a1f40] border-none text-crypt-purple cursor-pointer text-xs px-1 rounded"
               onClick={() => enterRoom(n.id)}
@@ -604,8 +575,6 @@ export default function App() {
           areaLog={areaLog}
           onEnterRoom={enterRoom}
           onScout={onScout}
-          onSetTrap={onSetTrap}
-          onBlockDoor={onBlockDoor}
           onRest={onRestOnMap}
           onSwitchWeapon={onSwitchWeaponOnMap}
           onEquipDiceItem={onEquipDiceItem}

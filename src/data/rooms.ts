@@ -1,4 +1,4 @@
-import type { RoomTemplate, AreaDef, TrapInfo } from "../types";
+import type { RoomTemplate, AreaDef } from "../types";
 import { PALE_VIGIL_VAULT } from "./areas/pale_vigil_vault";
 import { SALT_BARRIER_NORTH } from "./areas/salt_barrier_north";
 import { SALT_BARRIER_EAST } from "./areas/salt_barrier_east";
@@ -284,27 +284,6 @@ export const AREAS: AreaDef[] = [
 ];
 
 /* ── Shared Constants ── */
-
-export const TRAP_INFO: Record<string, TrapInfo> = {
-  snare: {
-    label: "Snare",
-    icon: "\u{1FAA4}",
-    desc: "Enemy skips first attack turn. Costs a turn.",
-    color: "#e67e22",
-  },
-  flash: {
-    label: "Flash",
-    icon: "\u{1F4A1}",
-    desc: "High light burst \u2014 damages all enemies. Costs a turn.",
-    color: "#f0c040",
-  },
-  noise: {
-    label: "Noise Lure",
-    icon: "\u{1F514}",
-    desc: "Draws enemies to adjacent room. Costs a turn.",
-    color: "#2980b9",
-  },
-};
 
 export const ROOM_W_SM = 76;
 export const ROOM_H_SM = 58;

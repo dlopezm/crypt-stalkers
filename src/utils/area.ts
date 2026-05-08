@@ -285,8 +285,6 @@ export function generateArea(def: AreaDef): GenerateAreaResult {
       cx: room.cx * CELL_PX,
       cy: room.cy * CELL_PX,
       connections: [],
-      trap: null,
-      blocked: false,
       scouted: false,
       gridRoomId: room.gridId,
       bbox: room.bbox,

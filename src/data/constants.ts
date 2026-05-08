@@ -53,8 +53,6 @@ export const SHADOW_DARKNESS_DAMAGE = 5;
 // Salt Revenant
 export const SALT_REVENANT_HP_THRESHOLD = 0.5;
 
-// Economy (traps and doors are free — they cost a dungeon turn instead)
-
 // Dungeon AI
 export const AI_REPRODUCE_CHANCE = 0.25;
 export const AI_NOISE_ATTRACT_CHANCE = 0.55;

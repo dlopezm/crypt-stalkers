@@ -369,8 +369,6 @@ export interface AreaNode {
   cx: number;
   cy: number;
   connections: string[];
-  trap: string | null;
-  blocked: boolean;
   scouted: boolean;
   gridRoomId?: number;
   bbox?: RoomBBox;
@@ -440,13 +438,6 @@ export interface CombatPlayer extends Player {
 }
 
 /* ── Misc ── */
-
-export interface TrapInfo {
-  readonly label: string;
-  readonly icon: string;
-  readonly desc: string;
-  readonly color: string;
-}
 
 export interface AreaLogEntry {
   turn: number;
