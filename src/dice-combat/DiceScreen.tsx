@@ -4,7 +4,6 @@ import {
   assignFace,
   canAssign,
   canRollSlot,
-  clearAssignment,
   dieForSlot,
   faceAtPoolId,
   initDiceCombat,
@@ -51,10 +50,24 @@ const SYMBOL_GLYPH: Record<SymbolKey, string> = {
   push: "⇄",
   reform: "🦴",
   intangible: "👻",
+  hide: "🫥",
   summon: "⚰️",
   invert: "🦠",
   bind: "⛓️",
   burrow_spawn: "🪱",
+  ranged: "🏹",
+  area: "⤧",
+  holy: "✝",
+  pierce: "↣",
+  unblockable: "⛔",
+  undodgeable: "⛔",
+  resonance: "◎",
+  hymn_hum: "🎵",
+  armor_break: "⚒",
+  bleed_burst: "💥",
+  drag: "✋",
+  sneak_attack: "🗡",
+  taunt: "⚔️",
 };
 
 const SYMBOL_LABEL: Record<SymbolKey, string> = {
@@ -77,10 +90,24 @@ const SYMBOL_LABEL: Record<SymbolKey, string> = {
   push: "Push row",
   reform: "Reform",
   intangible: "Phase",
+  hide: "Hide",
   summon: "Raise Dead",
   invert: "Invert",
   bind: "Bind die",
   burrow_spawn: "Surface + Zombie",
+  ranged: "Ranged",
+  area: "Area",
+  holy: "Holy",
+  pierce: "Pierce",
+  unblockable: "Unblockable",
+  undodgeable: "Undodgeable",
+  resonance: "+1 Resonance",
+  hymn_hum: "Hymn-Hum",
+  armor_break: "Armor Break",
+  bleed_burst: "Bleed Burst",
+  drag: "Drag",
+  sneak_attack: "Sneak Attack",
+  taunt: "Taunt",
 };
 
 const SYMBOL_DESC: Record<SymbolKey, string> = {
@@ -103,11 +130,63 @@ const SYMBOL_DESC: Record<SymbolKey, string> = {
   push: "Pushes all enemies in this row to the back row.",
   reform: "Reassembles this skeleton enemy after death.",
   intangible: "Becomes intangible — immune to physical damage until next turn.",
+  hide: "Becomes hidden — cannot be targeted this turn. Enables Sneak Attack.",
   summon: "Raises a dead enemy as a zombie in the same row.",
   invert: "Inverts one of the player's die colors.",
   bind: "Binds one of the player's dice — that die cannot be rolled this turn.",
   burrow_spawn: "Surfaces from underground and spawns a zombie.",
+  ranged: "Can target back-row enemies and be used from the back row.",
+  area: "Also hits enemies adjacent to the target in the same row.",
+  holy: "Damage symbols deal +1 vs undead enemies.",
+  pierce: "Damage symbols ignore enemy block (warded stacks).",
+  unblockable: "Shields cannot absorb this attack.",
+  undodgeable: "Dodge cannot cancel this attack.",
+  resonance: "Grants 1 Resonance — the next color clash is forgiven.",
+  hymn_hum: "Echo faces act as wildcards during bust checks this turn.",
+  armor_break: "Removes 1 Ward from the target.",
+  bleed_burst:
+    "If target is Bleeding, consume all stacks and deal that as burst damage. Otherwise applies 2 Bleed.",
+  drag: "Applies Dragged — target's dodge is disabled next turn.",
+  sneak_attack: "Only resolves if the attacker is hidden. The entire face fizzles otherwise.",
+  taunt: "Forces all other enemies to be untargetable until this enemy is killed or Taunt clears.",
 };
+
+const NON_STACKABLE: ReadonlySet<SymbolKey> = new Set([
+  "ranged",
+  "area",
+  "holy",
+  "pierce",
+  "unblockable",
+  "undodgeable",
+  "dodge",
+  "hymn_hum",
+  "sneak_attack",
+  "taunt",
+] as SymbolKey[]);
+
+function faceDesc(face: FaceDef): string {
+  const symbols = face.symbols ?? [];
+  if (symbols.length === 0) return "No effect.";
+  const counts = new Map<SymbolKey, number>();
+  const order: SymbolKey[] = [];
+  for (const s of symbols) {
+    if (!counts.has(s)) order.push(s);
+    counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  return order
+    .map((s) => {
+      const n = counts.get(s)!;
+      const desc = SYMBOL_DESC[s];
+      if (n === 1 || NON_STACKABLE.has(s)) return desc;
+      const scaled = desc
+        .replace(/^(Deals )(\d+)/, (_, p, d) => `${p}${n * +d}`)
+        .replace(/^(Grants )(\d+)/, (_, p, d) => `${p}${n * +d}`)
+        .replace(/^(Applies )(\d+)/, (_, p, d) => `${p}${n * +d}`)
+        .replace(/^(Restores )(\d+)/, (_, p, d) => `${p}${n * +d}`);
+      return scaled !== desc ? scaled : `${desc} (×${n})`;
+    })
+    .join(" ");
+}
 
 /* Maps game FaceColor → new CSS design token */
 const FACE_COLOR_CSS: Record<FaceColor, string> = {
@@ -119,6 +198,7 @@ const FACE_COLOR_CSS: Record<FaceColor, string> = {
   echo: "var(--crypt)",
   iron: "var(--bone-faint)",
   blank: "var(--bone-faint)",
+  colorless: "#111111",
 };
 
 /* Maps enemy id prefix → art tile tone class */
@@ -270,11 +350,6 @@ export function DiceScreen({
     setSelectedPoolId(null);
   }
 
-  function handleClearAssignment(poolId: number) {
-    setState((s) => clearAssignment(s, poolId));
-    if (selectedPoolId === poolId) setSelectedPoolId(null);
-  }
-
   const phase = state.phase;
   const busted = phase === "busted";
   const p = state.player;
@@ -286,28 +361,22 @@ export function DiceScreen({
   // Pool bust risk: % of pool colors that would collide if a die face shares them
   function bustRiskForDie(slot: DieSlot): number {
     const die = dieForSlot(slot, state);
-    const poolColors = state.pool
-      .filter((pf) => {
-        const fd = getFace(pf.faceId);
-        return !fd?.tags?.includes("silent");
-      })
-      .map((pf) => pf.color);
+    const poolColors = state.pool.filter((pf) => pf.color !== "colorless").map((pf) => pf.color);
     const faceColors = die.faces.map((faceId) => {
       const face = getFace(faceId);
       return face?.color ?? ("blank" as FaceColor);
     });
-    const matching = faceColors.filter((c) => poolColors.includes(c)).length;
+    const matching = faceColors.filter((c) => c !== "colorless" && poolColors.includes(c)).length;
     return Math.min(100, Math.round((matching / die.faces.length) * 100));
   }
 
-  function wouldBust(colorId: FaceColor, isSilent: boolean): boolean {
-    if (isSilent) return false;
+  function wouldBust(colorId: FaceColor): boolean {
+    if (colorId === "colorless") return false;
     const seenByColor = new Map<FaceColor, number>();
     for (const pf of state.pool) {
       let c = pf.color;
+      if (c === "colorless") continue;
       if (state.player.hymnHumActive && c === "echo") continue;
-      const fd = getFace(pf.faceId);
-      if (fd?.tags?.includes("silent")) continue;
       if (state.player.invertedColor && c === state.player.invertedColor) c = "brine";
       seenByColor.set(c, (seenByColor.get(c) ?? 0) + 1);
     }
@@ -328,7 +397,7 @@ export function DiceScreen({
   // Latest log line for the strip
   const latestLog = state.log.length > 0 ? state.log[state.log.length - 1] : null;
 
-  const visibleEnemies = state.enemies.filter((e) => e.hp > 0 || e.reassembleQueued);
+  const visibleEnemies = state.enemies.filter((e) => e.hp > 0);
 
   function isTargetable(uid: string): boolean {
     if (selectedPoolId === null) return false;
@@ -423,9 +492,7 @@ export function DiceScreen({
       </div>
 
       {/* Player status badges (compact strip below header) */}
-      {(p.powerCharges > 0 ||
-        p.twoHandedActive ||
-        p.dodgeActive ||
+      {((p.statuses.power ?? 0) > 0 ||
         p.hymnHumActive ||
         p.resonanceCharges > 0 ||
         p.slotLocks.length > 0) && (
@@ -440,11 +507,9 @@ export function DiceScreen({
             fontSize: "0.75rem",
           }}
         >
-          {p.powerCharges > 0 && (
-            <span style={{ color: "var(--bone-dim)" }}>💪 Power +{p.powerCharges}</span>
+          {(p.statuses.power ?? 0) > 0 && (
+            <span style={{ color: "var(--bone-dim)" }}>↑ Power +{p.statuses.power}</span>
           )}
-          {p.twoHandedActive && <span style={{ color: "var(--bone-dim)" }}>⚔️ Edge +1</span>}
-          {p.dodgeActive && <span style={{ color: "var(--bone-dim)" }}>🌀 Dodge</span>}
           {p.hymnHumActive && <span style={{ color: "var(--crypt)" }}>🎵 Hymn-Hum</span>}
           {p.resonanceCharges > 0 && <span style={{ color: "var(--torch)" }}>✦ Resonance</span>}
           {p.slotLocks.length > 0 && (
@@ -504,7 +569,6 @@ export function DiceScreen({
                   selected={selectedPoolId === pf.poolId}
                   busted={busted}
                   onClick={() => handlePoolFaceClick(pf.poolId)}
-                  onClear={() => handleClearAssignment(pf.poolId)}
                 />
               ))}
               {phase === "rolling" && state.pool.length > 0 && (
@@ -587,8 +651,7 @@ export function DiceScreen({
                   if (!face) return null;
                   const corruption = corruptions.find((c) => c.faceIndex === idx);
                   const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
-                  const isSilent = face.tags?.includes("silent") ?? false;
-                  const bust = canRoll && wouldBust(colorId, isSilent);
+                  const bust = canRoll && wouldBust(colorId);
                   const colorInPool = state.pool.some((pf) => pf.color === face.color);
                   return (
                     <div key={idx} className={`face ${colorInPool ? "in-pool" : ""}`}>
@@ -672,18 +735,22 @@ function AlcoveCard({
   playerFlash: boolean;
   backRow?: boolean;
 }) {
-  const isReassembling = enemy.reassembleQueued;
-  const isDead = enemy.hp <= 0 && !isReassembling;
+  const isDead = enemy.hp <= 0;
   const isActing = state.lastEnemyAction?.uid === enemy.uid;
   const tone = toneFor(enemy.id);
 
+  const isHidden = !!enemy.statuses.hidden;
   const flashStyle = playerFlash ? { filter: "drop-shadow(0 0 8px rgba(154,214,163,0.7))" } : {};
 
   return (
     <div
       className={`alcove ${isActing ? "active" : ""} ${targetable ? "targetable" : ""} ${isDead ? "dead" : ""}`}
       onClick={isDead ? undefined : onClick}
-      style={{ ...flashStyle, ...(backRow ? { zoom: 0.6 } : {}) }}
+      style={{
+        ...flashStyle,
+        ...(backRow ? { zoom: 0.6 } : {}),
+        ...(isHidden ? { opacity: 0.45 } : {}),
+      }}
     >
       {/* Status button */}
       <button
@@ -712,17 +779,11 @@ function AlcoveCard({
         <span>
           {enemy.icon} {enemy.name}
         </span>
-        <span className="hp">
-          {isReassembling ? `⟳${enemy.reassembleCountdown}` : `${enemy.hp}/${enemy.maxHp}`}
-        </span>
+        <span className="hp">{`${enemy.hp}/${enemy.maxHp}`}</span>
       </div>
 
       {/* Status badges */}
-      {(enemy.intangible ||
-        enemy.statuses.bleed ||
-        enemy.statuses.stun ||
-        enemy.statuses.warded ||
-        enemy.statuses.mark) && (
+      {Object.values(enemy.statuses).some(Boolean) && (
         <div
           style={{
             display: "flex",
@@ -732,17 +793,14 @@ function AlcoveCard({
             fontSize: 10,
           }}
         >
-          {enemy.intangible && <span title="Intangible">👻</span>}
-          {enemy.statuses.bleed ? (
-            <span title={`Bleed ${enemy.statuses.bleed}`}>🩸{enemy.statuses.bleed}</span>
-          ) : null}
-          {enemy.statuses.stun ? (
-            <span title={`Stun ${enemy.statuses.stun}`}>⚡{enemy.statuses.stun}</span>
-          ) : null}
-          {enemy.statuses.warded ? (
-            <span title={`Warded ${enemy.statuses.warded}`}>🛡{enemy.statuses.warded}</span>
-          ) : null}
-          {enemy.statuses.mark ? <span title="Marked">⚹</span> : null}
+          {Object.entries(enemy.statuses).map(([k, v]) =>
+            v ? (
+              <span key={k} title={`${k} ${v > 1 ? v : ""}`}>
+                {STATUS_ICONS[k as StatusKey]}
+                {v > 1 ? v : ""}
+              </span>
+            ) : null,
+          )}
         </div>
       )}
 
@@ -787,15 +845,6 @@ function AlcoveCard({
             </div>
           );
         })}
-        {/* Legacy intent mini-indicator when no rolled faces */}
-        {enemy.rolledFaces.length === 0 && enemy.intent && (
-          <div className="mini-die" title={enemy.intent.tooltip ?? ""}>
-            <div className="band" style={{ background: "var(--blood)" }} />
-            <div className="sym" style={{ fontSize: 9 }}>
-              {enemy.intent.icon}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -809,14 +858,12 @@ function PoolDieCard({
   selected,
   busted,
   onClick,
-  onClear,
 }: {
   pf: PoolFace;
   state: DiceCombatState;
   selected: boolean;
   busted: boolean;
   onClick: () => void;
-  onClear: () => void;
 }) {
   const face = getFace(pf.faceId);
   if (!face) return null;
@@ -830,33 +877,13 @@ function PoolDieCard({
     <div
       className={`pool-die ${selected ? "selected" : ""} ${assigned ? "assigned" : ""} ${busted ? "busted" : ""}`}
       onClick={onClick}
-      title={`${face.label}\n${face.desc}`}
+      title={`${face.label}\n${faceDesc(face)}`}
     >
       <div className="band" style={{ background: FACE_COLOR_CSS[pf.color] }} />
       <div className="sym">
         <FaceGlyphs face={face} size="18px" />
       </div>
-      {assignment && (
-        <div className="target-tag">
-          → {target ? target.name : "self"}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClear();
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--blood)",
-              fontSize: 8,
-              marginLeft: 2,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      {assignment && <div className="target-tag">→ {target ? target.name : "self"}</div>}
       {pf.forced && (
         <div
           style={{
@@ -986,7 +1013,7 @@ function DieLearnDialog({
                       {corruption ? " — corrupted" : ""})
                     </span>
                   </div>
-                  <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>{face.desc}</div>
+                  <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>{faceDesc(face)}</div>
                 </div>
               </div>
             );
@@ -1055,33 +1082,15 @@ function DialogHeader({ title, onClose }: { title: React.ReactNode; onClose: () 
 
 /* ── Status rows (shared between enemy + player dialogs) ── */
 
-function StatusRows({
-  statuses,
-  intangible,
-}: {
-  statuses: Partial<Record<StatusKey, number>>;
-  intangible?: boolean;
-}) {
+function StatusRows({ statuses }: { statuses: Partial<Record<StatusKey, number>> }) {
   const activeKeys = (Object.keys(statuses) as StatusKey[]).filter((k) => statuses[k]);
-  const hasAny = intangible || activeKeys.length > 0;
-  if (!hasAny) return null;
+  if (activeKeys.length === 0) return null;
   return (
     <div style={{ marginBottom: "1rem" }}>
       <div className="eyebrow" style={{ marginBottom: "0.4rem" }}>
         Active effects
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-        {intangible && (
-          <div
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}
-          >
-            <span style={{ fontSize: "1rem" }}>👻</span>
-            <div>
-              <span style={{ color: "var(--bone)" }}>Intangible</span>
-              <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>Immune to physical damage.</div>
-            </div>
-          </div>
-        )}
         {activeKeys.map((k) => (
           <div
             key={k}
@@ -1119,29 +1128,7 @@ function FaceRows({
         const corruption = corruptions.find((c) => c.faceIndex === idx);
         const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
         const color = COLORS[colorId];
-        const symbols = face.symbols ?? [];
-        const symbolDesc = (() => {
-          if (symbols.length === 0) return face.desc;
-          const counts = new Map<SymbolKey, number>();
-          const order: SymbolKey[] = [];
-          for (const s of symbols) {
-            if (!counts.has(s)) order.push(s);
-            counts.set(s, (counts.get(s) ?? 0) + 1);
-          }
-          return order
-            .map((s) => {
-              const n = counts.get(s)!;
-              const desc = SYMBOL_DESC[s];
-              if (n === 1) return desc;
-              const scaled = desc
-                .replace(/^(Deals )(\d+)/, (_, p, d) => `${p}${n * +d}`)
-                .replace(/^(Grants )(\d+)/, (_, p, d) => `${p}${n * +d}`)
-                .replace(/^(Applies )(\d+)/, (_, p, d) => `${p}${n * +d}`)
-                .replace(/^(Restores )(\d+)/, (_, p, d) => `${p}${n * +d}`);
-              return scaled !== desc ? scaled : `${desc} (×${n})`;
-            })
-            .join(" ");
-        })();
+        const symbolDesc = faceDesc(face);
         return (
           <div
             key={idx}
@@ -1177,15 +1164,6 @@ function FaceRows({
               >
                 <FaceGlyphs face={face} size="1.1rem" />
                 <span style={{ opacity: 0.7 }}>{face.label}</span>
-                {face.tags?.includes("unblockable") && (
-                  <span style={{ color: "var(--blood)", fontSize: "0.7rem" }}>⛓🛡 unblockable</span>
-                )}
-                {face.tags?.includes("undodgeable") && (
-                  <span style={{ color: "var(--blood)", fontSize: "0.7rem" }}>⛓✷ undodgeable</span>
-                )}
-                {face.tags?.includes("area") && (
-                  <span style={{ color: "var(--torch)", fontSize: "0.7rem" }}>⤧ area</span>
-                )}
                 {corruption && (
                   <span style={{ color: "var(--torch)", fontSize: "0.7rem" }}>corrupted</span>
                 )}
@@ -1221,7 +1199,7 @@ function EnemyDieDialog({
         }
         onClose={onClose}
       />
-      <StatusRows statuses={enemy.statuses} intangible={enemy.intangible} />
+      <StatusRows statuses={enemy.statuses} />
       <div className="eyebrow" style={{ marginBottom: "0.8rem" }}>
         The enemy rolls one face per die each turn
       </div>
@@ -1250,9 +1228,7 @@ function EnemyDieDialog({
 function PlayerStatusDialog({ state, onClose }: { state: DiceCombatState; onClose: () => void }) {
   const p = state.player;
   const hasStatuses =
-    p.powerCharges > 0 ||
-    p.twoHandedActive ||
-    p.dodgeActive ||
+    (p.statuses.power ?? 0) > 0 ||
     p.hymnHumActive ||
     p.resonanceCharges > 0 ||
     p.slotLocks.length > 0;
@@ -1272,35 +1248,13 @@ function PlayerStatusDialog({ state, onClose }: { state: DiceCombatState; onClos
               fontSize: "0.85rem",
             }}
           >
-            {p.powerCharges > 0 && (
+            {(p.statuses.power ?? 0) > 0 && (
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                <span>💪</span>
+                <span>↑</span>
                 <div>
-                  <span style={{ color: "var(--bone)" }}>Power +{p.powerCharges}</span>
+                  <span style={{ color: "var(--bone)" }}>Power +{p.statuses.power}</span>
                   <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
-                    Your next attack deals +{p.powerCharges} bonus damage.
-                  </div>
-                </div>
-              </div>
-            )}
-            {p.twoHandedActive && (
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <span>⚔️</span>
-                <div>
-                  <span style={{ color: "var(--bone)" }}>Edge +1</span>
-                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
-                    Two-handed stance — all damage symbols deal +1.
-                  </div>
-                </div>
-              </div>
-            )}
-            {p.dodgeActive && (
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <span>🌀</span>
-                <div>
-                  <span style={{ color: "var(--bone)" }}>Dodge</span>
-                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
-                    The next incoming attack is negated entirely.
+                    Next attack deals +{p.statuses.power} bonus damage. Consumed on hit.
                   </div>
                 </div>
               </div>

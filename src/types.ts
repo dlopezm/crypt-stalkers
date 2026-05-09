@@ -8,10 +8,14 @@ export type StatusKey =
   | "poison"
   | "stun"
   | "bolster"
-  | "dice_stun"
   | "mark"
   | "warded"
-  | "dragged"; // Zombie Drag: dodge faces don't prevent damage for 1 turn
+  | "power" // player: next damage symbol deals +N (stacks consumed on next hit)
+  | "dragged" // Zombie Drag: dodge faces don't prevent damage for 1 turn
+  | "dodge" // enemy-only: next incoming attack is negated, then clears
+  | "intangible" // enemy-only: immune to physical damage this turn, then clears
+  | "taunt" // enemy-only: redirects damage aimed at other enemies to this one, then clears
+  | "hidden"; // enemy-only: untargetable this turn, enables sneak attack, clears at end of player turn
 export type Statuses = Partial<Record<StatusKey, number>>;
 
 /* ── Damage & Equipment ── */

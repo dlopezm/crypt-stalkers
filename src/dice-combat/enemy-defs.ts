@@ -28,16 +28,9 @@ function spawnEnemy(state: DiceCombatState, defId: string, uidPrefix?: string): 
     row: def.defaultRow,
     statuses: {},
     isBoss: def.isBoss,
-    intent: null,
     untargetable: false,
-    reassembleQueued: false,
-    reassembleCountdown: 0,
-    turnsAlive: 0,
     phaseIndex: 0,
-    thresholdHealUsed: false,
-    intangible: false,
     rolledFaces: [],
-    frenzy: false,
   };
   let s: DiceCombatState = { ...state, enemies: [...state.enemies, newEnemy] };
   if (def.onSpawn) s = def.onSpawn(newEnemy, s);
@@ -90,11 +83,11 @@ const RAT: DiceEnemyDef = {
       name: "Rat",
       icon: "🐀",
       faces: [
-        "enemy_bite_1",
-        "enemy_bite_1",
-        "enemy_rake_2",
+        "enemy_rat_strike",
+        "enemy_rat_strike",
+        "enemy_rat_strike",
         "enemy_reproduce",
-        "enemy_cower",
+        "enemy_rat_dodge",
         "blank",
       ],
       defaultTarget: "player",
@@ -146,10 +139,7 @@ const SKELETON: DiceEnemyDef = {
       ...self,
       hp: 2,
       maxHp: 2,
-      reassembleQueued: false,
-      reassembleCountdown: 0,
       untargetable: false,
-      intent: null,
       rolledFaces: [],
       id: "heap_of_bones",
       name: "Heap of Bones",
@@ -188,29 +178,6 @@ const HEAP_OF_BONES: DiceEnemyDef = {
       defaultTarget: "self",
     },
   ],
-  // Drains one Salt face from the player's rollable pool each turn it lives.
-  // Makes the Heap a time/resource problem distinct from the Skeleton (damage-type problem).
-  onPlayerTurnStart: (_self, state) => {
-    const saltInPool = state.pool.filter((pf) => pf.color === "salt" && !pf.forced);
-    if (saltInPool.length === 0) return state;
-    // Suppress the first Salt face for this turn by marking it suppressed via invertedColor
-    // is not the right mechanic here — instead we inject a one-turn "saltDrained" status
-    // that the engine's bust check and roll logic reads. Simplest approach: reduce pool
-    // by removing the Salt face and logging it. The face is gone for this turn only.
-    const target = saltInPool[0];
-    return {
-      ...state,
-      pool: state.pool.filter((pf) => pf.poolId !== target.poolId),
-      log: [
-        ...state.log,
-        {
-          turn: state.turn,
-          source: "enemy" as const,
-          text: "The Heap of Bones absorbs your ward — one Salt face is lost.",
-        },
-      ],
-    };
-  },
 };
 
 /* ── 4. Rotting Zombie ── */
@@ -222,23 +189,12 @@ const ZOMBIE: DiceEnemyDef = {
   maxHp: 3,
   defaultRow: "front",
   isBoss: false,
-  // v3: rolls a slow shamble die. Necromancer-buffing flavor moves to a passive bolster
-  // applied by the Necromancer (stretch — for now zombies just shamble for 1).
   dice: [
     {
       id: "zombie_die",
       name: "Zombie Die",
       icon: "🧟",
-      // enemy_grasp replaced with enemy_grasp_drag (undodgeable, applies Dragged).
-      // Makes Zombie explicitly counter Echo dodge — Ghost requires dodge, Zombie removes it.
-      faces: [
-        "enemy_shamble",
-        "enemy_shamble",
-        "enemy_grasp_drag",
-        "enemy_shamble",
-        "blank",
-        "blank",
-      ],
+      faces: ["enemy_zombie_slam", "enemy_zombie_lurch", "blank", "blank", "blank", "blank"],
       defaultTarget: "player",
     },
   ],
@@ -284,7 +240,6 @@ const GHOST: DiceEnemyDef = {
       defaultTarget: "self",
     },
   ],
-  modifyIncomingDamage: (self, _state, base) => (self.intangible ? 0 : base),
 };
 
 /* ── 6. Blood Wraith ── */
@@ -367,13 +322,19 @@ const NECROMANCER: DiceEnemyDef = {
   maxHp: 2,
   defaultRow: "back",
   isBoss: false,
-  // v3: rolls a Curse die. Area + undodgeable + unblockable.
   dice: [
     {
-      id: "curse_die",
-      name: "Curse Die",
-      icon: "🌫️",
-      faces: ["enemy_curse", "enemy_curse", "enemy_grave_call", "enemy_chant", "blank", "blank"],
+      id: "necro_die",
+      name: "Necromancer Die",
+      icon: "🧙",
+      faces: [
+        "enemy_necro_summon",
+        "enemy_necro_summon",
+        "enemy_necro_focus",
+        "enemy_necro_focus",
+        "enemy_necro_bolt",
+        "enemy_necro_bolt",
+      ],
       defaultTarget: "player",
     },
   ],
@@ -388,48 +349,36 @@ const GHOUL: DiceEnemyDef = {
   maxHp: 4,
   defaultRow: "front",
   isBoss: false,
-  // v3: rolls 1 die normally; on first turn, an extra ambush face is appended via onSpawn.
   dice: [
     {
-      id: "ghoul_die",
-      name: "Ghoul Die",
+      id: "ghoul_stealth_die",
+      name: "Stealth Die",
+      icon: "🌑",
+      faces: [
+        "enemy_ghoul_hide",
+        "enemy_ghoul_hide",
+        "enemy_ghoul_hide",
+        "enemy_ghoul_dodge",
+        "enemy_ghoul_parry",
+        "blank",
+      ],
+      defaultTarget: "self",
+    },
+    {
+      id: "ghoul_attack_die",
+      name: "Attack Die",
       icon: "👹",
       faces: [
-        "enemy_pounce",
-        "enemy_pounce",
-        "enemy_grasp",
-        "enemy_bite_1",
-        "enemy_cower",
-        "blank",
+        "enemy_ghoul_sneak_attack",
+        "enemy_ghoul_sneak_attack",
+        "enemy_ghoul_claw",
+        "enemy_ghoul_claw",
+        "enemy_ghoul_bite",
+        "enemy_ghoul_bite",
       ],
       defaultTarget: "player",
     },
   ],
-  onSpawn: (self, state) => {
-    return {
-      ...state,
-      enemies: state.enemies.map((e) => (e.uid === self.uid ? { ...e, intangible: false } : e)),
-    };
-  },
-  // Frenzy: if player HP drops below 50%, Ghoul adds a bonus Pounce after its normal attack.
-  // Tracked via the frenzy flag — once set it persists until Ghoul dies.
-  onPlayerTurnStart: (self, state) => {
-    if (self.frenzy) return state;
-    const ratio = state.player.hp / state.player.maxHp;
-    if (ratio >= 0.5) return state;
-    return {
-      ...state,
-      enemies: state.enemies.map((e) => (e.uid === self.uid ? { ...e, frenzy: true } : e)),
-      log: [
-        ...state.log,
-        {
-          turn: state.turn,
-          source: "enemy" as const,
-          text: "The Ghoul frenzies — it smells blood.",
-        },
-      ],
-    };
-  },
 };
 
 /* ── 10. The Shadow ── */
@@ -441,7 +390,7 @@ const SHADOW: DiceEnemyDef = {
   maxHp: 3,
   defaultRow: "front",
   isBoss: false,
-  // v3: shadow strikes are unblockable; aura (blanks → coldfire) handled passively.
+  // v3: shadow strikes are unblockable.
   dice: [
     {
       id: "shadow_die",
@@ -530,21 +479,14 @@ const FORSWORN: DiceEnemyDef = {
       faces: [
         "enemy_guard_strike",
         "enemy_guard_strike",
-        "enemy_guard_strike",
+        "enemy_guard_taunt",
+        "enemy_guard_taunt",
         "enemy_crush",
-        "enemy_armor_2",
         "blank",
       ],
       defaultTarget: "player",
     },
   ],
-  redirectDamageTo: (self, state, intendedUid) => {
-    if (intendedUid === self.uid) return intendedUid;
-    // Redirect any damage targeting allies to the Forsworn.
-    const target = state.enemies.find((e) => e.uid === intendedUid);
-    if (!target || target.hp <= 0) return intendedUid;
-    return self.uid;
-  },
 };
 
 /* ── 14. The False Sacrarium ── */
@@ -672,24 +614,6 @@ const VAMPIRE_LORD: DiceEnemyDef = {
           turn: state.turn,
           source: "enemy",
           text: `${self.name} feasts on your bust — heals ${heal}.`,
-        },
-      ],
-    };
-  },
-  afterDamaged: (self, state) => {
-    if (self.thresholdHealUsed) return state;
-    if (self.hp / self.maxHp > DICE_BALANCE.VAMPIRE_LORD_HEAL_AT) return state;
-    return {
-      ...state,
-      enemies: state.enemies.map((e) =>
-        e.uid === self.uid ? { ...e, hp: e.maxHp, thresholdHealUsed: true } : e,
-      ),
-      log: [
-        ...state.log,
-        {
-          turn: state.turn,
-          source: "enemy",
-          text: `${self.name} resurges — fully healed once.`,
         },
       ],
     };

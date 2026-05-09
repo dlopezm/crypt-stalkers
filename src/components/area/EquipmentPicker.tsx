@@ -37,7 +37,6 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
     id: string;
     name: string;
     icon: string;
-    desc: string;
     faces: readonly string[];
     owned: boolean;
     equipped: boolean;
@@ -51,7 +50,6 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
         id: w.id,
         name: w.name,
         icon: w.icon,
-        desc: w.desc,
         faces: WEAPON_DICE[w.id].faces,
         owned: ownedWeaponIds.has(w.id),
         equipped: player.mainWeapon.id === w.id,
@@ -65,7 +63,6 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
         id: w.id,
         name: w.name,
         icon: w.icon,
-        desc: w.desc,
         faces: OFFHAND_DICE[w.id].faces,
         owned: ownedWeaponIds.has(w.id),
         equipped: player.offhandWeapon?.id === w.id,
@@ -77,7 +74,6 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
         id,
         name: def.name,
         icon: def.icon,
-        desc: "",
         faces: def.faces,
         owned: ownedArmorIds.has(id),
         equipped: player.gridArmorId === id,
@@ -89,7 +85,6 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
         id: def.id,
         name: def.name,
         icon: def.icon,
-        desc: def.desc,
         faces: def.faces,
         owned: ownedAbilityIds.has(def.id),
         equipped: (player.activeAbilityId ?? STARTER_ABILITY_ID) === def.id,
@@ -202,7 +197,6 @@ function ItemCard({
     id: string;
     name: string;
     icon: string;
-    desc: string;
     faces: readonly string[];
     owned: boolean;
     equipped: boolean;
@@ -240,9 +234,6 @@ function ItemCard({
           <div style={{ fontSize: "0.65rem", color: "#9b59b6" }}>DEBUG</div>
         ) : null}
       </div>
-      {item.desc ? (
-        <div style={{ fontSize: "0.7rem", opacity: 0.7, marginTop: "0.2rem" }}>{item.desc}</div>
-      ) : null}
       <div style={{ marginTop: "0.4rem", display: "flex", flexDirection: "column", gap: "2px" }}>
         {item.faces.map((faceId, idx) => {
           const face = getFace(faceId);
@@ -259,7 +250,7 @@ function ItemCard({
                 fontSize: "0.65rem",
                 opacity: 0.9,
               }}
-              title={`${face.label} (${color.label}) — ${face.desc}`}
+              title={`${face.label} (${color.label})`}
             >
               <span
                 style={{
