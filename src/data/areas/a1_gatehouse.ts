@@ -197,8 +197,23 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
     hint: "narrow stone lip over open air. from here the yard and the black mouth read like a map you can walk later.",
     description:
       "Narrow stone ledge over open air; low parapet, wind on your chest. Below: cracked flags, yard, tunnel mouth - you can judge distance and cover from here.",
-    enemies: [],
-    safeRoom: true,
+    enemies: [
+      "rat",
+      "skeleton",
+      "heap_of_bones",
+      "zombie",
+      "ghost",
+      "vampire",
+      "banshee",
+      "necromancer",
+      "ghoul",
+      "shadow",
+      "grave_robber",
+      "gutborn_larva",
+      "forsworn",
+      "false_sacrarium",
+      "salt_revenant",
+    ],
     notes:
       "R11. Era 2. LIT (open air). Dead end. " +
       "Observation tutorial: learn patrol path before engaging. " +
