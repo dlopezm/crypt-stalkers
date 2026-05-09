@@ -29,15 +29,16 @@ export const STATUS_ICONS: Record<StatusKey, string> = {
 };
 
 export const STATUS_DESC: Record<StatusKey, string> = {
-  bleed: "Lose HP each turn",
-  weaken: "Deal 25% less dmg",
-  blind: "30% miss chance",
-  silence: "Can't use Abilities",
-  poison: "Lose HP (stacks)",
-  stun: "Skip next action",
-  bolster: "+1 to damage symbols",
-  dice_stun: "One rolled die does nothing",
-  mark: "Next damage doubled",
-  warded: "Block (absorbs damage)",
-  dragged: "Dodge faces don't prevent damage",
+  bleed: "Receives damage equal to stack count each turn, then loses 1 stack.",
+  weaken: "Deals 1 less damage per hit. Loses 1 stack each turn.",
+  blind: "Each attack has a 30% chance to miss entirely.",
+  silence: "Cannot use active abilities.",
+  poison: "Receives damage equal to stack count each turn. Stacks do not decay.",
+  stun: "Skips their next action. Loses 1 stack when triggered.",
+  bolster: "Deals +1 damage on all damage symbols. Clears at end of turn.",
+  dice_stun: "One randomly chosen rolled die has no effect this turn.",
+  mark: "The next instance of damage dealt to this target is doubled. Consumes 1 stack.",
+  warded:
+    "Each stack absorbs 1 incoming damage. All stacks are cleared at the start of the enemy phase.",
+  dragged: "Dodge faces do not prevent incoming damage. Loses 1 stack each turn.",
 };

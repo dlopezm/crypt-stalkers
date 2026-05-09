@@ -25,6 +25,8 @@ import type {
   PoolFace,
   SymbolKey,
 } from "./types";
+import { STATUS_COLORS, STATUS_DESC, STATUS_ICONS } from "../data/status";
+import type { StatusKey } from "../types";
 
 /* ── v3 symbol glyphs ──
  * A face's printed identity: each symbol is one glyph. Renders show the bag
@@ -79,6 +81,32 @@ const SYMBOL_LABEL: Record<SymbolKey, string> = {
   invert: "Invert",
   bind: "Bind die",
   burrow_spawn: "Surface + Zombie",
+};
+
+const SYMBOL_DESC: Record<SymbolKey, string> = {
+  sword: "Deals 1 damage to the target.",
+  shield: "Grants 1 block, absorbing the next 1 damage.",
+  heart: "Restores 1 HP.",
+  flame: "Deals 1 fire damage (ignores block).",
+  drop: "Applies 1 Bleed. Bleeding enemies lose HP each turn.",
+  spark: "Applies 1 Stun. Stunned enemies skip their next action.",
+  crystal: "Grants 1 Salt (resource).",
+  bolt: "Applies 1 Weaken. Weakened targets deal 25% less damage.",
+  sun: "Applies 1 Bolster. Bolstered targets deal +1 on all damage symbols.",
+  riposte: "When blocking an attack, deals damage back equal to the attack.",
+  cleanse: "Removes all negative status effects from self.",
+  mark: "Marks the target — the next damage they take is doubled.",
+  power: "Grants +1 Power charge, boosting the next attack.",
+  dodge: "Negates the next incoming attack entirely.",
+  reproduce: "Spawns a new enemy of the same kind in the same row.",
+  steal: "Steals 1 Salt from the player.",
+  push: "Pushes all enemies in this row to the back row.",
+  reform: "Reassembles this skeleton enemy after death.",
+  intangible: "Becomes intangible — immune to physical damage until next turn.",
+  summon: "Raises a dead enemy as a zombie in the same row.",
+  invert: "Inverts one of the player's die colors.",
+  bind: "Binds one of the player's dice — that die cannot be rolled this turn.",
+  burrow_spawn: "Surfaces from underground and spawns a zombie.",
 };
 
 /* Maps game FaceColor → new CSS design token */
@@ -164,6 +192,7 @@ export function DiceScreen({
   const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
   const [learnSlot, setLearnSlot] = useState<DieSlot | null>(null);
   const [inspectEnemyUid, setInspectEnemyUid] = useState<string | null>(null);
+  const [showPlayerStatus, setShowPlayerStatus] = useState(false);
   const [playerFlashUid, setPlayerFlashUid] = useState<string | null>(null);
 
   useEffect(() => {
@@ -578,6 +607,17 @@ export function DiceScreen({
         })}
       </div>
 
+      {/* Player status button */}
+      <div style={{ display: "flex", justifyContent: "center", padding: "4px 0 0" }}>
+        <button
+          className="btn ghost"
+          style={{ fontSize: 9, padding: "2px 8px" }}
+          onClick={() => setShowPlayerStatus(true)}
+        >
+          🔍 Status
+        </button>
+      </div>
+
       {/* Log strip */}
       <div className="log">
         <span className="narr">&gt;</span>
@@ -601,6 +641,9 @@ export function DiceScreen({
           enemy={state.enemies.find((e) => e.uid === inspectEnemyUid) ?? null}
           onClose={() => setInspectEnemyUid(null)}
         />
+      ) : null}
+      {showPlayerStatus ? (
+        <PlayerStatusDialog state={state} onClose={() => setShowPlayerStatus(false)} />
       ) : null}
     </div>
   );
@@ -633,8 +676,6 @@ function AlcoveCard({
   const isDead = enemy.hp <= 0 && !isReassembling;
   const isActing = state.lastEnemyAction?.uid === enemy.uid;
   const tone = toneFor(enemy.id);
-  const def = getEnemyDef(enemy.id);
-  const dice = def?.dice ?? [];
 
   const flashStyle = playerFlash ? { filter: "drop-shadow(0 0 8px rgba(154,214,163,0.7))" } : {};
 
@@ -644,19 +685,17 @@ function AlcoveCard({
       onClick={isDead ? undefined : onClick}
       style={{ ...flashStyle, ...(backRow ? { zoom: 0.6 } : {}) }}
     >
-      {/* Inspect dice button */}
-      {dice.length > 0 && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onInspect();
-          }}
-          className="btn ghost"
-          style={{ fontSize: 9, padding: "2px 6px", marginTop: 2 }}
-        >
-          🎲 inspect
-        </button>
-      )}
+      {/* Status button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onInspect();
+        }}
+        className="btn ghost"
+        style={{ fontSize: 9, padding: "2px 6px", marginTop: 2 }}
+      >
+        🔍 Status
+      </button>
 
       {/* Arch + art tile */}
       <div style={{ position: "relative" }}>
@@ -958,18 +997,9 @@ function DieLearnDialog({
   );
 }
 
-/* ── Enemy die inspect dialog ── */
+/* ── Shared dialog shell ── */
 
-function EnemyDieDialog({
-  enemy,
-  onClose,
-}: {
-  enemy: DiceCombatState["enemies"][number] | null;
-  onClose: () => void;
-}) {
-  if (!enemy) return null;
-  const def = getEnemyDef(enemy.id);
-  const dice = def?.dice ?? [];
+function DialogShell({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <div
       onClick={onClose}
@@ -997,105 +1027,341 @@ function EnemyDieDialog({
           color: "var(--bone)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            marginBottom: "1rem",
-          }}
-        >
-          <div className="display" style={{ fontSize: "1.2rem" }}>
-            {enemy.icon} {enemy.name}
-          </div>
-          <button onClick={onClose} className="btn ghost" style={{ fontSize: "0.8rem" }}>
-            Close ✕
-          </button>
-        </div>
-        <div className="eyebrow" style={{ marginBottom: "0.8rem" }}>
-          The enemy rolls one face per die each turn
-        </div>
-        {dice.length === 0 && (
-          <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
-            No dice — this enemy uses a fixed action.
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function DialogHeader({ title, onClose }: { title: React.ReactNode; onClose: () => void }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        marginBottom: "1rem",
+      }}
+    >
+      <div className="display" style={{ fontSize: "1.2rem" }}>
+        {title}
+      </div>
+      <button onClick={onClose} className="btn ghost" style={{ fontSize: "0.8rem" }}>
+        Close ✕
+      </button>
+    </div>
+  );
+}
+
+/* ── Status rows (shared between enemy + player dialogs) ── */
+
+function StatusRows({
+  statuses,
+  intangible,
+}: {
+  statuses: Partial<Record<StatusKey, number>>;
+  intangible?: boolean;
+}) {
+  const activeKeys = (Object.keys(statuses) as StatusKey[]).filter((k) => statuses[k]);
+  const hasAny = intangible || activeKeys.length > 0;
+  if (!hasAny) return null;
+  return (
+    <div style={{ marginBottom: "1rem" }}>
+      <div className="eyebrow" style={{ marginBottom: "0.4rem" }}>
+        Active effects
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+        {intangible && (
+          <div
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}
+          >
+            <span style={{ fontSize: "1rem" }}>👻</span>
+            <div>
+              <span style={{ color: "var(--bone)" }}>Intangible</span>
+              <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>Immune to physical damage.</div>
+            </div>
           </div>
         )}
-        {dice.map((die) => (
-          <div key={die.id} style={{ marginBottom: "1rem" }}>
-            <div style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>
-              {die.icon} {die.name}
-              <span style={{ fontSize: "0.7rem", opacity: 0.6, marginLeft: "0.5rem" }}>
-                ({die.defaultTarget === "self" ? "self-buff die" : "attacks player"})
+        {activeKeys.map((k) => (
+          <div
+            key={k}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}
+          >
+            <span style={{ fontSize: "1rem" }}>{STATUS_ICONS[k]}</span>
+            <div>
+              <span style={{ color: STATUS_COLORS[k] }}>
+                {k.charAt(0).toUpperCase() + k.slice(1).replace("_", " ")}
+                {(statuses[k] ?? 0) > 1 ? ` ×${statuses[k]}` : ""}
               </span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-              {die.faces.map((faceId, idx) => {
-                const face = getFace(faceId);
-                if (!face) return null;
-                const color = COLORS[face.color];
-                return (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.6rem",
-                      padding: "0.4rem",
-                      background: "#0f0a07",
-                      border: "1px solid #2a1c10",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "24px",
-                        height: "24px",
-                        background: FACE_COLOR_CSS[face.color],
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#000",
-                        fontSize: "0.85rem",
-                        fontWeight: "bold",
-                        flexShrink: 0,
-                      }}
-                      title={color.label}
-                    >
-                      {color.badge}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontSize: "0.9rem",
-                          display: "flex",
-                          gap: "0.3rem",
-                          alignItems: "center",
-                        }}
-                      >
-                        <FaceGlyphs face={face} size="1.1rem" />
-                        <span style={{ opacity: 0.7 }}>{face.label}</span>
-                        {face.tags?.includes("unblockable") && (
-                          <span style={{ color: "var(--blood)", fontSize: "0.7rem" }}>
-                            ⛓🛡 unblockable
-                          </span>
-                        )}
-                        {face.tags?.includes("undodgeable") && (
-                          <span style={{ color: "var(--blood)", fontSize: "0.7rem" }}>
-                            ⛓✷ undodgeable
-                          </span>
-                        )}
-                        {face.tags?.includes("area") && (
-                          <span style={{ color: "var(--torch)", fontSize: "0.7rem" }}>⤧ area</span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>{face.desc}</div>
-                    </div>
-                  </div>
-                );
-              })}
+              <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>{STATUS_DESC[k]}</div>
             </div>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+/* ── Die face rows (shared between enemy + player dialogs) ── */
+
+function FaceRows({
+  faceIds,
+  corruptions = [],
+}: {
+  faceIds: readonly string[];
+  corruptions?: { faceIndex: number; recoloredTo: FaceColor }[];
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+      {faceIds.map((faceId, idx) => {
+        const face = getFace(faceId);
+        if (!face) return null;
+        const corruption = corruptions.find((c) => c.faceIndex === idx);
+        const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
+        const color = COLORS[colorId];
+        const symbols = face.symbols ?? [];
+        const symbolDesc = (() => {
+          if (symbols.length === 0) return face.desc;
+          const counts = new Map<SymbolKey, number>();
+          const order: SymbolKey[] = [];
+          for (const s of symbols) {
+            if (!counts.has(s)) order.push(s);
+            counts.set(s, (counts.get(s) ?? 0) + 1);
+          }
+          return order
+            .map((s) => {
+              const n = counts.get(s)!;
+              const desc = SYMBOL_DESC[s];
+              if (n === 1) return desc;
+              const scaled = desc
+                .replace(/^(Deals )(\d+)/, (_, p, d) => `${p}${n * +d}`)
+                .replace(/^(Grants )(\d+)/, (_, p, d) => `${p}${n * +d}`)
+                .replace(/^(Applies )(\d+)/, (_, p, d) => `${p}${n * +d}`)
+                .replace(/^(Restores )(\d+)/, (_, p, d) => `${p}${n * +d}`);
+              return scaled !== desc ? scaled : `${desc} (×${n})`;
+            })
+            .join(" ");
+        })();
+        return (
+          <div
+            key={idx}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              padding: "0.4rem",
+              background: "#0f0a07",
+              border: corruption ? "1px solid var(--torch)" : "1px solid #2a1c10",
+            }}
+          >
+            <div
+              style={{
+                width: "24px",
+                height: "24px",
+                background: FACE_COLOR_CSS[colorId],
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#000",
+                fontSize: "0.85rem",
+                fontWeight: "bold",
+                flexShrink: 0,
+              }}
+              title={color.label}
+            >
+              {color.badge}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div
+                style={{ fontSize: "0.9rem", display: "flex", gap: "0.3rem", alignItems: "center" }}
+              >
+                <FaceGlyphs face={face} size="1.1rem" />
+                <span style={{ opacity: 0.7 }}>{face.label}</span>
+                {face.tags?.includes("unblockable") && (
+                  <span style={{ color: "var(--blood)", fontSize: "0.7rem" }}>⛓🛡 unblockable</span>
+                )}
+                {face.tags?.includes("undodgeable") && (
+                  <span style={{ color: "var(--blood)", fontSize: "0.7rem" }}>⛓✷ undodgeable</span>
+                )}
+                {face.tags?.includes("area") && (
+                  <span style={{ color: "var(--torch)", fontSize: "0.7rem" }}>⤧ area</span>
+                )}
+                {corruption && (
+                  <span style={{ color: "var(--torch)", fontSize: "0.7rem" }}>corrupted</span>
+                )}
+              </div>
+              <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>{symbolDesc}</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Enemy status dialog ── */
+
+function EnemyDieDialog({
+  enemy,
+  onClose,
+}: {
+  enemy: DiceCombatState["enemies"][number] | null;
+  onClose: () => void;
+}) {
+  if (!enemy) return null;
+  const def = getEnemyDef(enemy.id);
+  const dice = def?.dice ?? [];
+  return (
+    <DialogShell onClose={onClose}>
+      <DialogHeader
+        title={
+          <>
+            {enemy.icon} {enemy.name}
+          </>
+        }
+        onClose={onClose}
+      />
+      <StatusRows statuses={enemy.statuses} intangible={enemy.intangible} />
+      <div className="eyebrow" style={{ marginBottom: "0.8rem" }}>
+        The enemy rolls one face per die each turn
+      </div>
+      {dice.length === 0 && (
+        <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+          No dice — this enemy uses a fixed action.
+        </div>
+      )}
+      {dice.map((die) => (
+        <div key={die.id} style={{ marginBottom: "1rem" }}>
+          <div style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>
+            {die.icon} {die.name}
+            <span style={{ fontSize: "0.7rem", opacity: 0.6, marginLeft: "0.5rem" }}>
+              ({die.defaultTarget === "self" ? "self-buff die" : "attacks player"})
+            </span>
+          </div>
+          <FaceRows faceIds={die.faces} />
+        </div>
+      ))}
+    </DialogShell>
+  );
+}
+
+/* ── Player status dialog ── */
+
+function PlayerStatusDialog({ state, onClose }: { state: DiceCombatState; onClose: () => void }) {
+  const p = state.player;
+  const hasStatuses =
+    p.powerCharges > 0 ||
+    p.twoHandedActive ||
+    p.dodgeActive ||
+    p.hymnHumActive ||
+    p.resonanceCharges > 0 ||
+    p.slotLocks.length > 0;
+  return (
+    <DialogShell onClose={onClose}>
+      <DialogHeader title="Your Status" onClose={onClose} />
+      {hasStatuses && (
+        <div style={{ marginBottom: "1rem" }}>
+          <div className="eyebrow" style={{ marginBottom: "0.4rem" }}>
+            Active effects
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.35rem",
+              fontSize: "0.85rem",
+            }}
+          >
+            {p.powerCharges > 0 && (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <span>💪</span>
+                <div>
+                  <span style={{ color: "var(--bone)" }}>Power +{p.powerCharges}</span>
+                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+                    Your next attack deals +{p.powerCharges} bonus damage.
+                  </div>
+                </div>
+              </div>
+            )}
+            {p.twoHandedActive && (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <span>⚔️</span>
+                <div>
+                  <span style={{ color: "var(--bone)" }}>Edge +1</span>
+                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+                    Two-handed stance — all damage symbols deal +1.
+                  </div>
+                </div>
+              </div>
+            )}
+            {p.dodgeActive && (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <span>🌀</span>
+                <div>
+                  <span style={{ color: "var(--bone)" }}>Dodge</span>
+                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+                    The next incoming attack is negated entirely.
+                  </div>
+                </div>
+              </div>
+            )}
+            {p.hymnHumActive && (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <span>🎵</span>
+                <div>
+                  <span style={{ color: "var(--crypt)" }}>Hymn-Hum</span>
+                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+                    Echo-colour dice cannot bust the torch this turn.
+                  </div>
+                </div>
+              </div>
+            )}
+            {p.resonanceCharges > 0 && (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <span>✦</span>
+                <div>
+                  <span style={{ color: "var(--torch)" }}>Resonance ×{p.resonanceCharges}</span>
+                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+                    Amplifies the next {p.resonanceCharges} crystal face(s) you play.
+                  </div>
+                </div>
+              </div>
+            )}
+            {p.slotLocks.length > 0 && (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <span>🔒</span>
+                <div>
+                  <span style={{ color: "var(--blood)" }}>Locked: {p.slotLocks.join(", ")}</span>
+                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+                    These dice cannot be rolled this turn.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {!hasStatuses && (
+        <div style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: "1rem" }}>
+          No active effects.
+        </div>
+      )}
+      <div className="eyebrow" style={{ marginBottom: "0.6rem" }}>
+        Your dice
+      </div>
+      {SLOT_ORDER.map((slot) => {
+        const die = dieForSlot(slot, state);
+        if (!die) return null;
+        const corruptions = p.corruptedFaces.filter((c) => c.slot === slot);
+        return (
+          <div key={slot} style={{ marginBottom: "1rem" }}>
+            <div style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>
+              {die.icon} {die.name}
+            </div>
+            <FaceRows faceIds={die.faces} corruptions={corruptions} />
+          </div>
+        );
+      })}
+    </DialogShell>
   );
 }
