@@ -1,3 +1,6 @@
+import type { DiceAbilityId } from "./dice-combat/dice-defs";
+export type { DiceAbilityId };
+
 export type Screen = "title" | "intro" | "map" | "combat" | "victory" | "gameover" | "editor";
 
 export type StatusKey =
@@ -274,7 +277,10 @@ export type PropEffect =
   | { type: "consume_prop" }
   | { type: "grant_weapon"; weaponId: string }
   | { type: "grant_consumable"; consumableId: string }
-  | { type: "grant_ability"; abilityId: string };
+  | { type: "grant_ability"; abilityId: DiceAbilityId }
+  | { type: "grant_grid_weapon"; weaponId: string }
+  | { type: "grant_grid_offhand"; offhandId: string }
+  | { type: "grant_grid_armor"; armorId: string };
 
 export interface PropAction {
   id: string;
@@ -414,7 +420,7 @@ export interface Player {
   offhandWeapon: Weapon | null;
   ownedWeapons: Weapon[];
   consumables: Consumable[];
-  abilities: string[];
+  abilities: DiceAbilityId[];
   /** Narrative flags set by room-prop interactions. Values are boolean or number. */
   flags: Record<string, boolean | number>;
 
@@ -422,12 +428,12 @@ export interface Player {
   gridWeaponId?: string;
   gridOffhandId?: string | null;
   gridArmorId?: string;
-  ownedGridWeaponIds?: string[];
-  ownedGridOffhandIds?: string[];
-  ownedGridArmorIds?: string[];
+  ownedGridWeaponIds: string[];
+  ownedGridOffhandIds: string[];
+  ownedGridArmorIds: string[];
 
   /** Dice-combat active ability id (key into ABILITY_DICE). Defaults to "steady_hands". */
-  activeAbilityId?: string;
+  activeAbilityId?: DiceAbilityId;
 }
 
 export interface CombatPlayer extends Player {

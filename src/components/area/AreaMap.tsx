@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { btnStyle } from "../../styles";
-import { REST_HEAL_FRACTION } from "../../data/constants";
 import { getScoutIntel } from "../../utils/area";
 import { StatusBadges, HpBar } from "../shared";
 import { GridCanvas, visibleRooms, CELL_PX } from "./GridCanvas";
@@ -23,9 +22,9 @@ export function AreaMap({
   areaLog,
   onEnterRoom,
   onScout,
-  onRest,
   onSwitchWeapon,
   onEquipDiceItem,
+  onGrantAndEquipDiceItem,
   onExamineProp,
   onPropAction,
   onToggleDebug,
@@ -43,9 +42,9 @@ export function AreaMap({
   areaLog: AreaLogEntry[];
   onEnterRoom: (id: string) => void;
   onScout: (id: string, level: number) => void;
-  onRest: () => void;
   onSwitchWeapon: (weaponId: string) => void;
   onEquipDiceItem: (slot: EquipmentSlot, id: string) => void;
+  onGrantAndEquipDiceItem: (slot: EquipmentSlot, id: string) => void;
   onExamineProp: (roomId: string, propId: string) => void;
   onPropAction: (roomId: string, propId: string, actionId: string) => void;
   onToggleDebug: () => void;
@@ -60,7 +59,6 @@ export function AreaMap({
   const [showEquipmentPicker, setShowEquipmentPicker] = useState(false);
   const [openProp, setOpenProp] = useState<{ roomId: string; propId: string } | null>(null);
   const [showLog, setShowLog] = useState(false);
-  const [showStatus, setShowStatus] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
@@ -312,79 +310,58 @@ export function AreaMap({
             onExamineProp={handleExamineProp}
           />
 
-          {/* Player status — collapsible on mobile */}
+          {/* Player status */}
           <div className="panel">
-            <button
-              className="w-full flex items-center justify-between text-sm text-crypt-dim tracking-wider uppercase"
-              onClick={() => setShowStatus((v) => !v)}
-            >
-              <span>
-                Status {"·"} T{areaTurn}
-              </span>
-              <span className="text-crypt-dim/60">{showStatus ? "▴" : "▾"}</span>
-            </button>
+            <div className="text-sm text-crypt-dim tracking-wider uppercase">Status</div>
             <div className="mt-1.5">
               <HpBar current={player.hp} max={player.maxHp} color="#3ddc84" />
             </div>
-            {showStatus && (
-              <div className="mt-2 flex flex-col gap-2">
-                <StatusBadges statuses={player.statuses} />
-                <div className="text-sm text-crypt-muted">
-                  {"\u{1F392}"} {player.consumables.length} items
-                </div>
-                <div className="flex gap-1 flex-wrap">
+            <div className="mt-2 flex flex-col gap-2">
+              <StatusBadges statuses={player.statuses} />
+              <div className="flex gap-1 flex-wrap">
+                <button
+                  style={btnStyle("#5a4a20")}
+                  className="text-xs! px-2! py-1!"
+                  onClick={() => setShowEquipmentPicker(true)}
+                >
+                  {"⚙️"} Equipment
+                </button>
+              </div>
+              {player.ownedWeapons.length > 1 && (
+                <div>
                   <button
                     style={btnStyle("#5a4a20")}
                     className="text-xs! px-2! py-1!"
-                    onClick={() => setShowEquipmentPicker(true)}
+                    onClick={() => setShowWeaponPicker((v) => !v)}
                   >
-                    {"⚙️"} Equipment
+                    {"\u{1F504}"} Switch Weapon
                   </button>
-                  <button
-                    onClick={onRest}
-                    disabled={player.hp >= player.maxHp}
-                    style={btnStyle("#27ae60", player.hp >= player.maxHp)}
-                    className="text-xs! px-2! py-1!"
-                  >
-                    {"\u{1FA79}"} Rest (+{Math.floor(player.maxHp * REST_HEAL_FRACTION)} HP)
-                  </button>
+                  {showWeaponPicker && (
+                    <div className="flex gap-1 flex-wrap mt-1">
+                      {player.ownedWeapons
+                        .filter((w) => w.hand !== "offhand")
+                        .map((w) => (
+                          <button
+                            key={w.id}
+                            style={btnStyle(
+                              w.id === player.mainWeapon.id ? "#3a3020" : "#6a3a1a",
+                              w.id === player.mainWeapon.id,
+                            )}
+                            className="text-xs! px-2! py-1!"
+                            disabled={w.id === player.mainWeapon.id}
+                            onClick={() => {
+                              onSwitchWeapon(w.id);
+                              setShowWeaponPicker(false);
+                            }}
+                          >
+                            {w.icon} {w.name}
+                          </button>
+                        ))}
+                    </div>
+                  )}
                 </div>
-                {player.ownedWeapons.length > 1 && (
-                  <div>
-                    <button
-                      style={btnStyle("#5a4a20")}
-                      className="text-xs! px-2! py-1!"
-                      onClick={() => setShowWeaponPicker((v) => !v)}
-                    >
-                      {"\u{1F504}"} Switch Weapon
-                    </button>
-                    {showWeaponPicker && (
-                      <div className="flex gap-1 flex-wrap mt-1">
-                        {player.ownedWeapons
-                          .filter((w) => w.hand !== "offhand")
-                          .map((w) => (
-                            <button
-                              key={w.id}
-                              style={btnStyle(
-                                w.id === player.mainWeapon.id ? "#3a3020" : "#6a3a1a",
-                                w.id === player.mainWeapon.id,
-                              )}
-                              className="text-xs! px-2! py-1!"
-                              disabled={w.id === player.mainWeapon.id}
-                              onClick={() => {
-                                onSwitchWeapon(w.id);
-                                setShowWeaponPicker(false);
-                              }}
-                            >
-                              {w.icon} {w.name}
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Activity Log — collapsed by default */}
@@ -471,9 +448,8 @@ export function AreaMap({
         <EquipmentPicker
           player={player}
           debugMode={debugMode}
-          onEquip={(slot, id) => {
-            onEquipDiceItem(slot, id);
-          }}
+          onEquip={onEquipDiceItem}
+          onGrantAndEquip={onGrantAndEquipDiceItem}
           onClose={() => setShowEquipmentPicker(false)}
         />
       )}

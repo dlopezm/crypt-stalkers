@@ -1041,8 +1041,10 @@ function applyEnemyFace(
   const mitigationKey = `${attackerUid}:${faceIndex}`;
   const mit = s.attackMitigations[mitigationKey];
 
-  // Riposte fires before any of the face's symbols. Pre-empt damage to attacker.
-  if (mit && mit.riposteDamage > 0) {
+  // Riposte fires before any of the face's symbols. Returns damage to attacker
+  // and blocks the same amount of incoming damage (melee only).
+  const hasMeleeDamage = symbols.includes("sword");
+  if (mit && mit.riposteDamage > 0 && hasMeleeDamage) {
     s = damageEnemy(s, attackerUid, mit.riposteDamage, "Riposte");
     attacker = s.enemies.find((e) => e.uid === attackerUid);
     // If riposte killed the attacker, the attack is cancelled.
@@ -1058,8 +1060,9 @@ function applyEnemyFace(
     };
     return s;
   }
-  // Targeted block budget for this attack.
-  let attackBlock = unblockable ? 0 : (mit?.block ?? 0);
+  // Targeted block budget for this attack. Riposte also contributes block vs melee.
+  const riposteBlock = hasMeleeDamage && !unblockable ? (mit?.riposteDamage ?? 0) : 0;
+  let attackBlock = unblockable ? 0 : (mit?.block ?? 0) + riposteBlock;
 
   for (const sym of symbols) {
     if (sym === "sword") {

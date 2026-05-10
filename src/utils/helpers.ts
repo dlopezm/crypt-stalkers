@@ -18,13 +18,15 @@ export function uid(p: string): string {
 
 export function makeStarterPlayer(): Player {
   const starterWeapon = { ...WEAPONS.find((w) => w.id === STARTER_WEAPON_ID)! };
+  const diceMainWeapon = WEAPONS.find((w) => w.id === "long_sword")!;
+  const diceOffhand = WEAPONS.find((w) => w.id === "torch_spec")!;
   return {
     hp: PLAYER_START_HP,
     maxHp: PLAYER_START_HP,
     salt: PLAYER_START_SALT,
     statuses: {},
-    mainWeapon: starterWeapon,
-    offhandWeapon: null,
+    mainWeapon: diceMainWeapon,
+    offhandWeapon: diceOffhand,
     ownedWeapons: [starterWeapon],
     consumables: STARTER_CONSUMABLE_IDS.map((id) => ({
       ...CONSUMABLES.find((c) => c.id === id)!,
@@ -32,11 +34,11 @@ export function makeStarterPlayer(): Player {
     abilities: [],
     flags: {},
 
-    gridWeaponId: "ashvere_knife",
-    gridOffhandId: null,
-    gridArmorId: "miners_leathers",
-    ownedGridWeaponIds: ["ashvere_knife"],
-    ownedGridOffhandIds: [],
-    ownedGridArmorIds: ["miners_leathers"],
+    gridWeaponId: "long_sword",
+    gridOffhandId: "torch_spec",
+    gridArmorId: "leather_armor",
+    ownedGridWeaponIds: ["long_sword"],
+    ownedGridOffhandIds: ["torch_spec"],
+    ownedGridArmorIds: ["leather_armor"],
   };
 }

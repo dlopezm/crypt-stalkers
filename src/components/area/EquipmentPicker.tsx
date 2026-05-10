@@ -12,6 +12,7 @@ import {
 import type { FaceColor } from "../../dice-combat/types";
 import type { Player } from "../../types";
 import { WEAPONS } from "../../data/weapons";
+import { STARTER_ABILITY_ID } from "../../data/constants";
 
 export type EquipmentSlot = "main" | "offhand" | "armor" | "ability";
 
@@ -19,20 +20,20 @@ interface Props {
   readonly player: Player;
   readonly debugMode: boolean;
   readonly onEquip: (slot: EquipmentSlot, id: string) => void;
+  readonly onGrantAndEquip: (slot: EquipmentSlot, id: string) => void;
   readonly onClose: () => void;
 }
 
-const STARTER_ABILITY_ID = "steady_hands";
-
-export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) {
+export function EquipmentPicker({ player, debugMode, onEquip, onGrantAndEquip, onClose }: Props) {
   const [tab, setTab] = useState<EquipmentSlot>("main");
+  const [showAll, setShowAll] = useState(false);
 
-  const ownedWeaponIds = new Set(player.ownedWeapons.map((w) => w.id));
-  const ownedAbilityIds = new Set(player.abilities ?? []);
+  const ownedGridWeaponIds = new Set(player.ownedGridWeaponIds);
+  const ownedGridOffhandIds = new Set(player.ownedGridOffhandIds);
+  const ownedAbilityIds = new Set(player.abilities);
   // Steady Hands is always available — it's the Fourth Hand's basic kit.
   ownedAbilityIds.add(STARTER_ABILITY_ID);
-  const ownedArmorIds = new Set(player.ownedGridArmorIds ?? []);
-  if (player.gridArmorId) ownedArmorIds.add(player.gridArmorId);
+  const ownedArmorIds = new Set(player.ownedGridArmorIds);
 
   const items: Array<{
     id: string;
@@ -52,7 +53,7 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
         name: w.name,
         icon: WEAPON_DICE[w.id].icon,
         faces: WEAPON_DICE[w.id].faces,
-        owned: ownedWeaponIds.has(w.id),
+        owned: ownedGridWeaponIds.has(w.id),
         equipped: player.mainWeapon.id === w.id,
       });
     }
@@ -65,7 +66,7 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
         name: w.name,
         icon: OFFHAND_DICE[w.id].icon,
         faces: OFFHAND_DICE[w.id].faces,
-        owned: ownedWeaponIds.has(w.id),
+        owned: ownedGridOffhandIds.has(w.id),
         equipped: player.offhandWeapon?.id === w.id,
       });
     }
@@ -93,7 +94,7 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
     }
   }
 
-  const visible = debugMode ? items : items.filter((it) => it.owned);
+  const visible = debugMode || showAll ? items : items.filter((it) => it.owned);
 
   return (
     <div
@@ -135,9 +136,22 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
           <div style={{ fontSize: "1.2rem", letterSpacing: "0.05em" }}>
             ⚙️ Equipment {debugMode ? <span style={{ color: "#9b59b6" }}>· DEBUG</span> : null}
           </div>
-          <button onClick={onClose} style={{ ...btnStyle("#3a2a1c"), fontSize: "0.8rem" }}>
-            Close ✕
-          </button>
+          <div style={{ display: "flex", gap: "0.4rem" }}>
+            {!debugMode && (
+              <button
+                onClick={() => setShowAll((v) => !v)}
+                style={{
+                  ...btnStyle(showAll ? "#6a3a1a" : "#2a1f18", showAll),
+                  fontSize: "0.8rem",
+                }}
+              >
+                {showAll ? "Owned only" : "Show all"}
+              </button>
+            )}
+            <button onClick={onClose} style={{ ...btnStyle("#3a2a1c"), fontSize: "0.8rem" }}>
+              Close ✕
+            </button>
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: "0.4rem", marginBottom: "0.8rem", flexWrap: "wrap" }}>
@@ -172,7 +186,8 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
                 item={it}
                 onClick={() => {
                   if (it.equipped) return;
-                  onEquip(tab, it.id);
+                  if (it.owned) onEquip(tab, it.id);
+                  else onGrantAndEquip(tab, it.id);
                 }}
               />
             ))

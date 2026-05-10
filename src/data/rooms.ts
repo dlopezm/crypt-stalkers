@@ -9,6 +9,7 @@ import { BARRACKS } from "./areas/barracks";
 import { A1_MINE_MOUTH } from "./areas/a1_mine_mouth";
 import { A1_GATEHOUSE } from "./areas/a1_gatehouse";
 import { A1_UPPER_GALLERIES } from "./areas/a1_upper_galleries";
+import { A1_TESTING_GROUNDS } from "./areas/a1_testing_grounds";
 import { A1_EXCURSION_WARRENS } from "./areas/a1_excursion_warrens";
 import { A1_BARONS_WING } from "./areas/a1_barons_wing";
 
@@ -198,6 +199,7 @@ export const AREAS: AreaDef[] = [
   A1_MINE_MOUTH,
   A1_GATEHOUSE,
   A1_UPPER_GALLERIES,
+  A1_TESTING_GROUNDS,
   A1_EXCURSION_WARRENS,
   A1_BARONS_WING,
 

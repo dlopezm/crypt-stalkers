@@ -157,7 +157,8 @@ const SYMBOL_DESC: Record<SymbolKey, string> = {
   crystal: "Grants 1 Salt (resource).",
   bolt: "Applies 1 Weaken. Weakened targets deal 25% less damage.",
   sun: "Applies 1 Bolster. Bolstered targets deal +1 on all damage symbols.",
-  riposte: "When blocking an attack, deals damage back equal to the attack.",
+  riposte:
+    "Assign to a melee attack: blocks 1 damage and deals 1 back to the attacker before it resolves.",
   cleanse: "Removes all negative status effects from self.",
   mark: "Marks the target — the next damage they take is doubled.",
   power: "Grants +1 Power charge, boosting the next attack.",

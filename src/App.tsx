@@ -1,9 +1,8 @@
 import { AREAS } from "./data/rooms";
-import { REST_HEAL_FRACTION, SAFE_REST_HEAL_FRACTION } from "./data/constants";
 import { WEAPONS } from "./data/weapons";
 import { CONSUMABLES } from "./data/consumables";
-import { ABILITIES } from "./data/abilities";
 import { determineEnding } from "./data/endings";
+import { STARTER_ABILITY_ID } from "./data/constants";
 import { makeStarterPlayer } from "./utils/helpers";
 import { generateArea } from "./utils/area";
 import { loadGame, clearSave, hasSave } from "./utils/save";
@@ -19,7 +18,7 @@ import { playerToCardLoadout, cardResultToGridPlayerState } from "./utils/card-c
 import { DiceScreen } from "./dice-combat/DiceScreen";
 import { playerToDiceLoadout, diceResultToGridPlayerState } from "./utils/dice-combat-helpers";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
-import type { AreaNode, AreaDef, AreaLogEntry, Player, PropEffect } from "./types";
+import type { AreaNode, AreaDef, AreaLogEntry, Player, PropEffect, DiceAbilityId } from "./types";
 import type { GridPlayerState } from "./grid-combat/types";
 import { useAppDispatch, useAppSelector } from "./store";
 import { setScreen } from "./store/screenSlice";
@@ -270,26 +269,6 @@ export default function App() {
     }
   }
 
-  /* ── Map actions ── */
-  function onRestOnMap() {
-    if (!area || !currentRoomId || !player) return;
-    const curRoom = area.find((n) => n.id === currentRoomId);
-    const isSafe = curRoom?.safeRoom === true;
-    const fraction = isSafe ? SAFE_REST_HEAL_FRACTION : REST_HEAL_FRACTION;
-    const healAmt = Math.floor(player.maxHp * fraction);
-    const newPlayer = { ...player, hp: Math.min(player.maxHp, player.hp + healAmt) };
-    dispatch(setPlayer(newPlayer));
-
-    const safeLabel = isSafe ? " (safe)" : "";
-    addLog([`\u{1FA79} Rested${safeLabel} (+${healAmt} HP)`], "player");
-
-    const { newArea: afterAI } = tickAI(area, currentRoomId, "rest");
-    const ambushed = !isSafe && checkAmbush(afterAI, currentRoomId, { player: newPlayer });
-    if (!ambushed) {
-      dispatch(updateArea(afterAI));
-    }
-  }
-
   function onSwitchWeaponOnMap(weaponId: string) {
     if (!player) return;
     const weapon = player.ownedWeapons.find((w) => w.id === weaponId);
@@ -301,33 +280,82 @@ export default function App() {
   function onEquipDiceItem(slot: "main" | "offhand" | "armor" | "ability", id: string) {
     if (!player) return;
     if (slot === "main") {
-      const w = WEAPONS.find((x) => x.id === id)!;
-      const owned = player.ownedWeapons.find((x) => x.id === id)
-        ? player.ownedWeapons
-        : [...player.ownedWeapons, w];
+      if (!player.ownedGridWeaponIds.includes(id)) return;
+      const w = WEAPONS.find((x) => x.id === id);
+      if (!w) return;
       const offhand = w.hand === "2" ? null : player.offhandWeapon;
-      dispatch(
-        setPlayer({ ...player, mainWeapon: w, offhandWeapon: offhand, ownedWeapons: owned }),
-      );
+      dispatch(setPlayer({ ...player, mainWeapon: w, offhandWeapon: offhand, gridWeaponId: id }));
     } else if (slot === "offhand") {
-      const w = WEAPONS.find((x) => x.id === id)!;
-      const owned = player.ownedWeapons.find((x) => x.id === id)
-        ? player.ownedWeapons
-        : [...player.ownedWeapons, w];
-      // Equipping an offhand requires a 1-handed main weapon.
+      if (!player.ownedGridOffhandIds.includes(id)) return;
+      const w = WEAPONS.find((x) => x.id === id);
+      if (!w) return;
       const main =
         player.mainWeapon.hand === "2"
-          ? (player.ownedWeapons.find((x) => x.hand !== "2") ?? player.mainWeapon)
+          ? (WEAPONS.find((x) => player.ownedGridWeaponIds.includes(x.id) && x.hand !== "2") ??
+            player.mainWeapon)
           : player.mainWeapon;
-      dispatch(setPlayer({ ...player, offhandWeapon: w, mainWeapon: main, ownedWeapons: owned }));
+      dispatch(setPlayer({ ...player, offhandWeapon: w, mainWeapon: main, gridOffhandId: id }));
     } else if (slot === "armor") {
-      const ownedArmor = player.ownedGridArmorIds ?? [];
-      const next = ownedArmor.includes(id) ? ownedArmor : [...ownedArmor, id];
-      dispatch(setPlayer({ ...player, gridArmorId: id, ownedGridArmorIds: next }));
+      if (!player.ownedGridArmorIds.includes(id)) return;
+      dispatch(setPlayer({ ...player, gridArmorId: id }));
     } else if (slot === "ability") {
-      const ownedAbilities = player.abilities ?? [];
-      const next = ownedAbilities.includes(id) ? ownedAbilities : [...ownedAbilities, id];
-      dispatch(setPlayer({ ...player, activeAbilityId: id, abilities: next }));
+      if (!player.abilities.includes(id) && id !== STARTER_ABILITY_ID) return;
+      dispatch(setPlayer({ ...player, activeAbilityId: id as DiceAbilityId }));
+    }
+  }
+
+  function onGrantAndEquipDiceItem(slot: "main" | "offhand" | "armor" | "ability", id: string) {
+    if (!player) return;
+    if (slot === "main") {
+      const w = WEAPONS.find((x) => x.id === id);
+      if (!w) return;
+      const owned = player.ownedGridWeaponIds.includes(id)
+        ? player.ownedGridWeaponIds
+        : [...player.ownedGridWeaponIds, id];
+      const offhand = w.hand === "2" ? null : player.offhandWeapon;
+      dispatch(
+        setPlayer({
+          ...player,
+          mainWeapon: w,
+          offhandWeapon: offhand,
+          gridWeaponId: id,
+          ownedGridWeaponIds: owned,
+        }),
+      );
+    } else if (slot === "offhand") {
+      const w = WEAPONS.find((x) => x.id === id);
+      if (!w) return;
+      const owned = player.ownedGridOffhandIds.includes(id)
+        ? player.ownedGridOffhandIds
+        : [...player.ownedGridOffhandIds, id];
+      const main =
+        player.mainWeapon.hand === "2"
+          ? (WEAPONS.find((x) => player.ownedGridWeaponIds.includes(x.id) && x.hand !== "2") ??
+            player.mainWeapon)
+          : player.mainWeapon;
+      dispatch(
+        setPlayer({
+          ...player,
+          offhandWeapon: w,
+          mainWeapon: main,
+          gridOffhandId: id,
+          ownedGridOffhandIds: owned,
+        }),
+      );
+    } else if (slot === "armor") {
+      const owned = player.ownedGridArmorIds.includes(id)
+        ? player.ownedGridArmorIds
+        : [...player.ownedGridArmorIds, id];
+      dispatch(setPlayer({ ...player, gridArmorId: id, ownedGridArmorIds: owned }));
+    } else if (slot === "ability") {
+      const owned = player.abilities.includes(id) ? player.abilities : [...player.abilities, id];
+      dispatch(
+        setPlayer({
+          ...player,
+          activeAbilityId: id as DiceAbilityId,
+          abilities: owned as DiceAbilityId[],
+        }),
+      );
     }
   }
 
@@ -364,9 +392,29 @@ export default function App() {
     }
 
     for (const aId of outcome.grantedAbilities) {
-      const ability = ABILITIES.find((a) => a.id === aId);
-      if (ability && !updated.abilities.includes(aId)) {
+      if (!updated.abilities.includes(aId)) {
         updated = { ...updated, abilities: [...updated.abilities, aId] };
+      }
+    }
+
+    for (const wId of outcome.grantedGridWeapons) {
+      const owned = updated.ownedGridWeaponIds ?? [];
+      if (!owned.includes(wId)) {
+        updated = { ...updated, ownedGridWeaponIds: [...owned, wId] };
+      }
+    }
+
+    for (const oId of outcome.grantedGridOffhands) {
+      const owned = updated.ownedGridOffhandIds ?? [];
+      if (!owned.includes(oId)) {
+        updated = { ...updated, ownedGridOffhandIds: [...owned, oId] };
+      }
+    }
+
+    for (const aId of outcome.grantedGridArmors) {
+      const owned = updated.ownedGridArmorIds ?? [];
+      if (!owned.includes(aId)) {
+        updated = { ...updated, ownedGridArmorIds: [...owned, aId] };
       }
     }
 
@@ -575,9 +623,9 @@ export default function App() {
           areaLog={areaLog}
           onEnterRoom={enterRoom}
           onScout={onScout}
-          onRest={onRestOnMap}
           onSwitchWeapon={onSwitchWeaponOnMap}
           onEquipDiceItem={onEquipDiceItem}
+          onGrantAndEquipDiceItem={onGrantAndEquipDiceItem}
           onExamineProp={onExamineProp}
           onPropAction={onPropAction}
           onToggleDebug={() => dispatch(toggleDebugMode())}

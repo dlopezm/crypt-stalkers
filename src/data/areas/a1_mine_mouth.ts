@@ -9,6 +9,7 @@ import type { AuthoredRoom, AreaDef } from "../../types";
  *                              ↔ R3(hub) ↔ R4(foreman) ↔ R7(map niche)
  *                                        ↔ R5(vent)
  *                                        ↔ R6(threshold) ↔ exit9(upper galleries)
+ *              ↔ exit11(upper galleries B)
  *
  * Player must pass through R2 before reaching the Gatehouse exit.
  * Foreman's Office (R4) split into Office + Map Niche (R7).
@@ -27,9 +28,9 @@ export const A1_MINE_MOUTH_GRID: number[][] = [
  [ 1, 2, 2, 2, 0, 3, 3, 0, 4, 4, 4, 4, 0, 6, 6, 1, 1], // 5 R1→R2→R3(hub)→R5
  [ 1, 2, 2, 2, 1, 3, 3, 1, 4, 4, 4, 4, 1, 6, 6, 1, 1], // 6
  [ 1, 2, 2, 2, 1, 3, 3, 1, 4, 4, 4, 4, 1, 1, 1, 1, 1], // 7
- [ 1, 1, 1, 1, 1, 3, 3, 1, 4, 4, 4, 4, 1, 1, 1, 1, 1], // 8
- [ 1, 1, 1, 1, 1, 3, 3, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1], // 9 R3→R6 corridor
- [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 7, 1, 1, 1, 1, 1], // 10 R6 Gallery Threshold
+ [ 1, 1, 0, 1, 1, 3, 3, 1, 4, 4, 4, 4, 1, 1, 1, 1, 1], // 8 R2→exit11 corridor
+ [ 1,11,11, 1, 1, 3, 3, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1], // 9 exit11 (testing grounds) + R3→R6 corridor
+ [ 1,11,11, 1, 1, 1, 1, 1, 1, 7, 7, 7, 1, 1, 1, 1, 1], // 10 exit11 + R6 Gallery Threshold
  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 7, 0, 9, 9, 1, 1], // 11 R6→exit9
  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 7, 1, 9, 9, 1, 1], // 12 exit9
  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 13
@@ -351,6 +352,14 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
     description: "Passage widens toward galleries under green coldfire.",
     enemies: [],
     exit: { toAreaId: "a1_upper_galleries", toRoomGridId: 2 },
+  },
+  11: {
+    label: "Test yourself",
+    hint: "a side cut off the entrance - same green glare, same silence.",
+    description:
+      "A branch off the entrance arch leads into another gallery under cold green light.",
+    enemies: [],
+    exit: { toAreaId: "a1_testing_grounds", toRoomGridId: 2 },
   },
 };
 

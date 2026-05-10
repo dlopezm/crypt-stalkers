@@ -4,10 +4,6 @@
 export const PLAYER_START_HP = 40;
 export const PLAYER_START_SALT = 0;
 
-// Rest & Recovery
-export const REST_HEAL_FRACTION = 0.05;
-export const SAFE_REST_HEAL_FRACTION = 0.15;
-
 // Combat multipliers
 export const WEAKEN_DMG_MULT = 0.75;
 export const BLIND_MISS_CHANCE = 0.3;
@@ -89,3 +85,6 @@ export const VAMPIRE_AVOID_HP_RATIO = 0.6;
 
 // Limits
 export const DUNGEON_LOG_MAX = 200;
+
+import type { DiceAbilityId } from "../dice-combat/dice-defs";
+export const STARTER_ABILITY_ID: DiceAbilityId = "steady_hands";

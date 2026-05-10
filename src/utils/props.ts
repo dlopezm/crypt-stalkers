@@ -69,6 +69,9 @@ export interface EffectOutcome {
   readonly grantedWeapons: readonly string[];
   readonly grantedConsumables: readonly string[];
   readonly grantedAbilities: readonly string[];
+  readonly grantedGridWeapons: readonly string[];
+  readonly grantedGridOffhands: readonly string[];
+  readonly grantedGridArmors: readonly string[];
 }
 
 /** Pure evaluator - caller dispatches the resulting deltas. */
@@ -81,6 +84,9 @@ export function evaluateEffects(effects: PropEffect[]): EffectOutcome {
   const grantedWeapons: string[] = [];
   const grantedConsumables: string[] = [];
   const grantedAbilities: string[] = [];
+  const grantedGridWeapons: string[] = [];
+  const grantedGridOffhands: string[] = [];
+  const grantedGridArmors: string[] = [];
 
   for (const e of effects) {
     switch (e.type) {
@@ -114,6 +120,15 @@ export function evaluateEffects(effects: PropEffect[]): EffectOutcome {
       case "grant_ability":
         grantedAbilities.push(e.abilityId);
         break;
+      case "grant_grid_weapon":
+        grantedGridWeapons.push(e.weaponId);
+        break;
+      case "grant_grid_offhand":
+        grantedGridOffhands.push(e.offhandId);
+        break;
+      case "grant_grid_armor":
+        grantedGridArmors.push(e.armorId);
+        break;
     }
   }
 
@@ -126,5 +141,8 @@ export function evaluateEffects(effects: PropEffect[]): EffectOutcome {
     grantedWeapons,
     grantedConsumables,
     grantedAbilities,
+    grantedGridWeapons,
+    grantedGridOffhands,
+    grantedGridArmors,
   };
 }
