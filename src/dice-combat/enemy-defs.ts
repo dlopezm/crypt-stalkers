@@ -1,4 +1,25 @@
 import type { DiceCombatState, DiceEnemy, DiceEnemyDef, DieSlot, FaceColor } from "./types";
+import {
+  IconBleed,
+  IconBurrowSpawn,
+  IconCrossedSwords,
+  IconCrystal,
+  IconDemon,
+  IconFang,
+  IconHoly,
+  IconHymnHum,
+  IconIntangible,
+  IconMark,
+  IconReform,
+  IconReproduce,
+  IconResonance,
+  IconShield,
+  IconSkull,
+  IconSneakAttack,
+  IconSteal,
+  IconSummon,
+  IconZombie,
+} from "../icons";
 import { DICE_BALANCE } from "./balance";
 
 /* ── Helpers ── */
@@ -73,7 +94,7 @@ function corruptFace(
 const RAT: DiceEnemyDef = {
   id: "rat",
   name: "Ravager Rat",
-  icon: "🐀",
+  icon: IconReproduce,
   maxHp: 1,
   defaultRow: "front",
   isBoss: false,
@@ -81,7 +102,7 @@ const RAT: DiceEnemyDef = {
     {
       id: "rat_die",
       name: "Rat",
-      icon: "🐀",
+      icon: IconReproduce,
       faces: [
         "enemy_rat_strike",
         "enemy_rat_strike",
@@ -100,7 +121,7 @@ const RAT: DiceEnemyDef = {
 const SKELETON: DiceEnemyDef = {
   id: "skeleton",
   name: "Skeleton",
-  icon: "💀",
+  icon: IconSkull,
   maxHp: 4,
   defaultRow: "front",
   isBoss: false,
@@ -108,7 +129,7 @@ const SKELETON: DiceEnemyDef = {
     {
       id: "bone_die",
       name: "Bone Die",
-      icon: "🦴",
+      icon: IconReform,
       faces: [
         "enemy_bone_strike",
         "enemy_bone_strike",
@@ -122,7 +143,7 @@ const SKELETON: DiceEnemyDef = {
     {
       id: "armor_die",
       name: "Armor Die",
-      icon: "🛡️",
+      icon: IconShield,
       faces: [
         "enemy_armor_2",
         "enemy_armor_1",
@@ -143,7 +164,7 @@ const SKELETON: DiceEnemyDef = {
       rolledFaces: [],
       id: "heap_of_bones",
       name: "Heap of Bones",
-      icon: "🦴",
+      icon: IconReform,
     };
     return {
       ...state,
@@ -165,7 +186,7 @@ const SKELETON: DiceEnemyDef = {
 const HEAP_OF_BONES: DiceEnemyDef = {
   id: "heap_of_bones",
   name: "Heap of Bones",
-  icon: "🦴",
+  icon: IconReform,
   maxHp: 1,
   defaultRow: "front",
   isBoss: false,
@@ -173,7 +194,7 @@ const HEAP_OF_BONES: DiceEnemyDef = {
     {
       id: "reform_die",
       name: "Reform Die",
-      icon: "🦴",
+      icon: IconReform,
       faces: ["enemy_reform", "enemy_reform", "enemy_reform", "blank", "blank", "blank"],
       defaultTarget: "self",
     },
@@ -185,7 +206,7 @@ const HEAP_OF_BONES: DiceEnemyDef = {
 const ZOMBIE: DiceEnemyDef = {
   id: "zombie",
   name: "Rotting Zombie",
-  icon: "🧟",
+  icon: IconZombie,
   maxHp: 3,
   defaultRow: "front",
   isBoss: false,
@@ -193,7 +214,7 @@ const ZOMBIE: DiceEnemyDef = {
     {
       id: "zombie_die",
       name: "Zombie Die",
-      icon: "🧟",
+      icon: IconZombie,
       faces: ["enemy_zombie_slam", "enemy_zombie_lurch", "blank", "blank", "blank", "blank"],
       defaultTarget: "player",
     },
@@ -205,7 +226,7 @@ const ZOMBIE: DiceEnemyDef = {
 const GHOST: DiceEnemyDef = {
   id: "ghost",
   name: "Mournful Ghost",
-  icon: "👻",
+  icon: IconIntangible,
   maxHp: 3,
   defaultRow: "front",
   isBoss: false,
@@ -214,7 +235,7 @@ const GHOST: DiceEnemyDef = {
     {
       id: "ghost_die",
       name: "Phantom Die",
-      icon: "👻",
+      icon: IconIntangible,
       faces: [
         "enemy_phantom_strike",
         "enemy_phantom_strike",
@@ -228,7 +249,7 @@ const GHOST: DiceEnemyDef = {
     {
       id: "intangible_die",
       name: "Intangible Die",
-      icon: "👻",
+      icon: IconIntangible,
       faces: [
         "enemy_intangible",
         "enemy_intangible",
@@ -247,7 +268,7 @@ const GHOST: DiceEnemyDef = {
 const VAMPIRE: DiceEnemyDef = {
   id: "vampire",
   name: "Blood Wraith",
-  icon: "🧛",
+  icon: IconFang,
   maxHp: 4,
   defaultRow: "front",
   isBoss: false,
@@ -256,7 +277,7 @@ const VAMPIRE: DiceEnemyDef = {
     {
       id: "vampire_die",
       name: "Blood Die",
-      icon: "🧛",
+      icon: IconFang,
       faces: [
         "enemy_drain",
         "enemy_drain",
@@ -293,7 +314,7 @@ const VAMPIRE: DiceEnemyDef = {
 const BANSHEE: DiceEnemyDef = {
   id: "banshee",
   name: "Wailing Banshee",
-  icon: "👁️",
+  icon: IconMark,
   maxHp: 4,
   defaultRow: "back",
   isBoss: false,
@@ -302,7 +323,7 @@ const BANSHEE: DiceEnemyDef = {
     {
       id: "wail_die",
       name: "Wail Die",
-      icon: "👁️",
+      icon: IconMark,
       faces: ["enemy_wail", "enemy_wail", "enemy_drone", "enemy_ululate", "blank", "blank"],
       defaultTarget: "player",
     },
@@ -318,7 +339,7 @@ const BANSHEE: DiceEnemyDef = {
 const NECROMANCER: DiceEnemyDef = {
   id: "necromancer",
   name: "Necromancer",
-  icon: "🧙",
+  icon: IconHymnHum,
   maxHp: 2,
   defaultRow: "back",
   isBoss: false,
@@ -326,7 +347,7 @@ const NECROMANCER: DiceEnemyDef = {
     {
       id: "necro_die",
       name: "Necromancer Die",
-      icon: "🧙",
+      icon: IconHymnHum,
       faces: [
         "enemy_necro_summon",
         "enemy_necro_summon",
@@ -345,7 +366,7 @@ const NECROMANCER: DiceEnemyDef = {
 const GHOUL: DiceEnemyDef = {
   id: "ghoul",
   name: "Lurking Ghoul",
-  icon: "👹",
+  icon: IconDemon,
   maxHp: 4,
   defaultRow: "front",
   isBoss: false,
@@ -353,7 +374,7 @@ const GHOUL: DiceEnemyDef = {
     {
       id: "ghoul_stealth_die",
       name: "Stealth Die",
-      icon: "🌑",
+      icon: IconSummon,
       faces: [
         "enemy_ghoul_hide",
         "enemy_ghoul_hide",
@@ -367,7 +388,7 @@ const GHOUL: DiceEnemyDef = {
     {
       id: "ghoul_attack_die",
       name: "Attack Die",
-      icon: "👹",
+      icon: IconDemon,
       faces: [
         "enemy_ghoul_sneak_attack",
         "enemy_ghoul_sneak_attack",
@@ -386,7 +407,7 @@ const GHOUL: DiceEnemyDef = {
 const SHADOW: DiceEnemyDef = {
   id: "shadow",
   name: "The Shadow",
-  icon: "🌑",
+  icon: IconSummon,
   maxHp: 3,
   defaultRow: "front",
   isBoss: false,
@@ -395,7 +416,7 @@ const SHADOW: DiceEnemyDef = {
     {
       id: "shadow_die",
       name: "Shadow Die",
-      icon: "🌑",
+      icon: IconSummon,
       faces: [
         "enemy_shadow_strike",
         "enemy_shadow_strike",
@@ -414,7 +435,7 @@ const SHADOW: DiceEnemyDef = {
 const GRAVE_ROBBER: DiceEnemyDef = {
   id: "grave_robber",
   name: "Grave Robber",
-  icon: "🕵️",
+  icon: IconSneakAttack,
   maxHp: 4,
   defaultRow: "front",
   isBoss: false,
@@ -422,7 +443,7 @@ const GRAVE_ROBBER: DiceEnemyDef = {
     {
       id: "robber_die",
       name: "Robber Die",
-      icon: "🪙",
+      icon: IconSteal,
       faces: ["enemy_pilfer", "enemy_pilfer", "enemy_bite_1", "blank", "blank", "blank"],
       defaultTarget: "self",
     },
@@ -434,7 +455,7 @@ const GRAVE_ROBBER: DiceEnemyDef = {
 const GUTBORN_LARVA: DiceEnemyDef = {
   id: "gutborn_larva",
   name: "Gutborn Larva",
-  icon: "🪱",
+  icon: IconBurrowSpawn,
   maxHp: 1,
   defaultRow: "back", // starts untargetable by melee — different from Rat (front row, area kill)
   isBoss: false,
@@ -442,7 +463,7 @@ const GUTBORN_LARVA: DiceEnemyDef = {
     {
       id: "larva_die",
       name: "Larva Die",
-      icon: "🪱",
+      icon: IconBurrowSpawn,
       faces: [
         "enemy_burrow",
         "enemy_burrow",
@@ -467,7 +488,7 @@ const GUTBORN_LARVA: DiceEnemyDef = {
 const FORSWORN: DiceEnemyDef = {
   id: "forsworn",
   name: "The Forsworn",
-  icon: "⚔️",
+  icon: IconCrossedSwords,
   maxHp: 6,
   defaultRow: "front",
   isBoss: false,
@@ -475,7 +496,7 @@ const FORSWORN: DiceEnemyDef = {
     {
       id: "forsworn_die",
       name: "Forsworn Die",
-      icon: "⚔️",
+      icon: IconCrossedSwords,
       faces: [
         "enemy_guard_strike",
         "enemy_guard_strike",
@@ -494,7 +515,7 @@ const FORSWORN: DiceEnemyDef = {
 const FALSE_SACRARIUM: DiceEnemyDef = {
   id: "false_sacrarium",
   name: "The False Sacrarium",
-  icon: "⛪",
+  icon: IconHoly,
   maxHp: 5,
   defaultRow: "back",
   isBoss: false,
@@ -502,7 +523,7 @@ const FALSE_SACRARIUM: DiceEnemyDef = {
     {
       id: "sacrarium_die",
       name: "Litany Die",
-      icon: "⛪",
+      icon: IconHoly,
       faces: [
         "enemy_litany",
         "enemy_litany",
@@ -521,7 +542,7 @@ const FALSE_SACRARIUM: DiceEnemyDef = {
 const SALT_REVENANT: DiceEnemyDef = {
   id: "salt_revenant",
   name: "Salt Revenant",
-  icon: "💎",
+  icon: IconCrystal,
   maxHp: 6,
   defaultRow: "front",
   isBoss: false,
@@ -529,7 +550,7 @@ const SALT_REVENANT: DiceEnemyDef = {
     {
       id: "revenant_die",
       name: "Revenant Die",
-      icon: "💎",
+      icon: IconCrystal,
       faces: [
         "enemy_salt_grapple",
         "enemy_salt_grapple",
@@ -548,7 +569,7 @@ const SALT_REVENANT: DiceEnemyDef = {
 const SKELETON_LORD: DiceEnemyDef = {
   id: "boss_skeleton_lord",
   name: "Skeleton Lord",
-  icon: "💀",
+  icon: IconSkull,
   maxHp: 10,
   defaultRow: "front",
   isBoss: true,
@@ -556,7 +577,7 @@ const SKELETON_LORD: DiceEnemyDef = {
     {
       id: "lord_die",
       name: "Lord Die",
-      icon: "💀",
+      icon: IconSkull,
       faces: [
         "enemy_bone_cleave_boss",
         "enemy_bone_cleave_boss",
@@ -580,7 +601,7 @@ const SKELETON_LORD: DiceEnemyDef = {
 const VAMPIRE_LORD: DiceEnemyDef = {
   id: "boss_vampire_lord",
   name: "Vampire Lord",
-  icon: "🧛",
+  icon: IconFang,
   maxHp: 15,
   defaultRow: "front",
   isBoss: true,
@@ -588,7 +609,7 @@ const VAMPIRE_LORD: DiceEnemyDef = {
     {
       id: "vlord_die",
       name: "Blood Die",
-      icon: "🧛",
+      icon: IconFang,
       faces: [
         "enemy_sanguine_drain",
         "enemy_sanguine_drain",
@@ -625,7 +646,7 @@ const VAMPIRE_LORD: DiceEnemyDef = {
 const LICH_KING: DiceEnemyDef = {
   id: "boss_lich",
   name: "The Lich King",
-  icon: "☠️",
+  icon: IconSkull,
   maxHp: 8,
   defaultRow: "back",
   isBoss: true,
@@ -637,7 +658,7 @@ const LICH_KING: DiceEnemyDef = {
       {
         id: "lich_p1_die",
         name: "Cold Lamp",
-        icon: "🔮",
+        icon: IconResonance,
         faces: [
           "enemy_lich_cold_lamp",
           "enemy_lich_cold_lamp",
@@ -653,7 +674,7 @@ const LICH_KING: DiceEnemyDef = {
       {
         id: "lich_p2_die",
         name: "Tithe-Mark",
-        icon: "🩸",
+        icon: IconBleed,
         faces: [
           "enemy_lich_tithe_mark",
           "enemy_lich_tithe_mark",
@@ -669,7 +690,7 @@ const LICH_KING: DiceEnemyDef = {
       {
         id: "lich_p3_die",
         name: "Hymn-Break",
-        icon: "🎵",
+        icon: IconHymnHum,
         faces: [
           "enemy_lich_hymn_break",
           "enemy_lich_hymn_break",

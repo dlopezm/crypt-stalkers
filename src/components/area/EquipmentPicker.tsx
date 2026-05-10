@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { IconProps } from "../../icons";
 import { btnStyle, FONT } from "../../styles";
 import {
   ABILITY_DICE,
@@ -36,7 +37,7 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
   const items: Array<{
     id: string;
     name: string;
-    icon: string;
+    icon: React.FC<IconProps>;
     faces: readonly string[];
     owned: boolean;
     equipped: boolean;
@@ -49,7 +50,7 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
       items.push({
         id: w.id,
         name: w.name,
-        icon: w.icon,
+        icon: WEAPON_DICE[w.id].icon,
         faces: WEAPON_DICE[w.id].faces,
         owned: ownedWeaponIds.has(w.id),
         equipped: player.mainWeapon.id === w.id,
@@ -62,7 +63,7 @@ export function EquipmentPicker({ player, debugMode, onEquip, onClose }: Props) 
       items.push({
         id: w.id,
         name: w.name,
-        icon: w.icon,
+        icon: OFFHAND_DICE[w.id].icon,
         faces: OFFHAND_DICE[w.id].faces,
         owned: ownedWeaponIds.has(w.id),
         equipped: player.offhandWeapon?.id === w.id,
@@ -196,7 +197,7 @@ function ItemCard({
   item: {
     id: string;
     name: string;
-    icon: string;
+    icon: React.FC<IconProps>;
     faces: readonly string[];
     owned: boolean;
     equipped: boolean;
@@ -226,7 +227,20 @@ function ItemCard({
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <div style={{ fontSize: "0.95rem" }}>
-          {item.icon} {item.name}
+          {(() => {
+            const I = item.icon;
+            return (
+              <I
+                style={{
+                  width: "1em",
+                  height: "1em",
+                  display: "inline-block",
+                  verticalAlign: "middle",
+                }}
+              />
+            );
+          })()}{" "}
+          {item.name}
         </div>
         {item.equipped ? (
           <div style={{ fontSize: "0.65rem", color: "#f1c40f" }}>EQUIPPED</div>

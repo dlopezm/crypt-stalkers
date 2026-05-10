@@ -17,7 +17,20 @@ export function StatusBadges({ statuses = {} }: { statuses?: Statuses }) {
             color: STATUS_COLORS[k],
           }}
         >
-          {STATUS_ICONS[k]} {v}
+          {(() => {
+            const I = STATUS_ICONS[k];
+            return (
+              <I
+                style={{
+                  width: "1em",
+                  height: "1em",
+                  display: "inline-block",
+                  verticalAlign: "middle",
+                }}
+              />
+            );
+          })()}{" "}
+          {v}
         </div>
       ))}
     </div>

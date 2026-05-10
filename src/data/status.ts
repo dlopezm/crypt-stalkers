@@ -1,4 +1,22 @@
 import type { StatusKey } from "../types";
+import type { IconProps } from "../icons"; // used as Record value type below
+import {
+  IconBleed,
+  IconWeaken,
+  IconBlind,
+  IconSilence,
+  IconPoison,
+  IconStun,
+  IconBolster,
+  IconMark,
+  IconWarded,
+  IconPower,
+  IconDragged,
+  IconDodge,
+  IconIntangible,
+  IconTaunt,
+  IconHidden,
+} from "../icons";
 
 export const STATUS_COLORS: Record<StatusKey, string> = {
   bleed: "#c0392b",
@@ -18,22 +36,22 @@ export const STATUS_COLORS: Record<StatusKey, string> = {
   hidden: "#2c3e50",
 };
 
-export const STATUS_ICONS: Record<StatusKey, string> = {
-  bleed: "\u{1FA78}",
-  weaken: "\u{1F494}",
-  blind: "\u{1F441}\uFE0F",
-  silence: "\u{1F507}",
-  poison: "\u{1F40D}",
-  stun: "\u26A1",
-  bolster: "\u2600",
-  mark: "\u2739",
-  warded: "\u{1F6E1}",
-  power: "↑",
-  dragged: "\u{1F9DF}",
-  dodge: "✷",
-  intangible: "👻",
-  taunt: "⚔️",
-  hidden: "🫥",
+export const STATUS_ICONS: Record<StatusKey, React.FC<IconProps>> = {
+  bleed: IconBleed,
+  weaken: IconWeaken,
+  blind: IconBlind,
+  silence: IconSilence,
+  poison: IconPoison,
+  stun: IconStun,
+  bolster: IconBolster,
+  mark: IconMark,
+  warded: IconWarded,
+  power: IconPower,
+  dragged: IconDragged,
+  dodge: IconDodge,
+  intangible: IconIntangible,
+  taunt: IconTaunt,
+  hidden: IconHidden,
 };
 
 export const STATUS_DESC: Record<StatusKey, string> = {

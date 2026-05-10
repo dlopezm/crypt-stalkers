@@ -1,3 +1,5 @@
+import type { IconProps } from "../icons";
+
 /* ── Dice + Faces ── */
 
 /** Four slots: main hand, off hand, armor, ability. */
@@ -79,7 +81,7 @@ export type SymbolKey =
 export interface FaceDef {
   readonly id: string;
   readonly label: string;
-  readonly icon: string;
+  readonly icon: React.FC<IconProps>;
   readonly color: FaceColor;
   readonly target: FaceTargetKind;
   readonly symbols?: readonly SymbolKey[];
@@ -89,7 +91,7 @@ export interface DieDef {
   readonly id: string;
   readonly slot: DieSlot;
   readonly name: string;
-  readonly icon: string;
+  readonly icon: React.FC<IconProps>;
   /** Exactly 6 face IDs, indexed 0..5. */
   readonly faces: readonly [string, string, string, string, string, string];
 }
@@ -126,7 +128,7 @@ export interface PoolAssignment {
 export interface EnemyDieDef {
   readonly id: string;
   readonly name: string;
-  readonly icon: string;
+  readonly icon: React.FC<IconProps>;
   /** Six face IDs (lookup in FACES). */
   readonly faces: readonly [string, string, string, string, string, string];
   /** Where rolled symbols target by default. `self` means defensive (enemy buffs/heals self). */
@@ -144,7 +146,7 @@ export interface DiceEnemy {
   readonly uid: string;
   readonly id: string;
   readonly name: string;
-  readonly icon: string;
+  readonly icon: React.FC<IconProps>;
   readonly hp: number;
   readonly maxHp: number;
   readonly row: Row;
@@ -270,7 +272,7 @@ export interface DiceCombatInit {
 export interface DiceEnemyDef {
   readonly id: string;
   readonly name: string;
-  readonly icon: string;
+  readonly icon: React.FC<IconProps>;
   readonly maxHp: number;
   readonly defaultRow: Row;
   readonly isBoss: boolean;

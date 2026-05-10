@@ -1,5 +1,45 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  IconArea,
+  IconArmorBreak,
+  IconBind,
+  IconBleedBurst,
+  IconBolt,
+  IconBurrowSpawn,
+  IconCleanse,
+  IconCrystal,
+  IconDodge,
+  IconDrag,
+  IconDrop,
+  IconFlame,
+  IconHeart,
+  IconHide,
+  IconHoly,
+  IconHymnHum,
+  IconIntangible,
+  IconInvert,
+  IconMark,
+  IconPierce,
+  IconPower,
+  IconPush,
+  IconRanged,
+  IconReform,
+  IconReproduce,
+  IconResonance,
+  IconRiposte,
+  IconShield,
+  IconSneakAttack,
+  IconSpark,
+  IconSteal,
+  IconSummon,
+  IconSun,
+  IconSword,
+  IconTaunt,
+  IconUnblockable,
+  IconUndodgeable,
+} from "../icons";
+import type { IconProps } from "../icons";
+import {
   allAssigned,
   assignFace,
   canAssign,
@@ -27,47 +67,44 @@ import type {
 import { STATUS_COLORS, STATUS_DESC, STATUS_ICONS } from "../data/status";
 import type { StatusKey } from "../types";
 
-/* ── v3 symbol glyphs ──
- * A face's printed identity: each symbol is one glyph. Renders show the bag
- * directly so the player reads "🗡🗡💧" instead of relying on a label. */
-const SYMBOL_GLYPH: Record<SymbolKey, string> = {
-  sword: "🗡",
-  shield: "🛡",
-  heart: "❤",
-  flame: "🔥",
-  drop: "💧",
-  spark: "✦",
-  crystal: "◇",
-  bolt: "↯",
-  sun: "☼",
-  riposte: "⤺",
-  cleanse: "⟲",
-  mark: "⚹",
-  power: "↑",
-  dodge: "✷",
-  reproduce: "🐀",
-  steal: "🪙",
-  push: "⇄",
-  reform: "🦴",
-  intangible: "👻",
-  hide: "🫥",
-  summon: "⚰️",
-  invert: "🦠",
-  bind: "⛓️",
-  burrow_spawn: "🪱",
-  ranged: "🏹",
-  area: "⤧",
-  holy: "✝",
-  pierce: "↣",
-  unblockable: "⛔",
-  undodgeable: "⛔",
-  resonance: "◎",
-  hymn_hum: "🎵",
-  armor_break: "⚒",
-  bleed_burst: "💥",
-  drag: "✋",
-  sneak_attack: "🗡",
-  taunt: "⚔️",
+const SYMBOL_ICON: Record<SymbolKey, React.FC<IconProps>> = {
+  sword: IconSword,
+  shield: IconShield,
+  heart: IconHeart,
+  flame: IconFlame,
+  drop: IconDrop,
+  spark: IconSpark,
+  crystal: IconCrystal,
+  bolt: IconBolt,
+  sun: IconSun,
+  riposte: IconRiposte,
+  cleanse: IconCleanse,
+  mark: IconMark,
+  power: IconPower,
+  dodge: IconDodge,
+  reproduce: IconReproduce,
+  steal: IconSteal,
+  push: IconPush,
+  reform: IconReform,
+  intangible: IconIntangible,
+  hide: IconHide,
+  summon: IconSummon,
+  invert: IconInvert,
+  bind: IconBind,
+  burrow_spawn: IconBurrowSpawn,
+  ranged: IconRanged,
+  area: IconArea,
+  holy: IconHoly,
+  pierce: IconPierce,
+  unblockable: IconUnblockable,
+  undodgeable: IconUndodgeable,
+  resonance: IconResonance,
+  hymn_hum: IconHymnHum,
+  armor_break: IconArmorBreak,
+  bleed_burst: IconBleedBurst,
+  drag: IconDrag,
+  sneak_attack: IconSneakAttack,
+  taunt: IconTaunt,
 };
 
 const SYMBOL_LABEL: Record<SymbolKey, string> = {
@@ -217,25 +254,41 @@ function toneFor(enemyId: string): string {
   return key ? ENEMY_TONE[key] : "crimson";
 }
 
-function FaceGlyphs({ face, size = "0.95rem" }: { face: FaceDef; size?: string }) {
+function FaceGlyphs({
+  face,
+  size = "0.95rem",
+  color,
+}: {
+  face: FaceDef;
+  size?: string;
+  color?: string;
+}) {
   const symbols = face.symbols ?? [];
+  const iconStyle: React.CSSProperties = {
+    width: size,
+    height: size,
+    color: color ?? "var(--bone)",
+    flexShrink: 0,
+  };
   if (symbols.length === 0) {
-    return <span style={{ fontSize: size }}>{face.icon ?? COLORS[face.color].badge}</span>;
+    const FaceIcon = face.icon;
+    return <FaceIcon style={{ ...iconStyle, display: "inline-block" }} />;
   }
   return (
     <span
       style={{
         display: "inline-flex",
-        gap: "0.1rem",
+        gap: "0.15rem",
         alignItems: "center",
-        fontSize: size,
         lineHeight: 1,
+        flexWrap: "wrap",
       }}
       title={symbols.map((s) => SYMBOL_LABEL[s]).join(", ")}
     >
-      {symbols.map((s, i) => (
-        <span key={i}>{SYMBOL_GLYPH[s]}</span>
-      ))}
+      {symbols.map((s, i) => {
+        const Icon = SYMBOL_ICON[s];
+        return <Icon key={i} style={iconStyle} />;
+      })}
     </span>
   );
 }
@@ -508,12 +561,41 @@ export function DiceScreen({
           }}
         >
           {(p.statuses.power ?? 0) > 0 && (
-            <span style={{ color: "var(--bone-dim)" }}>↑ Power +{p.statuses.power}</span>
+            <span
+              style={{
+                color: "var(--bone-dim)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.2rem",
+              }}
+            >
+              <IconPower style={{ width: "0.9em", height: "0.9em" }} /> Power +{p.statuses.power}
+            </span>
           )}
-          {p.hymnHumActive && <span style={{ color: "var(--crypt)" }}>🎵 Hymn-Hum</span>}
+          {p.hymnHumActive && (
+            <span
+              style={{
+                color: "var(--crypt)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.2rem",
+              }}
+            >
+              <IconHymnHum style={{ width: "0.9em", height: "0.9em" }} /> Hymn-Hum
+            </span>
+          )}
           {p.resonanceCharges > 0 && <span style={{ color: "var(--torch)" }}>✦ Resonance</span>}
           {p.slotLocks.length > 0 && (
-            <span style={{ color: "var(--blood)" }}>🔒 {p.slotLocks.join(", ")}</span>
+            <span
+              style={{
+                color: "var(--blood)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.2rem",
+              }}
+            >
+              <IconBind style={{ width: "0.9em", height: "0.9em" }} /> {p.slotLocks.join(", ")}
+            </span>
           )}
         </div>
       )}
@@ -639,10 +721,31 @@ export function DiceScreen({
             >
               <div className="tablet-head">
                 <span className="tablet-name">
-                  {die.icon} {die.name}
+                  {(() => {
+                    const DI = die.icon;
+                    return (
+                      <>
+                        <DI
+                          style={{
+                            width: "1em",
+                            height: "1em",
+                            display: "inline-block",
+                            verticalAlign: "middle",
+                          }}
+                        />{" "}
+                        {die.name}
+                      </>
+                    );
+                  })()}
                 </span>
                 <span className={`tablet-risk ${isHot ? "warn" : ""}`}>
-                  {locked ? "🔒" : isHot ? `⚠ ${risk}%` : `${risk}%`}
+                  {locked ? (
+                    <IconBind style={{ width: "0.8em", height: "0.8em" }} />
+                  ) : isHot ? (
+                    `⚠ ${risk}%`
+                  ) : (
+                    `${risk}%`
+                  )}
                 </span>
               </div>
               <div className="tablet-faces">
@@ -657,7 +760,7 @@ export function DiceScreen({
                     <div key={idx} className={`face ${colorInPool ? "in-pool" : ""}`}>
                       <div className="band" style={{ background: FACE_COLOR_CSS[colorId] }} />
                       <div className="sym">
-                        <FaceGlyphs face={face} size="11px" />
+                        <FaceGlyphs face={face} size="16px" color={FACE_COLOR_CSS[colorId]} />
                       </div>
                       <div className="lab">{face.label}</div>
                       {bust && <span className="warn">⚠</span>}
@@ -777,7 +880,22 @@ function AlcoveCard({
       {/* Name plate with HP */}
       <div className="alcove-name">
         <span>
-          {enemy.icon} {enemy.name}
+          {(() => {
+            const EI = enemy.icon;
+            return (
+              <>
+                <EI
+                  style={{
+                    width: "1em",
+                    height: "1em",
+                    display: "inline-block",
+                    verticalAlign: "middle",
+                  }}
+                />{" "}
+                {enemy.name}
+              </>
+            );
+          })()}
         </span>
         <span className="hp">{`${enemy.hp}/${enemy.maxHp}`}</span>
       </div>
@@ -796,7 +914,19 @@ function AlcoveCard({
           {Object.entries(enemy.statuses).map(([k, v]) =>
             v ? (
               <span key={k} title={`${k} ${v > 1 ? v : ""}`}>
-                {STATUS_ICONS[k as StatusKey]}
+                {(() => {
+                  const Icon = STATUS_ICONS[k as StatusKey];
+                  return (
+                    <Icon
+                      style={{
+                        width: "1.1em",
+                        height: "1.1em",
+                        display: "inline-block",
+                        color: STATUS_COLORS[k as StatusKey],
+                      }}
+                    />
+                  );
+                })()}
                 {v > 1 ? v : ""}
               </span>
             ) : null,
@@ -839,7 +969,7 @@ function AlcoveCard({
               >
                 <div className="band" style={{ background: FACE_COLOR_CSS[face.color] }} />
                 <div className="sym">
-                  <FaceGlyphs face={face} size="13px" />
+                  <FaceGlyphs face={face} size="18px" color={FACE_COLOR_CSS[face.color]} />
                 </div>
               </div>
             </div>
@@ -881,7 +1011,7 @@ function PoolDieCard({
     >
       <div className="band" style={{ background: FACE_COLOR_CSS[pf.color] }} />
       <div className="sym">
-        <FaceGlyphs face={face} size="18px" />
+        <FaceGlyphs face={face} size="26px" color={FACE_COLOR_CSS[pf.color]} />
       </div>
       {assignment && <div className="target-tag">→ {target ? target.name : "self"}</div>}
       {pf.forced && (
@@ -952,7 +1082,22 @@ function DieLearnDialog({
           }}
         >
           <div className="display" style={{ fontSize: "1.2rem" }}>
-            {die.icon} {die.name}
+            {(() => {
+              const DI = die.icon;
+              return (
+                <>
+                  <DI
+                    style={{
+                      width: "1em",
+                      height: "1em",
+                      display: "inline-block",
+                      verticalAlign: "middle",
+                    }}
+                  />{" "}
+                  {die.name}
+                </>
+              );
+            })()}
           </div>
           <button onClick={onClose} className="btn ghost" style={{ fontSize: "0.8rem" }}>
             Close ✕
@@ -1006,7 +1151,7 @@ function DieLearnDialog({
                       gap: "0.4rem",
                     }}
                   >
-                    <FaceGlyphs face={face} size="1.1rem" />
+                    <FaceGlyphs face={face} size="1.2rem" color={FACE_COLOR_CSS[colorId]} />
                     <span style={{ opacity: 0.7 }}>{face.label}</span>
                     <span style={{ fontSize: "0.7rem", opacity: 0.6 }}>
                       ({color.label}
@@ -1096,7 +1241,19 @@ function StatusRows({ statuses }: { statuses: Partial<Record<StatusKey, number>>
             key={k}
             style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}
           >
-            <span style={{ fontSize: "1rem" }}>{STATUS_ICONS[k]}</span>
+            <span
+              style={{
+                display: "inline-block",
+                width: "1.2rem",
+                height: "1.2rem",
+                color: STATUS_COLORS[k],
+              }}
+            >
+              {(() => {
+                const Icon = STATUS_ICONS[k];
+                return <Icon style={{ width: "1.2rem", height: "1.2rem" }} />;
+              })()}
+            </span>
             <div>
               <span style={{ color: STATUS_COLORS[k] }}>
                 {k.charAt(0).toUpperCase() + k.slice(1).replace("_", " ")}
@@ -1162,7 +1319,7 @@ function FaceRows({
               <div
                 style={{ fontSize: "0.9rem", display: "flex", gap: "0.3rem", alignItems: "center" }}
               >
-                <FaceGlyphs face={face} size="1.1rem" />
+                <FaceGlyphs face={face} size="1.2rem" color={FACE_COLOR_CSS[colorId]} />
                 <span style={{ opacity: 0.7 }}>{face.label}</span>
                 {corruption && (
                   <span style={{ color: "var(--torch)", fontSize: "0.7rem" }}>corrupted</span>
@@ -1194,7 +1351,22 @@ function EnemyDieDialog({
       <DialogHeader
         title={
           <>
-            {enemy.icon} {enemy.name}
+            {(() => {
+              const EI = enemy.icon;
+              return (
+                <>
+                  <EI
+                    style={{
+                      width: "1em",
+                      height: "1em",
+                      display: "inline-block",
+                      verticalAlign: "middle",
+                    }}
+                  />{" "}
+                  {enemy.name}
+                </>
+              );
+            })()}
           </>
         }
         onClose={onClose}
@@ -1211,7 +1383,22 @@ function EnemyDieDialog({
       {dice.map((die) => (
         <div key={die.id} style={{ marginBottom: "1rem" }}>
           <div style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>
-            {die.icon} {die.name}
+            {(() => {
+              const DI = die.icon;
+              return (
+                <>
+                  <DI
+                    style={{
+                      width: "1em",
+                      height: "1em",
+                      display: "inline-block",
+                      verticalAlign: "middle",
+                    }}
+                  />{" "}
+                  {die.name}
+                </>
+              );
+            })()}
             <span style={{ fontSize: "0.7rem", opacity: 0.6, marginLeft: "0.5rem" }}>
               ({die.defaultTarget === "self" ? "self-buff die" : "attacks player"})
             </span>
@@ -1261,7 +1448,7 @@ function PlayerStatusDialog({ state, onClose }: { state: DiceCombatState; onClos
             )}
             {p.hymnHumActive && (
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                <span>🎵</span>
+                <IconHymnHum style={{ width: "1em", height: "1em" }} />
                 <div>
                   <span style={{ color: "var(--crypt)" }}>Hymn-Hum</span>
                   <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
@@ -1283,7 +1470,7 @@ function PlayerStatusDialog({ state, onClose }: { state: DiceCombatState; onClos
             )}
             {p.slotLocks.length > 0 && (
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                <span>🔒</span>
+                <IconBind style={{ width: "1em", height: "1em" }} />
                 <div>
                   <span style={{ color: "var(--blood)" }}>Locked: {p.slotLocks.join(", ")}</span>
                   <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
@@ -1310,7 +1497,22 @@ function PlayerStatusDialog({ state, onClose }: { state: DiceCombatState; onClos
         return (
           <div key={slot} style={{ marginBottom: "1rem" }}>
             <div style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>
-              {die.icon} {die.name}
+              {(() => {
+                const DI = die.icon;
+                return (
+                  <>
+                    <DI
+                      style={{
+                        width: "1em",
+                        height: "1em",
+                        display: "inline-block",
+                        verticalAlign: "middle",
+                      }}
+                    />{" "}
+                    {die.name}
+                  </>
+                );
+              })()}
             </div>
             <FaceRows faceIds={die.faces} corruptions={corruptions} />
           </div>
