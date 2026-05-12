@@ -204,20 +204,39 @@ export function rollSlot(state: DiceCombatState, slot: DieSlot): DiceCombatState
   if (!faceDef) return { ...state, rng: r.seed };
   const color = effectiveColor(slot, faceIdx, faceDef, state);
 
+  const stunStacks = state.player.statuses.stun ?? 0;
+  const isStunned = stunStacks > 0;
+
   const newPoolFace: PoolFace = {
     poolId: state.nextPoolId,
     slot,
     faceId,
     color,
     forced: false,
+    stunned: isStunned || undefined,
   };
+
+  let playerAfterStun = state.player;
+  if (isStunned) {
+    const newStun = stunStacks - 1;
+    const newStatuses = { ...state.player.statuses, stun: newStun };
+    if (newStun === 0) delete (newStatuses as Record<string, number>).stun;
+    playerAfterStun = { ...state.player, statuses: newStatuses };
+  }
 
   let s: DiceCombatState = {
     ...state,
+    player: playerAfterStun,
     pool: [...state.pool, newPoolFace],
     nextPoolId: state.nextPoolId + 1,
     rng: r.seed,
-    log: appendLog(state, "player", `Rolled ${faceDef.label} (${COLORS[color].label}).`),
+    log: appendLog(
+      state,
+      "player",
+      isStunned
+        ? `Rolled ${faceDef.label} — stunned, no effect.`
+        : `Rolled ${faceDef.label} (${COLORS[color].label}).`,
+    ),
   };
 
   const check = computeBust(s);
@@ -291,6 +310,11 @@ export function stopRolling(state: DiceCombatState): DiceCombatState {
   for (const pf of state.pool) {
     const face = getFace(pf.faceId);
     if (!face) continue;
+    // Stunned faces do nothing — mark resolved immediately with no effect.
+    if (pf.stunned) {
+      assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
+      continue;
+    }
     if (face.target === "none") {
       assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
       continue;
@@ -477,6 +501,7 @@ export function assignFace(
 
 export function allAssigned(state: DiceCombatState): boolean {
   for (const pf of state.pool) {
+    if (pf.stunned) continue;
     const face = getFace(pf.faceId);
     if (!face) continue;
     if (face.target === "none") continue;
@@ -515,7 +540,7 @@ function buildEnemyQueue(state: DiceCombatState): EnemyQueueEntry[] {
 export function resolveTurn(state: DiceCombatState): DiceCombatState {
   if (state.phase === "busted") {
     return {
-      ...clearEnemyTurnStatuses(state),
+      ...clearEnemyTurnStatuses(expirePlayerStun(state)),
       phase: "resolving-enemies",
       enemyQueue: buildEnemyQueue(state),
     };
@@ -523,7 +548,7 @@ export function resolveTurn(state: DiceCombatState): DiceCombatState {
   if (state.phase !== "assigning") return state;
   if (!allAssigned(state)) return state;
   if (isVictory(state)) return finalize(state, "victory");
-  const s = clearEnemyTurnStatuses(state);
+  const s = clearEnemyTurnStatuses(expirePlayerStun(state));
   return { ...s, phase: "resolving-enemies", enemyQueue: buildEnemyQueue(s) };
 }
 
@@ -1355,6 +1380,18 @@ function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
     s = { ...s, player: { ...s.player, statuses: next } };
   }
   return s;
+}
+
+function expirePlayerStun(state: DiceCombatState): DiceCombatState {
+  const remaining = state.player.statuses.stun ?? 0;
+  if (remaining === 0) return state;
+  const next = { ...state.player.statuses };
+  delete (next as Record<string, number>).stun;
+  return {
+    ...state,
+    player: { ...state.player, statuses: next },
+    log: appendLog(state, "system", `Stun ×${remaining} expires.`),
+  };
 }
 
 function tickEnemyStatuses(state: DiceCombatState): DiceCombatState {

@@ -110,6 +110,8 @@ export interface PoolFace {
   readonly color: FaceColor;
   /** Forced faces (e.g. False Sacrarium) are added at start-of-turn and cannot be unrolled. */
   readonly forced: boolean;
+  /** Stunned faces still count for the bust check but their symbols do nothing. */
+  readonly stunned?: boolean;
 }
 
 export interface PoolAssignment {

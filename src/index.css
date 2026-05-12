@@ -407,6 +407,11 @@ button {
 .pool-die.busted {
   animation: shake 0.4s infinite;
 }
+.pool-die.stunned {
+  opacity: 0.55;
+  outline: 1px solid #f1c40f;
+  outline-offset: 1px;
+}
 @keyframes shake {
   0%,
   100% {

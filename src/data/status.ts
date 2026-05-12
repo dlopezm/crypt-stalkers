@@ -60,7 +60,7 @@ export const STATUS_DESC: Record<StatusKey, string> = {
   blind: "Each attack has a 30% chance to miss entirely.",
   silence: "Cannot use active abilities.",
   poison: "Receives damage equal to stack count each turn. Stacks do not decay.",
-  stun: "Skips their next action. Loses 1 stack when triggered.",
+  stun: "Each stack causes the next die rolled to do nothing (still counts for bust). Loses 1 stack per die rolled.",
   bolster: "Deals +1 damage on all damage symbols. Clears at end of turn.",
   mark: "The next instance of damage dealt to this target is doubled. Consumes 1 stack.",
   warded:

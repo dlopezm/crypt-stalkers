@@ -545,62 +545,6 @@ export function DiceScreen({
         </div>
       </div>
 
-      {/* Player status badges (compact strip below header) */}
-      {((p.statuses.power ?? 0) > 0 ||
-        p.hymnHumActive ||
-        p.resonanceCharges > 0 ||
-        p.slotLocks.length > 0) && (
-        <div
-          style={{
-            display: "flex",
-            gap: "0.5rem",
-            flexWrap: "wrap",
-            padding: "0 20px 4px",
-            position: "relative",
-            zIndex: 5,
-            fontSize: "0.75rem",
-          }}
-        >
-          {(p.statuses.power ?? 0) > 0 && (
-            <span
-              style={{
-                color: "var(--bone-dim)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.2rem",
-              }}
-            >
-              <IconPower style={{ width: "0.9em", height: "0.9em" }} /> Power +{p.statuses.power}
-            </span>
-          )}
-          {p.hymnHumActive && (
-            <span
-              style={{
-                color: "var(--crypt)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.2rem",
-              }}
-            >
-              <IconHymnHum style={{ width: "0.9em", height: "0.9em" }} /> Hymn-Hum
-            </span>
-          )}
-          {p.resonanceCharges > 0 && <span style={{ color: "var(--torch)" }}>✦ Resonance</span>}
-          {p.slotLocks.length > 0 && (
-            <span
-              style={{
-                color: "var(--blood)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.2rem",
-              }}
-            >
-              <IconBind style={{ width: "0.9em", height: "0.9em" }} /> {p.slotLocks.join(", ")}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Enemy row — back-row enemies shown at 60% scale, original order preserved */}
       <div className="enemies" style={{ padding: "14px 20px 8px" }}>
         {visibleEnemies.map((enemy) => (
@@ -774,8 +718,76 @@ export function DiceScreen({
         })}
       </div>
 
-      {/* Player status button */}
-      <div style={{ display: "flex", justifyContent: "center", padding: "4px 0 0" }}>
+      {/* Player status button + badges */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "4px 0 0",
+          gap: "3px",
+        }}
+      >
+        {(Object.values(p.statuses).some((v) => (v ?? 0) > 0) ||
+          p.hymnHumActive ||
+          p.resonanceCharges > 0 ||
+          p.slotLocks.length > 0) && (
+          <div
+            style={{
+              display: "flex",
+              gap: "0.4rem",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              fontSize: "0.75rem",
+            }}
+          >
+            {(Object.keys(p.statuses) as StatusKey[])
+              .filter((k) => (p.statuses[k] ?? 0) > 0)
+              .map((k) => {
+                const Icon = STATUS_ICONS[k];
+                return (
+                  <span
+                    key={k}
+                    title={`${k.charAt(0).toUpperCase() + k.slice(1)}: ${STATUS_DESC[k]}`}
+                    style={{
+                      color: STATUS_COLORS[k],
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.2rem",
+                    }}
+                  >
+                    <Icon style={{ width: "1.17em", height: "1.17em" }} />
+                    {(p.statuses[k] ?? 0) > 1 ? `×${p.statuses[k]}` : ""}
+                  </span>
+                );
+              })}
+            {p.hymnHumActive && (
+              <span
+                style={{
+                  color: "var(--crypt)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.2rem",
+                }}
+              >
+                <IconHymnHum style={{ width: "1.17em", height: "1.17em" }} /> Hymn-Hum
+              </span>
+            )}
+            {p.resonanceCharges > 0 && <span style={{ color: "var(--torch)" }}>✦ Resonance</span>}
+            {p.slotLocks.length > 0 && (
+              <span
+                style={{
+                  color: "var(--blood)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.2rem",
+                }}
+              >
+                <IconBind style={{ width: "1.17em", height: "1.17em" }} /> {p.slotLocks.join(", ")}
+              </span>
+            )}
+          </div>
+        )}
         <button
           className="btn ghost"
           style={{ fontSize: 9, padding: "2px 8px" }}
@@ -920,8 +932,8 @@ function AlcoveCard({
                   return (
                     <Icon
                       style={{
-                        width: "1.1em",
-                        height: "1.1em",
+                        width: "1.43em",
+                        height: "1.43em",
                         display: "inline-block",
                         color: STATUS_COLORS[k as StatusKey],
                       }}
@@ -1006,16 +1018,32 @@ function PoolDieCard({
 
   return (
     <div
-      className={`pool-die ${selected ? "selected" : ""} ${assigned ? "assigned" : ""} ${busted ? "busted" : ""}`}
+      className={`pool-die ${selected ? "selected" : ""} ${assigned ? "assigned" : ""} ${busted ? "busted" : ""} ${pf.stunned ? "stunned" : ""}`}
       onClick={onClick}
-      title={`${face.label}\n${faceDesc(face)}`}
+      title={pf.stunned ? `${face.label} — stunned, no effect` : `${face.label}\n${faceDesc(face)}`}
     >
       <div className="band" style={{ background: FACE_COLOR_CSS[pf.color] }} />
       <div className="sym">
         <FaceGlyphs face={face} size="26px" color={FACE_COLOR_CSS[pf.color]} />
       </div>
-      {assignment && <div className="target-tag">→ {target ? target.name : "self"}</div>}
-      {pf.forced && (
+      {assignment && !pf.stunned && (
+        <div className="target-tag">→ {target ? target.name : "self"}</div>
+      )}
+      {pf.stunned && (
+        <div
+          style={{
+            fontSize: 7,
+            color: STATUS_COLORS.stun,
+            textAlign: "center",
+            position: "absolute",
+            top: 0,
+            right: 1,
+          }}
+        >
+          STUN
+        </div>
+      )}
+      {pf.forced && !pf.stunned && (
         <div
           style={{
             fontSize: 7,
@@ -1245,14 +1273,14 @@ function StatusRows({ statuses }: { statuses: Partial<Record<StatusKey, number>>
             <span
               style={{
                 display: "inline-block",
-                width: "1.2rem",
-                height: "1.2rem",
+                width: "1.56rem",
+                height: "1.56rem",
                 color: STATUS_COLORS[k],
               }}
             >
               {(() => {
                 const Icon = STATUS_ICONS[k];
-                return <Icon style={{ width: "1.2rem", height: "1.2rem" }} />;
+                return <Icon style={{ width: "1.56rem", height: "1.56rem" }} />;
               })()}
             </span>
             <div>
@@ -1416,74 +1444,75 @@ function EnemyDieDialog({
 function PlayerStatusDialog({ state, onClose }: { state: DiceCombatState; onClose: () => void }) {
   const p = state.player;
   const hasStatuses =
-    (p.statuses.power ?? 0) > 0 ||
+    Object.values(p.statuses).some((v) => (v ?? 0) > 0) ||
     p.hymnHumActive ||
     p.resonanceCharges > 0 ||
     p.slotLocks.length > 0;
   return (
     <DialogShell onClose={onClose}>
       <DialogHeader title="Your Status" onClose={onClose} />
-      {hasStatuses && (
+      {hasStatuses ? (
         <div style={{ marginBottom: "1rem" }}>
-          <div className="eyebrow" style={{ marginBottom: "0.4rem" }}>
-            Active effects
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.35rem",
-              fontSize: "0.85rem",
-            }}
-          >
-            {(p.statuses.power ?? 0) > 0 && (
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <span>↑</span>
-                <div>
-                  <span style={{ color: "var(--bone)" }}>Power +{p.statuses.power}</span>
-                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
-                    Next attack deals +{p.statuses.power} bonus damage. Consumed on hit.
+          <StatusRows statuses={p.statuses} />
+          {(p.hymnHumActive || p.resonanceCharges > 0 || p.slotLocks.length > 0) && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.35rem",
+                fontSize: "0.85rem",
+              }}
+            >
+              {p.hymnHumActive && (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span style={{ display: "inline-block", width: "1.56rem", height: "1.56rem" }}>
+                    <IconHymnHum style={{ width: "1.56rem", height: "1.56rem" }} />
+                  </span>
+                  <div>
+                    <span style={{ color: "var(--crypt)" }}>Hymn-Hum</span>
+                    <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+                      Echo-colour dice cannot bust the torch this turn.
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-            {p.hymnHumActive && (
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <IconHymnHum style={{ width: "1em", height: "1em" }} />
-                <div>
-                  <span style={{ color: "var(--crypt)" }}>Hymn-Hum</span>
-                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
-                    Echo-colour dice cannot bust the torch this turn.
+              )}
+              {p.resonanceCharges > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: "1.56rem",
+                      height: "1.56rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    ✦
+                  </span>
+                  <div>
+                    <span style={{ color: "var(--torch)" }}>Resonance ×{p.resonanceCharges}</span>
+                    <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+                      Absorbs the next {p.resonanceCharges} bust(s).
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-            {p.resonanceCharges > 0 && (
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <span>✦</span>
-                <div>
-                  <span style={{ color: "var(--torch)" }}>Resonance ×{p.resonanceCharges}</span>
-                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
-                    Amplifies the next {p.resonanceCharges} crystal face(s) you play.
+              )}
+              {p.slotLocks.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span style={{ display: "inline-block", width: "1.56rem", height: "1.56rem" }}>
+                    <IconBind style={{ width: "1.56rem", height: "1.56rem" }} />
+                  </span>
+                  <div>
+                    <span style={{ color: "var(--blood)" }}>Locked: {p.slotLocks.join(", ")}</span>
+                    <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+                      These dice cannot be rolled this turn.
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-            {p.slotLocks.length > 0 && (
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <IconBind style={{ width: "1em", height: "1em" }} />
-                <div>
-                  <span style={{ color: "var(--blood)" }}>Locked: {p.slotLocks.join(", ")}</span>
-                  <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
-                    These dice cannot be rolled this turn.
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
-      {!hasStatuses && (
+      ) : (
         <div style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: "1rem" }}>
           No active effects.
         </div>
