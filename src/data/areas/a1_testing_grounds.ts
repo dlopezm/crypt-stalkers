@@ -177,9 +177,9 @@ export const A1_TESTING_GROUNDS_ROOMS: Record<number, AuthoredRoom> = {
     ],
   },
   13: {
-    label: "Shadows",
+    label: "Test Poisoner",
     hint: "",
-    enemies: ["shadow", "shadow", "zombie"],
+    enemies: ["test_poisoner"],
   },
   14: {
     label: "Get Claymore",

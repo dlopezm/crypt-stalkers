@@ -51,6 +51,7 @@ import {
   IconBolt,
   IconTorch,
   IconHide,
+  IconPoison,
 } from "../icons";
 
 /* ── Color palette ── */
@@ -1913,6 +1914,55 @@ export const FACES: Record<string, FaceDef> = {
     color: "echo",
     target: "self",
     symbols: ["dodge"],
+  },
+  /* ── Test Poisoner ── */
+  enemy_poisoner_p1: {
+    id: "enemy_poisoner_p1",
+    label: "Venom",
+    icon: IconPoison,
+    color: "brine",
+    target: "self",
+    symbols: ["poison"],
+  },
+  enemy_poisoner_p2: {
+    id: "enemy_poisoner_p2",
+    label: "Venom II",
+    icon: IconPoison,
+    color: "brine",
+    target: "self",
+    symbols: ["poison", "poison"],
+  },
+  enemy_poisoner_p3: {
+    id: "enemy_poisoner_p3",
+    label: "Venom III",
+    icon: IconPoison,
+    color: "brine",
+    target: "self",
+    symbols: ["poison", "poison", "poison"],
+  },
+  enemy_poisoner_p4: {
+    id: "enemy_poisoner_p4",
+    label: "Venom IV",
+    icon: IconPoison,
+    color: "brine",
+    target: "self",
+    symbols: ["poison", "poison", "poison", "poison"],
+  },
+  enemy_poisoner_p5: {
+    id: "enemy_poisoner_p5",
+    label: "Venom V",
+    icon: IconPoison,
+    color: "brine",
+    target: "self",
+    symbols: ["poison", "poison", "poison", "poison", "poison"],
+  },
+  enemy_poisoner_p6: {
+    id: "enemy_poisoner_p6",
+    label: "Venom VI",
+    icon: IconPoison,
+    color: "brine",
+    target: "self",
+    symbols: ["poison", "poison", "poison", "poison", "poison", "poison"],
   },
 };
 

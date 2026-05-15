@@ -38,6 +38,8 @@ export type FaceTargetKind =
  * A face is a color + a bag of symbols. All effects are expressed as symbols. */
 
 export type SymbolKey =
+  | "self_damage" // ☠ deal 1 damage to yourself (injected by poison)
+  | "poison" // ☠ apply 1 poison stack to the player (enemy-only)
   | "sword" // ⚔ 1 damage
   | "shield" // 🛡 1 block (absorb 1 from assigned attack)
   | "heart" // ♥ 1 heal to friendly target
@@ -192,6 +194,8 @@ export interface DicePlayer {
   readonly corruptedFaces: readonly CorruptedFace[];
   /** Forced faces injected next turn (e.g. False Sacrarium accrual). */
   readonly forcedFacesNextTurn: readonly { readonly faceId: string; readonly sourceUid: string }[];
+  /** Faces corrupted by poison — each entry adds a self_damage symbol when that face resolves. */
+  readonly poisonedFaces: readonly { readonly slot: DieSlot; readonly faceIndex: number }[];
   /** False Sacrarium: the color that counts as Brine for bust purposes this turn. */
   readonly invertedColor: FaceColor | null;
 }

@@ -37,6 +37,8 @@ import {
   IconTaunt,
   IconUnblockable,
   IconUndodgeable,
+  IconPoison,
+  IconSkull,
 } from "../icons";
 import type { IconProps } from "../icons";
 import {
@@ -105,6 +107,8 @@ const SYMBOL_ICON: Record<SymbolKey, React.FC<IconProps>> = {
   drag: IconDrag,
   sneak_attack: IconSneakAttack,
   taunt: IconTaunt,
+  self_damage: IconSkull,
+  poison: IconPoison,
 };
 
 const SYMBOL_LABEL: Record<SymbolKey, string> = {
@@ -145,6 +149,8 @@ const SYMBOL_LABEL: Record<SymbolKey, string> = {
   drag: "Drag",
   sneak_attack: "Sneak Attack",
   taunt: "Taunt",
+  self_damage: "Self-damage",
+  poison: "+1 Poison",
 };
 
 const SYMBOL_DESC: Record<SymbolKey, string> = {
@@ -187,6 +193,9 @@ const SYMBOL_DESC: Record<SymbolKey, string> = {
   drag: "Applies Dragged — target's dodge is disabled next turn.",
   sneak_attack: "Only resolves if the attacker is hidden. The entire face fizzles otherwise.",
   taunt: "Forces all other enemies to be untargetable until this enemy is killed or Taunt clears.",
+  self_damage: "Deals 1 damage to yourself (injected by poison corruption).",
+  poison:
+    "Adds a self-damage symbol to a random die face (the same face can be hit multiple times).",
 };
 
 const NON_STACKABLE: ReadonlySet<SymbolKey> = new Set([
@@ -255,6 +264,14 @@ function toneFor(enemyId: string): string {
   return key ? ENEMY_TONE[key] : "crimson";
 }
 
+function injectPoisonSymbols(face: FaceDef, stacks: number): FaceDef {
+  if (stacks === 0) return face;
+  return {
+    ...face,
+    symbols: [...Array<"self_damage">(stacks).fill("self_damage"), ...(face.symbols ?? [])],
+  };
+}
+
 function FaceGlyphs({
   face,
   size = "0.95rem",
@@ -288,7 +305,15 @@ function FaceGlyphs({
     >
       {symbols.map((s, i) => {
         const Icon = SYMBOL_ICON[s];
-        return <Icon key={i} style={iconStyle} />;
+        const style =
+          s === "self_damage"
+            ? {
+                ...iconStyle,
+                color: "var(--poison)",
+                filter: "drop-shadow(0px 0px 1px #000) drop-shadow(0px 0px 1px #000)",
+              }
+            : iconStyle;
+        return <Icon key={i} style={style} />;
       })}
     </span>
   );
@@ -658,6 +683,7 @@ export function DiceScreen({
           const risk = bustRiskForDie(slot);
           const isHot = canRoll && risk > 33;
           const corruptions = state.player.corruptedFaces.filter((c) => c.slot === slot);
+          const poisoned = state.player.poisonedFaces.filter((p) => p.slot === slot);
           return (
             <div
               key={slot}
@@ -698,6 +724,7 @@ export function DiceScreen({
                   const face = getFace(faceId);
                   if (!face) return null;
                   const corruption = corruptions.find((c) => c.faceIndex === idx);
+                  const poisonStacks = poisoned.filter((p) => p.faceIndex === idx).length;
                   const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
                   const bust = canRoll && wouldBust(colorId);
                   const colorInPool = state.pool.some((pf) => pf.color === face.color);
@@ -705,7 +732,11 @@ export function DiceScreen({
                     <div key={idx} className={`face ${colorInPool ? "in-pool" : ""}`}>
                       <div className="band" style={{ background: FACE_COLOR_CSS[colorId] }} />
                       <div className="sym">
-                        <FaceGlyphs face={face} size="16px" color={FACE_COLOR_CSS[colorId]} />
+                        <FaceGlyphs
+                          face={injectPoisonSymbols(face, poisonStacks)}
+                          size="16px"
+                          color={FACE_COLOR_CSS[colorId]}
+                        />
                       </div>
                       <div className="lab">{face.label}</div>
                       {bust && <span className="warn">⚠</span>}
@@ -1015,6 +1046,13 @@ function PoolDieCard({
     ? state.enemies.find((e) => e.uid === assignment.targetUid)
     : null;
   const assigned = !!assignment;
+  const die = dieForSlot(pf.slot, state);
+  const faceIndex = die ? die.faces.indexOf(pf.faceId) : -1;
+  const poisonStacks =
+    faceIndex !== -1
+      ? state.player.poisonedFaces.filter((p) => p.slot === pf.slot && p.faceIndex === faceIndex)
+          .length
+      : 0;
 
   return (
     <div
@@ -1024,7 +1062,11 @@ function PoolDieCard({
     >
       <div className="band" style={{ background: FACE_COLOR_CSS[pf.color] }} />
       <div className="sym">
-        <FaceGlyphs face={face} size="26px" color={FACE_COLOR_CSS[pf.color]} />
+        <FaceGlyphs
+          face={injectPoisonSymbols(face, poisonStacks)}
+          size="26px"
+          color={FACE_COLOR_CSS[pf.color]}
+        />
       </div>
       {assignment && !pf.stunned && (
         <div className="target-tag">→ {target ? target.name : "self"}</div>
@@ -1302,9 +1344,11 @@ function StatusRows({ statuses }: { statuses: Partial<Record<StatusKey, number>>
 function FaceRows({
   faceIds,
   corruptions = [],
+  poisonedIndices = [],
 }: {
   faceIds: readonly string[];
   corruptions?: { faceIndex: number; recoloredTo: FaceColor }[];
+  poisonedIndices?: number[];
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
@@ -1312,6 +1356,7 @@ function FaceRows({
         const face = getFace(faceId);
         if (!face) return null;
         const corruption = corruptions.find((c) => c.faceIndex === idx);
+        const poisonStacks = poisonedIndices.filter((i) => i === idx).length;
         const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
         const color = COLORS[colorId];
         const symbolDesc = faceDesc(face);
@@ -1324,7 +1369,11 @@ function FaceRows({
               gap: "0.6rem",
               padding: "0.4rem",
               background: "#0f0a07",
-              border: corruption ? "1px solid var(--torch)" : "1px solid #2a1c10",
+              border: corruption
+                ? "1px solid var(--torch)"
+                : poisonStacks > 0
+                  ? "1px solid var(--poison)"
+                  : "1px solid #2a1c10",
             }}
           >
             <div
@@ -1348,7 +1397,11 @@ function FaceRows({
               <div
                 style={{ fontSize: "0.9rem", display: "flex", gap: "0.3rem", alignItems: "center" }}
               >
-                <FaceGlyphs face={face} size="1.2rem" color={FACE_COLOR_CSS[colorId]} />
+                <FaceGlyphs
+                  face={injectPoisonSymbols(face, poisonStacks)}
+                  size="1.2rem"
+                  color={FACE_COLOR_CSS[colorId]}
+                />
                 <span style={{ opacity: 0.7 }}>{face.label}</span>
                 {corruption && (
                   <span style={{ color: "var(--torch)", fontSize: "0.7rem" }}>corrupted</span>
@@ -1411,7 +1464,10 @@ function EnemyDieDialog({
       )}
       {dice.map((die) => (
         <div key={die.id} style={{ marginBottom: "1rem" }}>
-          <div style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>
+          <div
+            style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}
+            title={`${die.name} — rolls one face per turn`}
+          >
             {(() => {
               const DI = die.icon;
               return (
@@ -1524,6 +1580,9 @@ function PlayerStatusDialog({ state, onClose }: { state: DiceCombatState; onClos
         const die = dieForSlot(slot, state);
         if (!die) return null;
         const corruptions = p.corruptedFaces.filter((c) => c.slot === slot);
+        const poisonedIndices = p.poisonedFaces
+          .filter((pf) => pf.slot === slot)
+          .map((pf) => pf.faceIndex);
         return (
           <div key={slot} style={{ marginBottom: "1rem" }}>
             <div style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>
@@ -1544,7 +1603,11 @@ function PlayerStatusDialog({ state, onClose }: { state: DiceCombatState; onClos
                 );
               })()}
             </div>
-            <FaceRows faceIds={die.faces} corruptions={corruptions} />
+            <FaceRows
+              faceIds={die.faces}
+              corruptions={corruptions}
+              poisonedIndices={poisonedIndices}
+            />
           </div>
         );
       })}

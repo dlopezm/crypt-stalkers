@@ -72,3 +72,4 @@ export { IconWater } from "./IconWater";
 export { IconWeaken } from "./IconWeaken";
 export { IconZombie } from "./IconZombie";
 export { IconBlank } from "./IconBlank";
+export { IconDie } from "./IconDie";

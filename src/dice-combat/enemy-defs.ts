@@ -19,6 +19,8 @@ import {
   IconSteal,
   IconSummon,
   IconZombie,
+  IconPoison,
+  IconDie,
 } from "../icons";
 import { DICE_BALANCE } from "./balance";
 
@@ -734,6 +736,33 @@ const LICH_KING: DiceEnemyDef = {
   },
 };
 
+/* ── Test Poisoner ── */
+
+const TEST_POISONER: DiceEnemyDef = {
+  id: "test_poisoner",
+  name: "Test Poisoner",
+  icon: IconPoison,
+  maxHp: 10,
+  defaultRow: "front",
+  isBoss: false,
+  dice: [
+    {
+      id: "poisoner_die",
+      name: "Poison Die",
+      icon: IconDie,
+      faces: [
+        "enemy_poisoner_p1",
+        "enemy_poisoner_p2",
+        "enemy_poisoner_p3",
+        "enemy_poisoner_p4",
+        "enemy_poisoner_p5",
+        "enemy_poisoner_p6",
+      ],
+      defaultTarget: "player",
+    },
+  ],
+};
+
 /* ── Registry ── */
 
 export const DICE_ENEMY_DEFS: Record<string, DiceEnemyDef> = {
@@ -755,6 +784,7 @@ export const DICE_ENEMY_DEFS: Record<string, DiceEnemyDef> = {
   boss_skeleton_lord: SKELETON_LORD,
   boss_vampire_lord: VAMPIRE_LORD,
   boss_lich: LICH_KING,
+  test_poisoner: TEST_POISONER,
 };
 
 export function getEnemyDef(id: string): DiceEnemyDef | null {

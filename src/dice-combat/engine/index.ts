@@ -64,6 +64,7 @@ export function initDiceCombat(init: DiceCombatInit): DiceCombatState {
       corruptedFaces: [],
       forcedFacesNextTurn: [],
       invertedColor: null,
+      poisonedFaces: [],
     },
     enemies,
     pool: [],
@@ -322,12 +323,12 @@ export function stopRolling(state: DiceCombatState): DiceCombatState {
     // Defensive faces wait for the player to pick a specific attack glyph.
     if (hasDefensiveSymbol(face)) continue;
     if (face.target === "self") {
-      s = applyFaceSymbols(s, face, null);
+      s = applyFaceSymbols(s, withPoisonSymbols(s, pf, face), null);
       assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
       continue;
     }
     if (face.target === "all-front" || face.target === "all-enemies") {
-      s = applyFaceSymbols(s, face, null);
+      s = applyFaceSymbols(s, withPoisonSymbols(s, pf, face), null);
       assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
       continue;
     }
@@ -445,10 +446,12 @@ export function assignFace(
 ): DiceCombatState {
   const check = canAssign(state, poolId, targetUid);
   if (!check.ok) return state;
-  const face = faceAtPoolId(state, poolId);
-  if (!face) return state;
+  const pf = state.pool.find((p) => p.poolId === poolId);
+  const face = pf ? getFace(pf.faceId) : null;
+  if (!face || !pf) return state;
 
   let s = state;
+  const effectiveFace = withPoisonSymbols(s, pf, face);
   const atk = parseAttackTarget(targetUid);
   if (atk) {
     // Defensive assignment: register a mitigation, deferred to enemy attack time.
@@ -461,7 +464,7 @@ export function assignFace(
     let block = cur.block;
     let dodge = cur.dodge;
     let riposteDamage = cur.riposteDamage;
-    for (const sym of face.symbols ?? []) {
+    for (const sym of effectiveFace.symbols ?? []) {
       if (sym === "shield") block += 1;
       else if (sym === "dodge") dodge = true;
       else if (sym === "riposte") riposteDamage += 1;
@@ -471,10 +474,10 @@ export function assignFace(
         sym === "crystal" ||
         sym === "power" ||
         sym === "sun" ||
-        sym === "cleanse"
+        sym === "cleanse" ||
+        sym === "self_damage"
       ) {
-        // Apply via the symbol resolver against self.
-        s = applyFaceSymbols(s, { ...face, symbols: [sym] }, null);
+        s = applyFaceSymbols(s, { ...effectiveFace, symbols: [sym] }, null);
       }
     }
     s = {
@@ -484,7 +487,7 @@ export function assignFace(
     };
   } else {
     // Normal assignment: resolve the face immediately against the target.
-    s = applyFaceSymbols(s, face, targetUid);
+    s = applyFaceSymbols(s, effectiveFace, targetUid);
   }
 
   s = {
@@ -773,6 +776,19 @@ function applySymbolsToTargets(
   return s;
 }
 
+/** Prepend one self_damage per poison stack on this face. */
+function withPoisonSymbols(state: DiceCombatState, pf: PoolFace, face: FaceDef): FaceDef {
+  const die = dieForSlot(pf.slot, state);
+  const faceIndex = die.faces.indexOf(pf.faceId);
+  if (faceIndex === -1) return face;
+  const stacks = state.player.poisonedFaces.filter(
+    (p) => p.slot === pf.slot && p.faceIndex === faceIndex,
+  ).length;
+  if (stacks === 0) return face;
+  const injected: "self_damage"[] = Array(stacks).fill("self_damage");
+  return { ...face, symbols: [...injected, ...(face.symbols ?? [])] };
+}
+
 function applyFaceSymbols(
   state: DiceCombatState,
   face: FaceDef,
@@ -827,6 +843,13 @@ function applyFaceSymbols(
       s = { ...s, player: { ...s.player, resonanceCharges: s.player.resonanceCharges + 1 } };
     } else if (sym === "hymn_hum") {
       s = { ...s, player: { ...s.player, hymnHumActive: true } };
+    } else if (sym === "self_damage") {
+      const newHp = Math.max(0, s.player.hp - 1);
+      s = {
+        ...s,
+        player: { ...s.player, hp: newHp },
+        log: appendLog(s, "system", `Poison: ${face.label} burns for 1.`),
+      };
     }
     // Structural modifiers (ranged, area, holy, pierce, unblockable, undodgeable,
     // armor_break, bleed_burst, drag, sneak_attack) are handled in the offensive pass.
@@ -979,21 +1002,83 @@ function pushEnemyToOppositeRow(
   };
 }
 
+function applyPoisonStack(state: DiceCombatState, stacks: number): DiceCombatState {
+  let s = state;
+  for (let i = 0; i < stacks; i++) {
+    // Any of the 24 face slots can be picked — stacks accumulate on the same face.
+    const candidates: { slot: DieSlot; faceIndex: number }[] = [];
+    for (const slot of SLOT_ORDER) {
+      for (let fi = 0; fi < 6; fi++) {
+        candidates.push({ slot, faceIndex: fi });
+      }
+    }
+    const r = nextRng(s.rng);
+    const pick = candidates[r.value % candidates.length];
+    const die = dieForSlot(pick.slot, s);
+    const faceDef = getFace(die.faces[pick.faceIndex]);
+    s = {
+      ...s,
+      rng: r.seed,
+      player: {
+        ...s.player,
+        statuses: { ...s.player.statuses, poison: (s.player.statuses.poison ?? 0) + 1 },
+        poisonedFaces: [...s.player.poisonedFaces, pick],
+      },
+      log: appendLog(
+        s,
+        "system",
+        `Poison corrupts ${faceDef?.label ?? pick.slot} (face ${pick.faceIndex + 1}).`,
+      ),
+    };
+  }
+  return s;
+}
+
+function clearPoisonStack(state: DiceCombatState, count: number): DiceCombatState {
+  let s = state;
+  for (let i = 0; i < count; i++) {
+    if (s.player.poisonedFaces.length === 0) break;
+    const r = nextRng(s.rng);
+    const idx = r.value % s.player.poisonedFaces.length;
+    const removed = s.player.poisonedFaces[idx];
+    const die = dieForSlot(removed.slot, s);
+    const faceDef = getFace(die.faces[removed.faceIndex]);
+    const newPoisoned = s.player.poisonedFaces.filter((_, j) => j !== idx);
+    const newPoison = Math.max(0, (s.player.statuses.poison ?? 0) - 1);
+    const nextStatuses = { ...s.player.statuses, poison: newPoison };
+    if (newPoison === 0) delete (nextStatuses as Record<string, number>).poison;
+    s = {
+      ...s,
+      rng: r.seed,
+      player: { ...s.player, statuses: nextStatuses, poisonedFaces: newPoisoned },
+      log: appendLog(
+        s,
+        "system",
+        `Poison clears from ${faceDef?.label ?? removed.slot} (face ${removed.faceIndex + 1}).`,
+      ),
+    };
+  }
+  return s;
+}
+
 function cleansePlayer(state: DiceCombatState, count: number, source: string): DiceCombatState {
   const keys = Object.keys(state.player.statuses) as StatusKey[];
   if (keys.length === 0) return state;
   const next = { ...state.player.statuses };
   let removed = 0;
+  let poisonRemoved = 0;
   for (const k of keys) {
     if (removed >= count) break;
-    delete next[k];
+    if (k === "poison") {
+      poisonRemoved++;
+    } else {
+      delete next[k];
+    }
     removed++;
   }
-  return {
-    ...state,
-    player: { ...state.player, statuses: next },
-    log: appendLog(state, "player", `${source}: cleansed ${removed}.`),
-  };
+  let s: DiceCombatState = { ...state, player: { ...state.player, statuses: next } };
+  if (poisonRemoved > 0) s = clearPoisonStack(s, poisonRemoved);
+  return { ...s, log: appendLog(s, "player", `${source}: cleansed ${removed}.`) };
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -1137,6 +1222,9 @@ function applyEnemyFace(
         player: { ...s.player, statuses: { ...s.player.statuses, bleed: cur } },
         log: appendLog(s, "enemy", `${attacker.name}: +1 Bleed.`),
       };
+    } else if (sym === "poison") {
+      s = applyPoisonStack(s, 1);
+      s = { ...s, log: appendLog(s, "enemy", `${attacker.name}: +1 Poison.`) };
     } else if (sym === "drag") {
       s = {
         ...s,
@@ -1352,33 +1440,17 @@ function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
       log: appendLog(s, "system", `Bleed: -${bleed} HP.`),
     };
   }
-  const poison = s.player.statuses.poison;
-  if (poison && poison > 0) {
-    const newHp = Math.max(0, s.player.hp - poison);
-    s = {
-      ...s,
-      player: { ...s.player, hp: newHp },
-      log: appendLog(s, "system", `Poison: -${poison} HP.`),
-    };
+  // Bolster, Weaken, and Dragged all decay one stack per turn.
+  const decayKeys = ["bolster", "dragged", "weaken"] as const;
+  const decayed = { ...s.player.statuses };
+  for (const key of decayKeys) {
+    if ((decayed[key] ?? 0) > 0) {
+      const cur = (decayed[key] ?? 0) - 1;
+      if (cur === 0) delete (decayed as Record<string, number>)[key];
+      else decayed[key] = cur;
+    }
   }
-  // v3: Bolster expires at end of turn (one-turn buff per stack-application).
-  // Weaken and Dragged decay one stack per turn.
-  if ((s.player.statuses.bolster ?? 0) > 0) {
-    const next = { ...s.player.statuses };
-    delete next.bolster;
-    s = { ...s, player: { ...s.player, statuses: next } };
-  }
-  if ((s.player.statuses.dragged ?? 0) > 0) {
-    const next = { ...s.player.statuses, dragged: (s.player.statuses.dragged ?? 1) - 1 };
-    if (next.dragged === 0) delete (next as Record<string, number>).dragged;
-    s = { ...s, player: { ...s.player, statuses: next } };
-  }
-  if ((s.player.statuses.weaken ?? 0) > 0) {
-    const cur = (s.player.statuses.weaken ?? 0) - 1;
-    const next = { ...s.player.statuses, weaken: cur };
-    if (cur === 0) delete (next as Record<string, number>).weaken;
-    s = { ...s, player: { ...s.player, statuses: next } };
-  }
+  s = { ...s, player: { ...s.player, statuses: decayed } };
   return s;
 }
 
@@ -1425,8 +1497,12 @@ function isDefeat(state: DiceCombatState): boolean {
 }
 
 function finalize(state: DiceCombatState, outcome: "victory" | "defeat"): DiceCombatState {
+  // Clear poison at end of combat regardless of outcome.
+  const statuses = { ...state.player.statuses };
+  delete (statuses as Record<string, number>).poison;
   return {
     ...state,
+    player: { ...state.player, statuses, poisonedFaces: [] },
     phase: outcome,
     log: appendLog(state, "system", outcome === "victory" ? "Victory." : "You fall."),
   };

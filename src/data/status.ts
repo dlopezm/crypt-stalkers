@@ -59,9 +59,10 @@ export const STATUS_DESC: Record<StatusKey, string> = {
   weaken: "Deals 1 less damage per hit. Loses 1 stack each turn.",
   blind: "Each attack has a 30% chance to miss entirely.",
   silence: "Cannot use active abilities.",
-  poison: "Receives damage equal to stack count each turn. Stacks do not decay.",
+  poison:
+    "Each stack adds a self-damage symbol to a random die face (the same face can be hit multiple times). Stacks clear at end of combat; cleanse removes one stack.",
   stun: "Each stack causes the next die rolled to do nothing (still counts for bust). Loses 1 stack per die rolled.",
-  bolster: "Deals +1 damage on all damage symbols. Clears at end of turn.",
+  bolster: "Deals +1 damage on all damage symbols. Loses 1 stack each turn.",
   mark: "The next instance of damage dealt to this target is doubled. Consumes 1 stack.",
   warded:
     "Each stack absorbs 1 incoming damage. All stacks are cleared at the start of the enemy phase.",
