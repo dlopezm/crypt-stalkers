@@ -26,6 +26,7 @@ export { IconDrag } from "./IconDrag";
 export { IconDrop } from "./IconDrop";
 export { IconFang } from "./IconFang";
 export { IconFlame } from "./IconFlame";
+export { IconFocus } from "./IconFocus";
 export { IconGear } from "./IconGear";
 export { IconGhost } from "./IconGhost";
 export { IconHeart } from "./IconHeart";

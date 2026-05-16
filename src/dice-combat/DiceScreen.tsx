@@ -12,6 +12,7 @@ import {
   IconDrag,
   IconDrop,
   IconFlame,
+  IconFocus,
   IconHeart,
   IconHide,
   IconHoly,
@@ -51,6 +52,7 @@ import {
   initDiceCombat,
   resolveTurn,
   rollSlot,
+  rollSlotWithFace,
   stepEnemyTurn,
   stopRolling,
 } from "./engine";
@@ -109,6 +111,7 @@ const SYMBOL_ICON: Record<SymbolKey, React.FC<IconProps>> = {
   taunt: IconTaunt,
   self_damage: IconSkull,
   poison: IconPoison,
+  focus: IconFocus,
 };
 
 const SYMBOL_LABEL: Record<SymbolKey, string> = {
@@ -151,6 +154,7 @@ const SYMBOL_LABEL: Record<SymbolKey, string> = {
   taunt: "Taunt",
   self_damage: "Self-damage",
   poison: "+1 Poison",
+  focus: "+1 Focus",
 };
 
 const SYMBOL_DESC: Record<SymbolKey, string> = {
@@ -196,6 +200,7 @@ const SYMBOL_DESC: Record<SymbolKey, string> = {
   self_damage: "Deals 1 damage to yourself (injected by poison corruption).",
   poison:
     "Adds a self-damage symbol to a random die face (the same face can be hit multiple times).",
+  focus: "Grants 1 Focus — on your next roll, choose which face lands.",
 };
 
 const NON_STACKABLE: ReadonlySet<SymbolKey> = new Set([
@@ -349,6 +354,7 @@ export function DiceScreen({
   );
 
   const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
+  const [focusPendingSlot, setFocusPendingSlot] = useState<DieSlot | null>(null);
   const [learnSlot, setLearnSlot] = useState<DieSlot | null>(null);
   const [inspectEnemyUid, setInspectEnemyUid] = useState<string | null>(null);
   const [showPlayerStatus, setShowPlayerStatus] = useState(false);
@@ -385,7 +391,19 @@ export function DiceScreen({
   function handleRoll(slot: DieSlot) {
     if (state.phase !== "rolling") return;
     if (!canRollSlot(state, slot)) return;
+    const isStunned = (state.player.statuses.stun ?? 0) > 0;
+    if (!isStunned && (state.player.statuses.focus ?? 0) > 0) {
+      setFocusPendingSlot(slot);
+      return;
+    }
     setState((s) => rollSlot(s, slot));
+  }
+
+  function handleFocusPick(faceIdx: number) {
+    if (focusPendingSlot === null) return;
+    const slot = focusPendingSlot;
+    setFocusPendingSlot(null);
+    setState((s) => rollSlotWithFace(s, slot, faceIdx));
   }
 
   function handleStop() {
@@ -838,6 +856,15 @@ export function DiceScreen({
       </div>
 
       {/* Dialogs */}
+      {focusPendingSlot ? (
+        <FocusPickerDialog
+          slot={focusPendingSlot}
+          die={dieForSlot(focusPendingSlot, state)}
+          state={state}
+          onPick={handleFocusPick}
+          onCancel={() => setFocusPendingSlot(null)}
+        />
+      ) : null}
       {learnSlot ? (
         <DieLearnDialog
           slot={learnSlot}
@@ -1009,12 +1036,28 @@ function AlcoveCard({
                     : mitigated
                       ? "1px solid var(--crypt)"
                       : undefined,
+                  position: "relative",
                 }}
               >
                 <div className="band" style={{ background: FACE_COLOR_CSS[face.color] }} />
                 <div className="sym">
                   <FaceGlyphs face={face} size="18px" color={FACE_COLOR_CSS[face.color]} />
                 </div>
+                {rf.focused && (
+                  <div
+                    title="Selected by Focus"
+                    style={{
+                      position: "absolute",
+                      top: 2,
+                      left: 2,
+                      width: 8,
+                      height: 8,
+                      color: "#000",
+                    }}
+                  >
+                    <IconFocus style={{ width: "100%", height: "100%" }} />
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -1099,6 +1142,153 @@ function PoolDieCard({
           FORCED
         </div>
       )}
+      {pf.focused && (
+        <div
+          title="Selected by Focus"
+          style={{
+            position: "absolute",
+            top: 2,
+            left: 2,
+            width: 10,
+            height: 10,
+            color: STATUS_COLORS.focus,
+          }}
+        >
+          <IconFocus style={{ width: "100%", height: "100%" }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Focus face-picker dialog ── */
+
+function FocusPickerDialog({
+  slot,
+  die,
+  state,
+  onPick,
+  onCancel,
+}: {
+  slot: DieSlot;
+  die: DieDef;
+  state: DiceCombatState;
+  onPick: (faceIdx: number) => void;
+  onCancel: () => void;
+}) {
+  const corruptions = state.player.corruptedFaces.filter((c) => c.slot === slot);
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.8)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "1rem",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#1a120c",
+          border: `1.5px solid ${STATUS_COLORS.focus}`,
+          padding: "1.2rem",
+          maxWidth: "560px",
+          width: "100%",
+          maxHeight: "85vh",
+          overflowY: "auto",
+          color: "var(--bone)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: "0.5rem",
+          }}
+        >
+          <div className="display" style={{ fontSize: "1.2rem", color: STATUS_COLORS.focus }}>
+            Focus — choose your face
+          </div>
+          <button onClick={onCancel} className="btn ghost" style={{ fontSize: "0.8rem" }}>
+            Cancel ✕
+          </button>
+        </div>
+        <div className="eyebrow" style={{ marginBottom: "0.8rem" }}>
+          {die.name} · click a face to land on it
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {die.faces.map((faceId, idx) => {
+            const face = getFace(faceId);
+            if (!face) return null;
+            const corruption = corruptions.find((c) => c.faceIndex === idx);
+            const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
+            const color = COLORS[colorId];
+            return (
+              <div
+                key={idx}
+                onClick={() => onPick(idx)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.6rem",
+                  padding: "0.5rem",
+                  background: "#0f0a07",
+                  border: "1px solid #2a1c10",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLDivElement).style.borderColor = STATUS_COLORS.focus)
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLDivElement).style.borderColor = "#2a1c10")
+                }
+              >
+                <div
+                  style={{
+                    width: "24px",
+                    height: "24px",
+                    background: FACE_COLOR_CSS[colorId],
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#000",
+                    fontSize: "0.85rem",
+                    fontWeight: "bold",
+                    flexShrink: 0,
+                  }}
+                  title={color.label}
+                >
+                  {color.badge}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: "0.9rem",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                    }}
+                  >
+                    <FaceGlyphs face={face} size="1.2rem" color={FACE_COLOR_CSS[colorId]} />
+                    <span style={{ opacity: 0.7 }}>{face.label}</span>
+                    <span style={{ fontSize: "0.7rem", opacity: 0.6 }}>
+                      ({color.label}
+                      {corruption ? " — corrupted" : ""})
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>{faceDesc(face)}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

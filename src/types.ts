@@ -18,7 +18,8 @@ export type StatusKey =
   | "dodge" // enemy-only: next incoming attack is negated, then clears
   | "intangible" // enemy-only: immune to physical damage this turn, then clears
   | "taunt" // enemy-only: redirects damage aimed at other enemies to this one, then clears
-  | "hidden"; // enemy-only: untargetable this turn, enables sneak attack, clears at end of player turn
+  | "hidden" // enemy-only: untargetable this turn, enables sneak attack, clears at end of player turn
+  | "focus"; // each stack grants one free face pick on next roll
 export type Statuses = Partial<Record<StatusKey, number>>;
 
 /* ── Damage & Equipment ── */

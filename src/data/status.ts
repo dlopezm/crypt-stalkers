@@ -16,6 +16,7 @@ import {
   IconIntangible,
   IconTaunt,
   IconHidden,
+  IconFocus,
 } from "../icons";
 
 export const STATUS_COLORS: Record<StatusKey, string> = {
@@ -34,6 +35,7 @@ export const STATUS_COLORS: Record<StatusKey, string> = {
   intangible: "#b8a9c9",
   taunt: "#e8821f",
   hidden: "#2c3e50",
+  focus: "#a8d8ea",
 };
 
 export const STATUS_ICONS: Record<StatusKey, React.FC<IconProps>> = {
@@ -52,6 +54,7 @@ export const STATUS_ICONS: Record<StatusKey, React.FC<IconProps>> = {
   intangible: IconIntangible,
   taunt: IconTaunt,
   hidden: IconHidden,
+  focus: IconFocus,
 };
 
 export const STATUS_DESC: Record<StatusKey, string> = {
@@ -73,4 +76,5 @@ export const STATUS_DESC: Record<StatusKey, string> = {
   taunt: "Forces enemies without Taunt to be untargetable while any enemy has Taunt.",
   hidden:
     "Cannot be targeted this turn. Enables Sneak Attack. Clears at start of the player's turn.",
+  focus: "Each stack lets you choose the face of your next die roll. One stack consumed per roll.",
 };

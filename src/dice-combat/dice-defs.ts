@@ -52,6 +52,7 @@ import {
   IconTorch,
   IconHide,
   IconPoison,
+  IconFocus,
 } from "../icons";
 
 /* ── Color palette ── */
@@ -195,6 +196,14 @@ export const FACES: Record<string, FaceDef> = {
     color: "echo",
     target: "self",
     symbols: ["resonance"],
+  },
+  ability_focus_mind: {
+    id: "ability_focus_mind",
+    label: "Focus Mind",
+    icon: IconFocus,
+    color: "echo",
+    target: "self",
+    symbols: ["focus"],
   },
 
   /* ── Torch (off hand starter) ── *
@@ -1340,10 +1349,18 @@ export const FACES: Record<string, FaceDef> = {
   enemy_necro_focus: {
     id: "enemy_necro_focus",
     label: "Focus",
-    icon: IconGhost,
+    icon: IconFocus,
     color: "echo",
     target: "self",
-    symbols: ["sun"],
+    symbols: ["focus"],
+  },
+  enemy_necro_focus_bolster: {
+    id: "enemy_necro_focus_bolster",
+    label: "Focus + Bolster",
+    icon: IconFocus,
+    color: "echo",
+    target: "self",
+    symbols: ["focus", "sun"],
   },
   enemy_necro_bolt: {
     id: "enemy_necro_bolt",
@@ -1351,7 +1368,23 @@ export const FACES: Record<string, FaceDef> = {
     icon: IconSkull,
     color: "coldfire",
     target: "self",
-    symbols: ["sword", "sword", "unblockable"],
+    symbols: ["bolt", "bolt"],
+  },
+  enemy_necro_bolt_mark: {
+    id: "enemy_necro_bolt_mark",
+    label: "Expose & Bolt",
+    icon: IconBolt,
+    color: "coldfire",
+    target: "self",
+    symbols: ["bolt", "bolt", "mark"],
+  },
+  enemy_necro_focus_double: {
+    id: "enemy_necro_focus_double",
+    label: "Deep Focus",
+    icon: IconFocus,
+    color: "echo",
+    target: "self",
+    symbols: ["focus", "focus"],
   },
 
   /* ── Zombie ── */
@@ -2452,6 +2485,19 @@ export const ABILITY_DICE: Record<
       "cry_weaken_all",
       "cry_push_cleave",
       "cry_mark_all",
+    ],
+  },
+  keen_eye: {
+    id: "keen_eye",
+    name: "Keen Eye",
+    icon: IconFocus,
+    faces: [
+      "ability_focus_mind",
+      "ability_focus_mind",
+      "ability_focus_mind",
+      "steady_resolve",
+      "steady_brace",
+      "blank",
     ],
   },
 };

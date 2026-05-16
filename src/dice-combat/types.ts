@@ -78,7 +78,8 @@ export type SymbolKey =
   | "bleed_burst" // 💥 consume all target Bleed stacks, deal as burst damage (or apply Bleed if none)
   | "drag" // ✋ applies Dragged status — target's dodge disabled next turn
   | "sneak_attack" // 🗡 only resolves if attacker is hidden; enables full symbol bag
-  | "taunt"; // 🛡 applies Taunt — while active, redirects damage from other enemies to this one
+  | "taunt" // 🛡 applies Taunt — while active, redirects damage from other enemies to this one
+  | "focus"; // ◎ +1 Focus: next roll lets you choose the face
 
 export interface FaceDef {
   readonly id: string;
@@ -114,6 +115,8 @@ export interface PoolFace {
   readonly forced: boolean;
   /** Stunned faces still count for the bust check but their symbols do nothing. */
   readonly stunned?: boolean;
+  /** Face was chosen by the player via Focus rather than rolled randomly. */
+  readonly focused?: boolean;
 }
 
 export interface PoolAssignment {
@@ -144,6 +147,7 @@ export interface EnemyRolledFace {
   readonly dieId: string;
   readonly faceId: string;
   readonly targetUid: string; // who this face hits (player uid is "player", or own uid for self-buffs)
+  readonly focused?: boolean;
 }
 
 export interface DiceEnemy {

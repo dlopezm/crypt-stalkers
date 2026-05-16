@@ -11,6 +11,7 @@ import type {
   DieDef,
   DieSlot,
   EnemyQueueEntry,
+  EnemyRolledFace,
   FaceColor,
   FaceDef,
   PoolAssignment,
@@ -237,6 +238,67 @@ export function rollSlot(state: DiceCombatState, slot: DieSlot): DiceCombatState
       isStunned
         ? `Rolled ${faceDef.label} — stunned, no effect.`
         : `Rolled ${faceDef.label} (${COLORS[color].label}).`,
+    ),
+  };
+
+  const check = computeBust(s);
+  if (check.busted) {
+    s = triggerBust(s);
+  }
+  return s;
+}
+
+/** Like rollSlot but skips RNG — the player chose faceIdx via the Focus mechanic. */
+export function rollSlotWithFace(
+  state: DiceCombatState,
+  slot: DieSlot,
+  faceIdx: number,
+): DiceCombatState {
+  if (!canRollSlot(state, slot)) return state;
+  const die = dieForSlot(slot, state);
+  const faceId = die.faces[faceIdx];
+  const faceDef = getFace(faceId);
+  if (!faceDef) return state;
+  const color = effectiveColor(slot, faceIdx, faceDef, state);
+
+  const stunStacks = state.player.statuses.stun ?? 0;
+  const isStunned = stunStacks > 0;
+
+  const newPoolFace: PoolFace = {
+    poolId: state.nextPoolId,
+    slot,
+    faceId,
+    color,
+    forced: false,
+    stunned: isStunned || undefined,
+    focused: isStunned ? undefined : true,
+  };
+
+  let statuses = { ...state.player.statuses };
+  if (isStunned) {
+    const newStun = stunStacks - 1;
+    if (newStun === 0) delete (statuses as Record<string, number>).stun;
+    else statuses = { ...statuses, stun: newStun };
+  } else {
+    const focusStacks = statuses.focus ?? 0;
+    const newFocus = focusStacks - 1;
+    if (newFocus <= 0) delete (statuses as Record<string, number>).focus;
+    else statuses = { ...statuses, focus: newFocus };
+  }
+
+  const playerAfter = { ...state.player, statuses };
+
+  let s: DiceCombatState = {
+    ...state,
+    player: playerAfter,
+    pool: [...state.pool, newPoolFace],
+    nextPoolId: state.nextPoolId + 1,
+    log: appendLog(
+      state,
+      "player",
+      isStunned
+        ? `Rolled ${faceDef.label} — stunned, no effect.`
+        : `${faceDef.label} chosen (Focus).`,
     ),
   };
 
@@ -843,6 +905,13 @@ function applyFaceSymbols(
       s = { ...s, player: { ...s.player, resonanceCharges: s.player.resonanceCharges + 1 } };
     } else if (sym === "hymn_hum") {
       s = { ...s, player: { ...s.player, hymnHumActive: true } };
+    } else if (sym === "focus") {
+      const cur = (s.player.statuses.focus ?? 0) + 1;
+      s = {
+        ...s,
+        player: { ...s.player, statuses: { ...s.player.statuses, focus: cur } },
+        log: appendLog(s, "player", `${face.label}: +1 Focus.`),
+      };
     } else if (sym === "self_damage") {
       const newHp = Math.max(0, s.player.hp - 1);
       s = {
@@ -1108,15 +1177,32 @@ function telegraphIntents(state: DiceCombatState): DiceCombatState {
 
     if (def.dice && def.dice.length > 0) {
       const dice = def.phaseDice ? (def.phaseDice[base.phaseIndex] ?? def.dice) : def.dice;
-      const rolled: { dieId: string; faceId: string; targetUid: string }[] = [];
+      const rolled: EnemyRolledFace[] = [];
+      let currentStatuses = { ...base.statuses };
       for (const die of dice) {
-        const r = rollD6(rng);
-        rng = r.seed;
-        const faceId = die.faces[r.face];
+        const focusStacks = currentStatuses.focus ?? 0;
+        let faceIdx: number;
+        let usedFocus = false;
+        if (focusStacks > 0) {
+          faceIdx = die.faces.reduce((best, faceId, i) => {
+            const count = getFace(faceId)?.symbols?.length ?? 0;
+            const bestCount = getFace(die.faces[best])?.symbols?.length ?? 0;
+            return count > bestCount ? i : best;
+          }, 0);
+          const newFocus = focusStacks - 1;
+          currentStatuses = { ...currentStatuses, focus: newFocus };
+          if (newFocus === 0) delete (currentStatuses as Record<string, number>).focus;
+          usedFocus = true;
+        } else {
+          const r = rollD6(rng);
+          rng = r.seed;
+          faceIdx = r.face;
+        }
+        const faceId = die.faces[faceIdx];
         const targetUid = die.defaultTarget === "self" ? base.uid : "player";
-        rolled.push({ dieId: die.id, faceId, targetUid });
+        rolled.push({ dieId: die.id, faceId, targetUid, focused: usedFocus || undefined });
       }
-      return { ...base, rolledFaces: rolled };
+      return { ...base, statuses: currentStatuses as typeof base.statuses, rolledFaces: rolled };
     }
     return { ...base, rolledFaces: [] };
   });
@@ -1368,9 +1454,45 @@ function applyEnemyFace(
       };
       s = spawnEnemy(s, "zombie");
       s = { ...s, log: appendLog(s, "enemy", `The Larva surfaces and animates a corpse.`) };
+    } else if (sym === "focus") {
+      // Target the living ally with the highest symbol count on any single face.
+      // Falls back to self if no other ally is alive.
+      const allies = s.enemies.filter((e) => e.hp > 0);
+      const maxSymbolsFor = (e: DiceEnemy) => {
+        const def = getEnemyDef(e.id);
+        if (!def) return 0;
+        const dice = def.phaseDice ? (def.phaseDice[e.phaseIndex] ?? def.dice) : (def.dice ?? []);
+        return dice.reduce((best, die) => {
+          const faceMax = die.faces.reduce(
+            (m, fid) => Math.max(m, getFace(fid)?.symbols?.length ?? 0),
+            0,
+          );
+          return Math.max(best, faceMax);
+        }, 0);
+      };
+      const focusTarget = allies.reduce((best, e) =>
+        maxSymbolsFor(e) > maxSymbolsFor(best) ? e : best,
+      );
+      s = {
+        ...s,
+        enemies: s.enemies.map((e) =>
+          e.uid === focusTarget.uid
+            ? { ...e, statuses: { ...e.statuses, focus: (e.statuses.focus ?? 0) + 1 } }
+            : e,
+        ),
+        log: appendLog(
+          s,
+          "enemy",
+          focusTarget.uid === attackerUid
+            ? `${attacker.name} focuses — will pick its best face next roll.`
+            : `${attacker.name} focuses ${focusTarget.name} — it will pick its best face next roll.`,
+        ),
+      };
+      attacker = s.enemies.find((e) => e.uid === attackerUid);
+      if (!attacker) return s;
     } else if (sym === "reproduce") {
       // Spawn a same-id enemy in the same row, capped at 5 of this id alive.
-      const sameKind = s.enemies.filter((x) => x.id === attacker.id && x.hp > 0).length;
+      const sameKind = s.enemies.filter((x) => x.id === attacker!.id && x.hp > 0).length;
       if (sameKind < 5) {
         const def = getEnemyDef(attacker.id);
         if (def) {
