@@ -62,10 +62,10 @@ export const COLORS: Record<FaceColor, ColorDef> = {
   salt: { id: "salt", label: "Salt", hex: "#F4F1E8", badge: "■" },
   fire: { id: "fire", label: "Fire", hex: "#E8821F", badge: "✦" },
   coldfire: { id: "coldfire", label: "Coldfire", hex: "#7B3FA0", badge: "☠" },
-  brine: { id: "brine", label: "Brine", hex: "#27AE60", badge: "◆" },
-  echo: { id: "echo", label: "Echo", hex: "#2980E8", badge: "≈" },
+  brine: { id: "brine", label: "Brine", hex: "#499237", badge: "◆" },
+  echo: { id: "echo", label: "Echo", hex: "#0569a3", badge: "≈" },
   iron: { id: "iron", label: "Iron", hex: "#8A9098", badge: "⬢" },
-  blank: { id: "blank", label: "Blank", hex: "#D8D0C0", badge: "·" },
+  blank: { id: "blank", label: "Blank", hex: "#d8cdb6", badge: "·" },
   colorless: { id: "colorless", label: "Colorless", hex: "#111111", badge: "○" },
 };
 

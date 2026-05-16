@@ -241,17 +241,9 @@ function faceDesc(face: FaceDef): string {
 }
 
 /* Maps game FaceColor → new CSS design token */
-const FACE_COLOR_CSS: Record<FaceColor, string> = {
-  crimson: "var(--blood)",
-  salt: "var(--bone-dim)",
-  fire: "var(--torch)",
-  coldfire: "var(--bruise)",
-  brine: "var(--crypt)",
-  echo: "var(--crypt)",
-  iron: "var(--bone-faint)",
-  blank: "var(--bone-faint)",
-  colorless: "#111111",
-};
+const FACE_COLOR_CSS: Record<FaceColor, string> = Object.fromEntries(
+  Object.values(COLORS).map((c) => [c.id, c.hex]),
+) as Record<FaceColor, string>;
 
 /* Maps enemy id prefix → art tile tone class */
 const ENEMY_TONE: Record<string, string> = {
