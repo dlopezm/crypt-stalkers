@@ -492,11 +492,12 @@ function validateTarget(
     return { ok: false, reason: "A taunting enemy must be targeted first." };
   }
   // `ranged` symbol or no living front-row enemies overrides front-row restriction.
-  if (kind === "front-enemy" && enemy.row !== "front" && !ranged) {
+  if (kind === "any-enemy" && enemy.row !== "front" && !ranged) {
     const hasFrontEnemy = state.enemies.some(
       (e) => e.hp > 0 && !e.untargetable && !e.statuses.hidden && e.row === "front",
     );
-    if (hasFrontEnemy) return { ok: false, reason: "Front-row only." };
+    if (hasFrontEnemy)
+      return { ok: false, reason: "Ranged only — front row must be cleared first." };
   }
   return { ok: true };
 }

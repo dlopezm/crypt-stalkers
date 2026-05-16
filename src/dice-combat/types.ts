@@ -26,13 +26,7 @@ export interface ColorDef {
   readonly badge: string;
 }
 
-export type FaceTargetKind =
-  | "self"
-  | "any-enemy"
-  | "front-enemy"
-  | "all-front"
-  | "all-enemies"
-  | "none";
+export type FaceTargetKind = "self" | "any-enemy" | "all-front" | "all-enemies" | "none";
 
 /* ── Symbol grammar ──
  * A face is a color + a bag of symbols. All effects are expressed as symbols. */

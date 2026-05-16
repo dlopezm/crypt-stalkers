@@ -94,7 +94,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Stab",
     icon: IconDagger,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword"],
   },
   dagger_quick: {
@@ -102,7 +102,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Quick Stab",
     icon: IconDagger,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword"],
   },
   dagger_open_vein: {
@@ -110,7 +110,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Open Vein",
     icon: IconBleed,
     color: "brine",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["drop", "drop"],
   },
   dagger_flit: {
@@ -128,7 +128,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Smash",
     icon: IconWarhammer,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword"],
   },
   hammer_crush: {
@@ -136,7 +136,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Crush",
     icon: IconWarhammer,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword", "sword"],
   },
   hammer_heavybash: {
@@ -144,7 +144,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Heavy Bash",
     icon: IconWarhammer,
     color: "iron",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword", "spark"],
   },
   hammer_windup: {
@@ -186,7 +186,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Bash",
     icon: IconMuscle,
     color: "iron",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "spark"],
   },
   shield_focus: {
@@ -224,7 +224,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Sear",
     icon: IconFlame,
     color: "fire",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["flame", "flame"],
   },
   torch_sidestep: {
@@ -458,7 +458,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Set",
     icon: IconSpear,
     color: "iron",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "riposte"],
   },
   spear_lunge: {
@@ -466,7 +466,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Lunge",
     icon: IconSpear,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword"],
   },
   spear_thrust: {
@@ -474,7 +474,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Thrust",
     icon: IconSpear,
     color: "brine",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "drop"],
   },
   spear_brace: {
@@ -500,7 +500,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Cleave",
     icon: IconCrossedSwords,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword", "area"],
   },
   greatsword_sweep: {
@@ -508,7 +508,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Sweep",
     icon: IconCrossedSwords,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword", "sword", "area"],
   },
   greatsword_overhead: {
@@ -516,7 +516,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Overhead",
     icon: IconCrossedSwords,
     color: "iron",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword", "spark"],
   },
   greatsword_arc: {
@@ -524,7 +524,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Arc",
     icon: IconCrossedSwords,
     color: "brine",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "drop", "area"],
   },
   greatsword_guard: {
@@ -592,7 +592,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Punch",
     icon: IconMuscle,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword"],
   },
   buckler_brace: {
@@ -684,7 +684,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Drench",
     icon: IconWater,
     color: "brine",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["drop", "area"],
   },
   vials_cure: {
@@ -717,7 +717,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Step",
     icon: IconArmorBreak,
     color: "iron",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["shield", "push"],
   },
   plate_grind: {
@@ -725,7 +725,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Grind",
     icon: IconArmorBreak,
     color: "iron",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "pierce"],
   },
   plate_endurance: {
@@ -787,7 +787,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Hemorrhage",
     icon: IconBleed,
     color: "brine",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["bleed_burst", "pierce"],
   },
 
@@ -807,7 +807,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Armor Shatter",
     icon: IconArmorBreak,
     color: "iron",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "armor_break"],
   },
 
@@ -817,7 +817,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Marked Flesh",
     icon: IconBleed,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "mark"],
   },
 
@@ -827,7 +827,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Consuming Blaze",
     icon: IconFlame,
     color: "fire",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["flame", "bolt"],
   },
 
@@ -1367,7 +1367,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Death Bolt",
     icon: IconBolt,
     color: "coldfire",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["ranged", "sword", "sword"],
   },
   enemy_necro_bolt_mark: {
@@ -1375,7 +1375,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Death Bolt+",
     icon: IconBolt,
     color: "coldfire",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["ranged", "sword", "sword", "mark"],
   },
   enemy_necro_focus_double: {
@@ -1479,7 +1479,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Shield Shove",
     icon: IconPush,
     color: "echo",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["push"],
   },
   shield_spec_stun: {
@@ -1487,7 +1487,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Shield Bash",
     icon: IconSpark,
     color: "brine",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["spark"],
   },
 
@@ -1573,7 +1573,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Guard Cut",
     icon: IconRiposte,
     color: "iron",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["shield", "shield", "sword"],
   },
   gauche_defend_dmg2: {
@@ -1581,7 +1581,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Parry Thrust",
     icon: IconRiposte,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["shield", "sword", "sword"],
   },
   gauche_riposte1: {
@@ -1589,7 +1589,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Riposte",
     icon: IconRiposte,
     color: "salt",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["riposte"],
   },
   gauche_riposte2: {
@@ -1597,7 +1597,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Sharp Riposte",
     icon: IconRiposte,
     color: "brine",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["riposte", "riposte"],
   },
   gauche_redirect: {
@@ -1647,7 +1647,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Riposte",
     icon: IconRiposte,
     color: "salt",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["riposte", "riposte"],
   },
 
@@ -1681,7 +1681,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Overhead",
     icon: IconSword,
     color: "salt",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword", "sword"],
   },
 
@@ -1691,7 +1691,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Smash",
     icon: IconWarhammer,
     color: "crimson",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword", "sword"],
   },
   pickaxe_crack: {
@@ -1699,7 +1699,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Crack",
     icon: IconArmorBreak,
     color: "iron",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["armor_break"],
   },
   pickaxe_shatter: {
@@ -1707,7 +1707,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Shatter",
     icon: IconArmorBreak,
     color: "salt",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["armor_break", "armor_break"],
   },
   pickaxe_chip: {
@@ -1715,7 +1715,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Chip",
     icon: IconWarhammer,
     color: "echo",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["sword"],
   },
   pickaxe_stun: {
@@ -1723,7 +1723,7 @@ export const FACES: Record<string, FaceDef> = {
     label: "Stagger",
     icon: IconSpark,
     color: "brine",
-    target: "front-enemy",
+    target: "any-enemy",
     symbols: ["spark"],
   },
 
