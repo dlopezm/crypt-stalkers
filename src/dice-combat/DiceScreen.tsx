@@ -779,7 +779,7 @@ export function DiceScreen({
               gap: "0.4rem",
               flexWrap: "wrap",
               justifyContent: "center",
-              fontSize: "0.75rem",
+              fontSize: "1.5rem",
             }}
           >
             {(Object.keys(p.statuses) as StatusKey[])
@@ -971,7 +971,7 @@ function AlcoveCard({
             gap: 3,
             flexWrap: "wrap",
             justifyContent: "center",
-            fontSize: 10,
+            fontSize: 20,
           }}
         >
           {Object.entries(enemy.statuses).map(([k, v]) =>
