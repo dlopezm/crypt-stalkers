@@ -1,32 +1,21 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { GridCombatState, GridPos } from "../grid-combat/types";
-import type { RoomBBox } from "../types";
 
 export interface DeathContext {
   readonly enemyIds: readonly string[];
 }
 
-export interface GridCombatSpawn {
-  readonly enemies: readonly { readonly id: string; readonly uid: string; readonly pos: GridPos }[];
-  readonly roomLabel: string;
-  readonly overmapGrid?: readonly (readonly number[])[];
-  readonly gridRoomId?: number;
-  readonly bbox?: RoomBBox;
+export interface CombatSpawn {
+  readonly enemies: readonly { readonly id: string; readonly uid: string }[];
 }
 
 export interface CombatState {
-  /** Spawn metadata — needed to re-initialize GridCombatScreen after reload. */
-  spawn: GridCombatSpawn | null;
-  /** Full grid combat snapshot, synced at each planning-phase transition. */
-  state: GridCombatState | null;
-  /** Changing this forces GridCombatScreen to remount via key={combatKey}. */
+  spawn: CombatSpawn | null;
   combatKey: number;
   deathContext?: DeathContext;
 }
 
 const initialState: CombatState = {
   spawn: null,
-  state: null,
   combatKey: 0,
 };
 
@@ -34,22 +23,13 @@ const combatSlice = createSlice({
   name: "combat",
   initialState,
   reducers: {
-    startGridCombat: (state, action: PayloadAction<{ spawn: GridCombatSpawn }>) => ({
+    startCombat: (state, action: PayloadAction<{ spawn: CombatSpawn }>) => ({
       spawn: action.payload.spawn,
-      state: null,
       combatKey: state.combatKey + 1,
       deathContext: state.deathContext,
     }),
-    syncGridCombatState: (state, action: PayloadAction<GridCombatState>) => ({
-      ...state,
-      state: action.payload,
-    }),
-    hydrateGridCombat: (
-      state,
-      action: PayloadAction<{ spawn: GridCombatSpawn; state: GridCombatState | null }>,
-    ) => ({
+    hydrateCombat: (state, action: PayloadAction<{ spawn: CombatSpawn }>) => ({
       spawn: action.payload.spawn,
-      state: action.payload.state,
       combatKey: state.combatKey + 1,
       deathContext: state.deathContext,
     }),
@@ -69,12 +49,6 @@ const combatSlice = createSlice({
   },
 });
 
-export const {
-  startGridCombat,
-  syncGridCombatState,
-  hydrateGridCombat,
-  setDeathContext,
-  clearDeathContext,
-  clearCombat,
-} = combatSlice.actions;
+export const { startCombat, hydrateCombat, setDeathContext, clearDeathContext, clearCombat } =
+  combatSlice.actions;
 export default combatSlice.reducer;

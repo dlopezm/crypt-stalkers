@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { btnStyle } from "../../styles";
 import { getScoutIntel } from "../../utils/area";
-import { StatusBadges, HpBar } from "../shared";
+import { HpBar } from "../shared";
+import { WEAPONS } from "../../data/weapons";
 import { GridCanvas, visibleRooms, CELL_PX } from "./GridCanvas";
 import { RoomLabels, resolvePropTiles } from "./RoomLabels";
 import { RoomPanel } from "./RoomPanel";
@@ -22,7 +23,6 @@ export function AreaMap({
   areaLog,
   onEnterRoom,
   onScout,
-  onSwitchWeapon,
   onEquipDiceItem,
   onGrantAndEquipDiceItem,
   onExamineProp,
@@ -42,7 +42,6 @@ export function AreaMap({
   areaLog: AreaLogEntry[];
   onEnterRoom: (id: string) => void;
   onScout: (id: string, level: number) => void;
-  onSwitchWeapon: (weaponId: string) => void;
   onEquipDiceItem: (slot: EquipmentSlot, id: string) => void;
   onGrantAndEquipDiceItem: (slot: EquipmentSlot, id: string) => void;
   onExamineProp: (roomId: string, propId: string) => void;
@@ -55,7 +54,6 @@ export function AreaMap({
   const [selected, setSelected] = useState<string | null>(currentRoomId);
   const [scoutResult, setScoutResult] = useState<string | null>(null);
   const [scoutLevel, setScoutLevel] = useState(0);
-  const [showWeaponPicker, setShowWeaponPicker] = useState(false);
   const [showEquipmentPicker, setShowEquipmentPicker] = useState(false);
   const [openProp, setOpenProp] = useState<{ roomId: string; propId: string } | null>(null);
   const [showLog, setShowLog] = useState(false);
@@ -217,7 +215,7 @@ export function AreaMap({
             {"\u{1FA99}"} {player.salt}
           </span>
           <span className="text-crypt-muted hidden sm:inline">
-            {"\u{1F5E1}️"} {player.mainWeapon.name}
+            {"\u{1F5E1}️"} {WEAPONS.find((w) => w.id === player.weaponId)?.name ?? player.weaponId}
           </span>
           <div className="flex items-center gap-1.5 text-xs text-crypt-dim">
             <div
@@ -303,8 +301,6 @@ export function AreaMap({
             scoutLevel={scoutLevel}
             scoutResult={scoutResult}
             player={player}
-            areaLog={areaLog}
-            currentTurn={areaTurn}
             onEnterRoom={handleEnterRoom}
             onScout={handleScout}
             onExamineProp={handleExamineProp}
@@ -317,7 +313,6 @@ export function AreaMap({
               <HpBar current={player.hp} max={player.maxHp} color="#3ddc84" />
             </div>
             <div className="mt-2 flex flex-col gap-2">
-              <StatusBadges statuses={player.statuses} />
               <div className="flex gap-1 flex-wrap">
                 <button
                   style={btnStyle("#5a4a20")}
@@ -327,40 +322,6 @@ export function AreaMap({
                   {"⚙️"} Equipment
                 </button>
               </div>
-              {player.ownedWeapons.length > 1 && (
-                <div>
-                  <button
-                    style={btnStyle("#5a4a20")}
-                    className="text-xs! px-2! py-1!"
-                    onClick={() => setShowWeaponPicker((v) => !v)}
-                  >
-                    {"\u{1F504}"} Switch Weapon
-                  </button>
-                  {showWeaponPicker && (
-                    <div className="flex gap-1 flex-wrap mt-1">
-                      {player.ownedWeapons
-                        .filter((w) => w.hand !== "offhand")
-                        .map((w) => (
-                          <button
-                            key={w.id}
-                            style={btnStyle(
-                              w.id === player.mainWeapon.id ? "#3a3020" : "#6a3a1a",
-                              w.id === player.mainWeapon.id,
-                            )}
-                            className="text-xs! px-2! py-1!"
-                            disabled={w.id === player.mainWeapon.id}
-                            onClick={() => {
-                              onSwitchWeapon(w.id);
-                              setShowWeaponPicker(false);
-                            }}
-                          >
-                            {w.icon} {w.name}
-                          </button>
-                        ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 

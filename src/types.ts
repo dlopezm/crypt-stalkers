@@ -13,30 +13,24 @@ export type StatusKey =
   | "bolster"
   | "mark"
   | "warded"
-  | "power" // player: next damage symbol deals +N (stacks consumed on next hit)
-  | "dragged" // Zombie Drag: dodge faces don't prevent damage for 1 turn
-  | "dodge" // enemy-only: next incoming attack is negated, then clears
+  | "power" // next damage symbol deals +N (stacks consumed on next hit)
+  | "dragged" // dodge faces don't prevent damage for 1 turn
+  | "dodge" // enemy-only: negate one incoming attack, then clears
   | "intangible" // enemy-only: immune to physical damage this turn, then clears
-  | "taunt" // enemy-only: redirects damage aimed at other enemies to this one, then clears
+  | "taunt" // enemy-only: redirects damage from other enemies to this one, then clears
   | "hidden" // enemy-only: untargetable this turn, enables sneak attack, clears at end of player turn
   | "focus"; // each stack grants one free face pick on next roll
 export type Statuses = Partial<Record<StatusKey, number>>;
 
-/* ── Damage & Equipment ── */
+/* ── Equipment ── */
 
-export type DamageType = "slash" | "pierce" | "bludgeoning" | "holy" | "fire";
 export type HandType = "1" | "2" | "offhand";
 
 export interface Weapon {
   id: string;
   name: string;
-  damage: number; // 0 for Shield
-  damageType: DamageType;
   hand: HandType;
-  reach: "melee" | "ranged"; // CSV "1" → melee, "1-2" → ranged
   icon: string;
-  desc: string;
-  cost: number;
 }
 
 export interface Consumable {
@@ -44,184 +38,15 @@ export interface Consumable {
   name: string;
   icon: string;
   desc: string;
-  cost: number;
-  heal?: number;
-  damage?: number;
-  damageRange?: "melee" | "ranged";
-  holy?: boolean;
-  aoe?: boolean;
-  block?: number;
-  cleanse?: boolean;
-  restoreLight?: number;
-  applyStatus?: { status: StatusKey; stacks: number };
-}
-
-/* ── Unified Action System ── */
-
-export type Action =
-  // Damage
-  | {
-      type: "damage_enemy";
-      targetUid: string;
-      amount: number;
-      damageType: DamageType;
-      pierceArmor?: boolean;
-      holy?: boolean;
-    }
-  | { type: "damage_player"; amount: number }
-  // Status
-  | { type: "apply_status_enemy"; targetUid: string; status: StatusKey; stacks: number }
-  | { type: "apply_status_player"; status: StatusKey; stacks: number }
-  // Healing
-  | { type: "heal_player"; amount: number }
-  | { type: "heal_enemy"; targetUid: string; amount: number }
-  // Row manipulation
-  | { type: "push_row"; targetUid: string; to: "front" | "back" }
-  // Spawning
-  | {
-      type: "spawn";
-      enemyId: string;
-      row?: "front" | "back";
-      reassembled?: boolean;
-      summonCooldown?: number;
-      hpOverride?: number;
-    }
-  // Light
-  | { type: "drain_light"; amount: number }
-  // Player buffs
-  | { type: "set_block_reduction"; fraction: number }
-  | { type: "set_stealth"; active: boolean }
-  | { type: "set_counter"; active: boolean }
-  | { type: "add_block_player"; amount: number }
-  // Cooldowns
-  | { type: "set_cooldown"; abilityId: string; turns: number }
-  | { type: "tick_cooldowns" }
-  // Charging
-  | { type: "begin_charge"; abilityId: string; turnsLeft: number; targetUid?: string }
-  | { type: "resolve_charge" }
-  // Turn flow
-  | { type: "end_turn" }
-  | { type: "skip_end_turn" }
-  | { type: "flee" }
-  // Items
-  | { type: "consume_item"; itemIndex: number }
-  | { type: "restore_light"; amount: number }
-  | { type: "cleanse_player" }
-  // Logging
-  | { type: "log"; message: string }
-  // Enemy-specific
-  | { type: "skip_attack" }
-  | { type: "set_hidden"; targetUid: string; hidden: boolean };
-
-/* ── Abilities ── */
-
-export type AbilitySource =
-  | { type: "weapon"; weaponId: string }
-  | { type: "building"; buildingId: string; buildingLevel: number }
-  | { type: "universal" }
-  | { type: "item"; itemId: string };
-
-export interface ActionContext {
-  player: CombatPlayer;
-  enemies: Enemy[];
-  lightLevel: number;
-  weapon: Weapon;
-  offhandWeapon: Weapon | null;
-}
-
-export interface Ability {
-  id: string;
-  name: string;
-  icon: string;
-  desc: string;
-  source: AbilitySource;
-  cooldown: number;
-  needsTarget: boolean;
-  reach?: "melee" | "ranged";
-  execute: (ctx: ActionContext, targets: number[]) => Action[];
-}
-
-/* ── Monster Intents ── */
-
-export interface MonsterIntent {
-  readonly id: string;
-  readonly label: string;
-  readonly icon: string;
-  readonly damage?: number;
-  readonly tooltip?: string;
-}
-
-/* ── Enemies ── */
-
-/* ── Combat Mechanics ── */
-
-export interface CombatContext {
-  enemies: Enemy[];
-  player: CombatPlayer;
-  lightLevel: { value: number };
-}
-
-export interface AttackResult {
-  skip?: boolean;
-  damageMultiplier?: number;
-  lifestealFraction?: number;
-  atkOverride?: number;
-  extraActions?: Action[];
-}
-
-export interface HitResponse {
-  evade?: boolean;
-  damageMultiplier?: number;
-  actions?: Action[];
-}
-
-export interface CombatMechanics {
-  onStartCombat?: (self: Enemy, ctx: CombatContext) => Action[];
-  onTurnStart?: (self: Enemy, ctx: CombatContext) => Action[];
-  onAttack?: (self: Enemy, ctx: CombatContext) => AttackResult | null;
-  onReceiveHit?: (
-    self: Enemy,
-    ctx: CombatContext,
-    hit: { damage: number; damageType: DamageType; holy: boolean },
-  ) => HitResponse;
-  onDeath?: (self: Enemy, ctx: CombatContext, killingHit: { damageType: DamageType }) => Action[];
-  selectIntent?: (self: Enemy, ctx: CombatContext) => MonsterIntent;
 }
 
 export interface EnemyType {
   id: string;
   name: string;
-  maxHp: number;
-  atk: number;
-  loot: number;
   ascii: string;
   mechanic: string;
-  evadeChance?: number;
-
   isBoss?: boolean;
-  defaultRow: "front" | "back";
-  combatMechanics?: CombatMechanics;
-  resistances?: Partial<Record<DamageType, number>>;
-  vulnerabilities?: Partial<Record<DamageType, number>>;
   deathHint?: string;
-  /* ── CSV fields (descriptive, not used by game logic) ── */
-  movement?: string;
-  seesInDark?: boolean;
-  reactsToLight?: string;
-  corporeal?: boolean;
-  onClosedDoors?: string;
-}
-
-export interface Enemy extends EnemyType {
-  uid: string;
-  hp: number;
-  block: number;
-  statuses: Statuses;
-  reassembled: boolean;
-  summonCooldown: number;
-  row: "front" | "back";
-  hidden: boolean;
-  intent?: MonsterIntent;
 }
 
 /* ── Dungeon / Area ──
@@ -236,13 +61,7 @@ export interface Enemy extends EnemyType {
 /** An individual monster instance living in an area room. */
 export interface AreaEnemy {
   typeId: string; // key into ENEMY_TYPES
-  uid: string; // unique instance id — carried into combat via makeEnemyData
-  /** If set, overrides maxHp when this enemy enters combat (e.g. resurrected at reduced HP). */
-  hpOverride?: number;
-  patrolRoute?: string[];
-  patrolIndex?: number;
-  tetheredTo?: string;
-  turnsInRoom?: number;
+  uid: string;
 }
 
 export type RoomState = "locked" | "reachable" | "visited";
@@ -276,12 +95,11 @@ export type PropEffect =
   | { type: "heal_player"; amount: number }
   | { type: "log"; message: string }
   | { type: "consume_prop" }
-  | { type: "grant_weapon"; weaponId: string }
   | { type: "grant_consumable"; consumableId: string }
   | { type: "grant_ability"; abilityId: DiceAbilityId }
-  | { type: "grant_grid_weapon"; weaponId: string }
-  | { type: "grant_grid_offhand"; offhandId: string }
-  | { type: "grant_grid_armor"; armorId: string };
+  | { type: "grant_weapon"; weaponId: string }
+  | { type: "grant_offhand"; offhandId: string }
+  | { type: "grant_armor"; armorId: string };
 
 export interface PropAction {
   id: string;
@@ -370,10 +188,6 @@ export interface AreaNode {
   label: string;
   boss: boolean;
   enemies: AreaEnemy[];
-  /** Dead enemies left in this room, by typeId. Necromancer can resurrect these. */
-  corpses: Record<string, number>;
-  /** Active necromancer resurrection ritual. Counts down each area turn. */
-  necroRitual: { typeId: string; turnsLeft: number; hpFraction: number } | null;
   hint: string;
   description?: string;
   state: RoomState;
@@ -416,36 +230,26 @@ export interface Player {
   hp: number;
   maxHp: number;
   salt: number;
-  statuses: Statuses;
-  mainWeapon: Weapon;
-  offhandWeapon: Weapon | null;
-  ownedWeapons: Weapon[];
+  weaponId: string;
+  offhandId: string | null;
+  armorId: string;
+  ownedWeaponIds: string[];
+  ownedOffhandIds: string[];
+  ownedArmorIds: string[];
   consumables: Consumable[];
   abilities: DiceAbilityId[];
-  /** Narrative flags set by room-prop interactions. Values are boolean or number. */
-  flags: Record<string, boolean | number>;
-
-  /** Grid-combat loadout (weapon/offhand/armor) selected by the player. */
-  gridWeaponId?: string;
-  gridOffhandId?: string | null;
-  gridArmorId?: string;
-  ownedGridWeaponIds: string[];
-  ownedGridOffhandIds: string[];
-  ownedGridArmorIds: string[];
-
-  /** Dice-combat active ability id (key into ABILITY_DICE). Defaults to "steady_hands". */
   activeAbilityId?: DiceAbilityId;
+  /** Narrative flags set by room-prop interactions. */
+  flags: Record<string, boolean | number>;
 }
 
-export interface CombatPlayer extends Player {
-  block: number;
-  stealthActive: boolean;
-  counterActive: boolean;
-  abilityCooldowns: Record<string, number>;
-  chargingAbility?: string;
-  chargingTurnsLeft?: number;
-  chargingTargetUid?: string;
-  blockReduction?: number;
+/* ── Combat Victory ── */
+
+export interface CombatVictoryResult {
+  hp: number;
+  maxHp: number;
+  salt: number;
+  consumables: Consumable[];
 }
 
 /* ── Misc ── */
@@ -456,5 +260,4 @@ export interface AreaLogEntry {
   source: "player" | "monster" | "system";
   roomId?: string;
   debugText?: string;
-  approaching?: boolean;
 }

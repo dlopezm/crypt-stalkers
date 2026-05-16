@@ -5,10 +5,6 @@ import "./index.css";
 import App from "./App";
 import { store } from "./store";
 import { saveGame } from "./utils/save";
-import { preloadTarotImages } from "./data/tarot";
-
-preloadTarotImages();
-
 // Persist to localStorage after every dispatch.
 // Guards prevent saving incomplete state during multi-dispatch operations.
 store.subscribe(() => {
@@ -29,15 +25,7 @@ store.subscribe(() => {
     areaLog: a.areaLog,
     areaTurn: a.areaTurn,
     visitedAreas: a.visitedAreas,
-    combat: combat.spawn
-      ? {
-          spawn: combat.spawn,
-          // Only persist grid state at planning-phase checkpoints.
-          // Mid-execution snapshots are dropped so reload rewinds to the
-          // start of the current turn's planning phase.
-          state: combat.state?.phase === "planning" ? combat.state : null,
-        }
-      : null,
+    combat: combat.spawn ? { spawn: combat.spawn } : null,
   });
 });
 

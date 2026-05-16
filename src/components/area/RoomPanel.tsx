@@ -3,42 +3,18 @@ import { btnStyle } from "../../styles";
 import { ENEMY_TYPES } from "../../data/enemies";
 import { getActiveEffects, isHazardousRoom } from "../../data/environment";
 import { getActiveProps } from "../../utils/props";
-import type { AreaNode, Player, AreaLogEntry } from "../../types";
+import type { AreaNode, Player } from "../../types";
 
-function ThreatPanel({
-  threats,
-  approachWarnings,
-}: {
-  readonly threats: readonly string[];
-  readonly approachWarnings: readonly string[];
-}) {
-  if (threats.length === 0 && approachWarnings.length === 0) {
-    return null;
-  }
-
+function ThreatPanel({ threats }: { readonly threats: readonly string[] }) {
+  if (threats.length === 0) return null;
   return (
     <div className="mb-2 border-t border-crypt-muted/20 pt-2">
-      {threats.length > 0 && (
-        <div className="mb-1">
-          <p className="text-xs text-crypt-red uppercase tracking-widest mb-1">Threat Assessment</p>
-          {threats.map((t, i) => (
-            <p key={i} className="text-xs text-crypt-muted leading-relaxed">
-              {"⚠"} {t}
-            </p>
-          ))}
-        </div>
-      )}
-
-      {approachWarnings.length > 0 && (
-        <div className="mt-1">
-          <p className="text-xs text-amber-500 uppercase tracking-widest mb-1">Approaching</p>
-          {approachWarnings.map((w, i) => (
-            <p key={i} className="text-xs text-amber-400/80 italic leading-relaxed">
-              {w}
-            </p>
-          ))}
-        </div>
-      )}
+      <p className="text-xs text-crypt-red uppercase tracking-widest mb-1">Threat Assessment</p>
+      {threats.map((t, i) => (
+        <p key={i} className="text-xs text-crypt-muted leading-relaxed">
+          {"⚠"} {t}
+        </p>
+      ))}
     </div>
   );
 }
@@ -66,26 +42,6 @@ function buildThreatSummary(node: AreaNode): readonly string[] {
   return threats;
 }
 
-function getApproachWarnings(
-  areaLog: readonly AreaLogEntry[],
-  currentTurn: number,
-): readonly string[] {
-  const warnings: string[] = [];
-  const recentTurns = 3;
-
-  for (const entry of areaLog) {
-    if (!entry.approaching) {
-      continue;
-    }
-    if (entry.turn < currentTurn - recentTurns) {
-      continue;
-    }
-    warnings.push(entry.text);
-  }
-
-  return warnings.slice(-3);
-}
-
 export function RoomPanel({
   node,
   currentRoomId,
@@ -94,8 +50,6 @@ export function RoomPanel({
   scoutLevel,
   scoutResult,
   player,
-  areaLog,
-  currentTurn,
   onEnterRoom,
   onScout,
   onExamineProp,
@@ -107,8 +61,6 @@ export function RoomPanel({
   readonly scoutLevel: number;
   readonly scoutResult: string | null;
   readonly player: Player;
-  readonly areaLog: readonly AreaLogEntry[];
-  readonly currentTurn: number;
   readonly onEnterRoom: (id: string) => void;
   readonly onScout: (level: number) => void;
   readonly onExamineProp: (roomId: string, propId: string) => void;
@@ -207,8 +159,7 @@ export function RoomPanel({
         (() => {
           const isScouted = node.scouted || node.state === "visited";
           const threats = isScouted ? buildThreatSummary(node) : [];
-          const warnings = getApproachWarnings(areaLog, currentTurn);
-          return <ThreatPanel threats={threats} approachWarnings={warnings} />;
+          return <ThreatPanel threats={threats} />;
         })()}
 
       {/* In-room props — hidden on mobile (tap them on the map), shown on desktop */}

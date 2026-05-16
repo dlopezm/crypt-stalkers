@@ -28,12 +28,12 @@ export function EquipmentPicker({ player, debugMode, onEquip, onGrantAndEquip, o
   const [tab, setTab] = useState<EquipmentSlot>("main");
   const [showAll, setShowAll] = useState(false);
 
-  const ownedGridWeaponIds = new Set(player.ownedGridWeaponIds);
-  const ownedGridOffhandIds = new Set(player.ownedGridOffhandIds);
+  const ownedWeaponIds = new Set(player.ownedWeaponIds);
+  const ownedOffhandIds = new Set(player.ownedOffhandIds);
   const ownedAbilityIds = new Set(player.abilities);
   // Steady Hands is always available — it's the Fourth Hand's basic kit.
   ownedAbilityIds.add(STARTER_ABILITY_ID);
-  const ownedArmorIds = new Set(player.ownedGridArmorIds);
+  const ownedArmorIds = new Set(player.ownedArmorIds);
 
   const items: Array<{
     id: string;
@@ -53,8 +53,8 @@ export function EquipmentPicker({ player, debugMode, onEquip, onGrantAndEquip, o
         name: w.name,
         icon: WEAPON_DICE[w.id].icon,
         faces: WEAPON_DICE[w.id].faces,
-        owned: ownedGridWeaponIds.has(w.id),
-        equipped: player.mainWeapon.id === w.id,
+        owned: ownedWeaponIds.has(w.id),
+        equipped: player.weaponId === w.id,
       });
     }
   } else if (tab === "offhand") {
@@ -66,8 +66,8 @@ export function EquipmentPicker({ player, debugMode, onEquip, onGrantAndEquip, o
         name: w.name,
         icon: OFFHAND_DICE[w.id].icon,
         faces: OFFHAND_DICE[w.id].faces,
-        owned: ownedGridOffhandIds.has(w.id),
-        equipped: player.offhandWeapon?.id === w.id,
+        owned: ownedOffhandIds.has(w.id),
+        equipped: player.offhandId === w.id,
       });
     }
   } else if (tab === "armor") {
@@ -78,7 +78,7 @@ export function EquipmentPicker({ player, debugMode, onEquip, onGrantAndEquip, o
         icon: def.icon,
         faces: def.faces,
         owned: ownedArmorIds.has(id),
-        equipped: player.gridArmorId === id,
+        equipped: player.armorId === id,
       });
     }
   } else if (tab === "ability") {

@@ -66,12 +66,11 @@ export interface EffectOutcome {
   readonly flagSets: readonly { readonly flag: string; readonly value: boolean | number }[];
   readonly logMessages: readonly string[];
   readonly consumed: boolean;
-  readonly grantedWeapons: readonly string[];
   readonly grantedConsumables: readonly string[];
   readonly grantedAbilities: readonly string[];
-  readonly grantedGridWeapons: readonly string[];
-  readonly grantedGridOffhands: readonly string[];
-  readonly grantedGridArmors: readonly string[];
+  readonly grantedWeapons: readonly string[];
+  readonly grantedOffhands: readonly string[];
+  readonly grantedArmors: readonly string[];
 }
 
 /** Pure evaluator - caller dispatches the resulting deltas. */
@@ -81,12 +80,11 @@ export function evaluateEffects(effects: PropEffect[]): EffectOutcome {
   const flagSets: { flag: string; value: boolean | number }[] = [];
   const logMessages: string[] = [];
   let consumed = false;
-  const grantedWeapons: string[] = [];
   const grantedConsumables: string[] = [];
   const grantedAbilities: string[] = [];
-  const grantedGridWeapons: string[] = [];
-  const grantedGridOffhands: string[] = [];
-  const grantedGridArmors: string[] = [];
+  const grantedWeapons: string[] = [];
+  const grantedOffhands: string[] = [];
+  const grantedArmors: string[] = [];
 
   for (const e of effects) {
     switch (e.type) {
@@ -111,23 +109,20 @@ export function evaluateEffects(effects: PropEffect[]): EffectOutcome {
       case "consume_prop":
         consumed = true;
         break;
-      case "grant_weapon":
-        grantedWeapons.push(e.weaponId);
-        break;
       case "grant_consumable":
         grantedConsumables.push(e.consumableId);
         break;
       case "grant_ability":
         grantedAbilities.push(e.abilityId);
         break;
-      case "grant_grid_weapon":
-        grantedGridWeapons.push(e.weaponId);
+      case "grant_weapon":
+        grantedWeapons.push(e.weaponId);
         break;
-      case "grant_grid_offhand":
-        grantedGridOffhands.push(e.offhandId);
+      case "grant_offhand":
+        grantedOffhands.push(e.offhandId);
         break;
-      case "grant_grid_armor":
-        grantedGridArmors.push(e.armorId);
+      case "grant_armor":
+        grantedArmors.push(e.armorId);
         break;
     }
   }
@@ -138,11 +133,10 @@ export function evaluateEffects(effects: PropEffect[]): EffectOutcome {
     flagSets,
     logMessages,
     consumed,
-    grantedWeapons,
     grantedConsumables,
     grantedAbilities,
-    grantedGridWeapons,
-    grantedGridOffhands,
-    grantedGridArmors,
+    grantedWeapons,
+    grantedOffhands,
+    grantedArmors,
   };
 }

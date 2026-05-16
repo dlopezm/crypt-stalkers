@@ -115,12 +115,10 @@ function ThreatIndicator({
   const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
   const bottomPct = ((maxRow + 1.3) / gridHeight) * 100;
 
-  const types = node.enemies.map((e) => ENEMY_TYPES.find((t) => t.id === e.typeId));
-  const maxAtk = Math.max(0, ...types.map((t) => t?.atk ?? 0));
-
-  const color = maxAtk >= 6 ? "#c41c1c" : maxAtk >= 3 ? "#d4a017" : "#6a8a3a";
+  const types = node.enemies
+    .map((e) => ENEMY_TYPES.find((t) => t.id === e.typeId))
+    .filter((t): t is NonNullable<typeof t> => t != null);
   const asciiIcons = types
-    .filter((t): t is NonNullable<typeof t> => t != null)
     .slice(0, 3)
     .map((t) => t.ascii)
     .join("");
@@ -137,7 +135,7 @@ function ThreatIndicator({
         top: `${bottomPct}%`,
         transform: "translate(-50%, -50%)",
         fontSize: "0.55rem",
-        color,
+        color: "#c41c1c",
         zIndex: 4,
         pointerEvents: "none",
         whiteSpace: "nowrap",

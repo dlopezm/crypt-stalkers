@@ -277,8 +277,6 @@ export function generateArea(def: AreaDef): GenerateAreaResult {
       label: tmpl.label,
       boss: isBoss,
       enemies: tmpl.enemies ? tmpl.enemies.map((typeId) => ({ typeId, uid: uid(typeId) })) : [],
-      corpses: {},
-      necroRitual: null,
       hint: tmpl.hint || "",
       description: tmpl.description,
       state: isStart ? ("visited" as const) : ("locked" as const),

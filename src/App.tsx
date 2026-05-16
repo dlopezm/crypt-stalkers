@@ -10,16 +10,10 @@ import { TitleScreen } from "./components/TitleScreen";
 import { IntroScreen } from "./components/IntroScreen";
 import { AuthoredAreaEditor } from "./components/editor/AuthoredAreaEditor";
 import { AreaMap } from "./components/area/AreaMap";
-import { GridCombatScreen } from "./components/GridCombatScreen";
-import { CardCombatScreen } from "./components/CardCombatScreen";
-import { LineScreen } from "./line-combat/LineScreen";
-import { buildEncounterFromEnemies } from "./line-combat/encounter-defs";
-import { playerToCardLoadout, cardResultToGridPlayerState } from "./utils/card-combat-helpers";
 import { DiceScreen } from "./dice-combat/DiceScreen";
-import { playerToDiceLoadout, diceResultToGridPlayerState } from "./utils/dice-combat-helpers";
+import { playerToDiceLoadout, diceResultToCombatVictory } from "./utils/dice-combat-helpers";
 import { VictoryScreen, GameOverScreen } from "./components/EndScreens";
 import type { AreaNode, AreaDef, AreaLogEntry, Player, PropEffect, DiceAbilityId } from "./types";
-import type { GridPlayerState } from "./grid-combat/types";
 import { useAppDispatch, useAppSelector } from "./store";
 import { setScreen } from "./store/screenSlice";
 import { setPlayer, setFlag } from "./store/playerSlice";
@@ -33,18 +27,10 @@ import {
   updatePropState,
 } from "./store/areaSlice";
 import { canPerformAction, evaluateEffects } from "./utils/props";
-import {
-  startGridCombat,
-  hydrateGridCombat,
-  clearCombat,
-  clearDeathContext,
-} from "./store/combatSlice";
+import { startCombat, hydrateCombat, clearCombat, clearDeathContext } from "./store/combatSlice";
 import { toggleDebugMode, toggleShowDebug, setShowDebug } from "./store/debugSlice";
 import { saveRoomCheckpoint, saveAreaCheckpoint, type Checkpoint } from "./store/checkpointSlice";
-import { tickAI as tickAIThunk, gridCombatVictory, gridCombatDefeat } from "./store/thunks";
-import { playerToGridPlayer, areaEnemiesToGridEnemies } from "./utils/grid-helpers";
-import { getRoomTerrainLayout } from "./grid-combat/room-layouts";
-
+import { tickAI as tickAIThunk, combatVictory, combatDefeat } from "./store/thunks";
 export default function App() {
   const dispatch = useAppDispatch();
 
@@ -60,13 +46,10 @@ export default function App() {
   const showDebug = useAppSelector((s) => s.debug.showDebug);
   const combatKey = useAppSelector((s) => s.combat.combatKey);
   const combatSpawn = useAppSelector((s) => s.combat.spawn);
-  const combatState = useAppSelector((s) => s.combat.state);
   const deathContext = useAppSelector((s) => s.combat.deathContext);
   const roomCheckpoint = useAppSelector((s) => s.checkpoint.room);
   const areaCheckpoint = useAppSelector((s) => s.checkpoint.area);
   const visitedAreas = useAppSelector((s) => s.area.visitedAreas);
-  const combatSystem = useAppSelector((s) => s.settings.combatSystem);
-
   function addLog(
     entries: { text: string; roomId?: string }[] | string[],
     source: "player" | "monster" | "system" = "system",
@@ -98,12 +81,7 @@ export default function App() {
     dispatch(setPlayer(save.player));
     dispatch(
       setAreaFull({
-        area:
-          save.area?.map((n) => ({
-            ...n,
-            corpses: n.corpses ?? {},
-            necroRitual: n.necroRitual ?? null,
-          })) ?? null,
+        area: save.area ?? null,
         areaGrid: save.areaGrid ?? null,
         areaDef: save.areaDef,
         currentRoomId: save.currentRoomId,
@@ -113,12 +91,7 @@ export default function App() {
       }),
     );
     if (save.combat) {
-      dispatch(
-        hydrateGridCombat({
-          spawn: save.combat.spawn,
-          state: save.combat.state,
-        }),
-      );
+      dispatch(hydrateCombat({ spawn: save.combat.spawn }));
     } else {
       dispatch(clearCombat());
     }
@@ -169,7 +142,7 @@ export default function App() {
 
   /* ── Check if the player's room has enemies after an AI tick ──
      Currently dormant: tickAI is stubbed and never moves enemies.
-     Will activate once area AI is ported to the grid combat system. */
+     Will activate once area AI is implemented. */
   function checkAmbush(afterAI: AreaNode[], roomId: string, opts?: { player?: Player }): boolean {
     const roomAfterAI = afterAI.find((n) => n.id === roomId);
     if (!roomAfterAI || roomAfterAI.enemies.length === 0) return false;
@@ -180,14 +153,8 @@ export default function App() {
     if (opts?.player) dispatch(setPlayer(opts.player));
 
     dispatch(
-      startGridCombat({
-        spawn: {
-          enemies: areaEnemiesToGridEnemies(roomAfterAI.enemies),
-          roomLabel: roomAfterAI.label,
-          overmapGrid: areaGrid?.cells,
-          gridRoomId: roomAfterAI.gridRoomId,
-          bbox: roomAfterAI.bbox,
-        },
+      startCombat({
+        spawn: { enemies: roomAfterAI.enemies.map((e) => ({ id: e.typeId, uid: e.uid })) },
       }),
     );
     dispatch(setScreen("combat"));
@@ -253,14 +220,8 @@ export default function App() {
       dispatch(updateArea(afterAI));
 
       dispatch(
-        startGridCombat({
-          spawn: {
-            enemies: areaEnemiesToGridEnemies(room.enemies),
-            roomLabel: room.label,
-            overmapGrid: areaGrid?.cells,
-            gridRoomId: room.gridRoomId,
-            bbox: room.bbox,
-          },
+        startCombat({
+          spawn: { enemies: room.enemies.map((e) => ({ id: e.typeId, uid: e.uid })) },
         }),
       );
       dispatch(setScreen("combat"));
@@ -269,35 +230,28 @@ export default function App() {
     }
   }
 
-  function onSwitchWeaponOnMap(weaponId: string) {
-    if (!player) return;
-    const weapon = player.ownedWeapons.find((w) => w.id === weaponId);
-    if (!weapon) return;
-    const offhand = weapon.hand === "2" ? null : player.offhandWeapon;
-    dispatch(setPlayer({ ...player, mainWeapon: weapon, offhandWeapon: offhand }));
-  }
-
   function onEquipDiceItem(slot: "main" | "offhand" | "armor" | "ability", id: string) {
     if (!player) return;
     if (slot === "main") {
-      if (!player.ownedGridWeaponIds.includes(id)) return;
+      if (!player.ownedWeaponIds.includes(id)) return;
       const w = WEAPONS.find((x) => x.id === id);
       if (!w) return;
-      const offhand = w.hand === "2" ? null : player.offhandWeapon;
-      dispatch(setPlayer({ ...player, mainWeapon: w, offhandWeapon: offhand, gridWeaponId: id }));
+      const offhand = w.hand === "2" ? null : player.offhandId;
+      dispatch(setPlayer({ ...player, weaponId: id, offhandId: offhand }));
     } else if (slot === "offhand") {
-      if (!player.ownedGridOffhandIds.includes(id)) return;
-      const w = WEAPONS.find((x) => x.id === id);
-      if (!w) return;
-      const main =
-        player.mainWeapon.hand === "2"
-          ? (WEAPONS.find((x) => player.ownedGridWeaponIds.includes(x.id) && x.hand !== "2") ??
-            player.mainWeapon)
-          : player.mainWeapon;
-      dispatch(setPlayer({ ...player, offhandWeapon: w, mainWeapon: main, gridOffhandId: id }));
+      if (!player.ownedOffhandIds.includes(id)) return;
+      const curWeapon = WEAPONS.find((x) => x.id === player.weaponId);
+      const weaponId =
+        curWeapon?.hand === "2"
+          ? (player.ownedWeaponIds.find((wId) => {
+              const wx = WEAPONS.find((x) => x.id === wId);
+              return wx && wx.hand !== "2";
+            }) ?? player.weaponId)
+          : player.weaponId;
+      dispatch(setPlayer({ ...player, offhandId: id, weaponId }));
     } else if (slot === "armor") {
-      if (!player.ownedGridArmorIds.includes(id)) return;
-      dispatch(setPlayer({ ...player, gridArmorId: id }));
+      if (!player.ownedArmorIds.includes(id)) return;
+      dispatch(setPlayer({ ...player, armorId: id }));
     } else if (slot === "ability") {
       if (!player.abilities.includes(id) && id !== STARTER_ABILITY_ID) return;
       dispatch(setPlayer({ ...player, activeAbilityId: id as DiceAbilityId }));
@@ -309,44 +263,29 @@ export default function App() {
     if (slot === "main") {
       const w = WEAPONS.find((x) => x.id === id);
       if (!w) return;
-      const owned = player.ownedGridWeaponIds.includes(id)
-        ? player.ownedGridWeaponIds
-        : [...player.ownedGridWeaponIds, id];
-      const offhand = w.hand === "2" ? null : player.offhandWeapon;
-      dispatch(
-        setPlayer({
-          ...player,
-          mainWeapon: w,
-          offhandWeapon: offhand,
-          gridWeaponId: id,
-          ownedGridWeaponIds: owned,
-        }),
-      );
+      const owned = player.ownedWeaponIds.includes(id)
+        ? player.ownedWeaponIds
+        : [...player.ownedWeaponIds, id];
+      const offhand = w.hand === "2" ? null : player.offhandId;
+      dispatch(setPlayer({ ...player, weaponId: id, offhandId: offhand, ownedWeaponIds: owned }));
     } else if (slot === "offhand") {
-      const w = WEAPONS.find((x) => x.id === id);
-      if (!w) return;
-      const owned = player.ownedGridOffhandIds.includes(id)
-        ? player.ownedGridOffhandIds
-        : [...player.ownedGridOffhandIds, id];
-      const main =
-        player.mainWeapon.hand === "2"
-          ? (WEAPONS.find((x) => player.ownedGridWeaponIds.includes(x.id) && x.hand !== "2") ??
-            player.mainWeapon)
-          : player.mainWeapon;
-      dispatch(
-        setPlayer({
-          ...player,
-          offhandWeapon: w,
-          mainWeapon: main,
-          gridOffhandId: id,
-          ownedGridOffhandIds: owned,
-        }),
-      );
+      const owned = player.ownedOffhandIds.includes(id)
+        ? player.ownedOffhandIds
+        : [...player.ownedOffhandIds, id];
+      const curWeapon = WEAPONS.find((x) => x.id === player.weaponId);
+      const weaponId =
+        curWeapon?.hand === "2"
+          ? (player.ownedWeaponIds.find((wId) => {
+              const wx = WEAPONS.find((x) => x.id === wId);
+              return wx && wx.hand !== "2";
+            }) ?? player.weaponId)
+          : player.weaponId;
+      dispatch(setPlayer({ ...player, offhandId: id, weaponId, ownedOffhandIds: owned }));
     } else if (slot === "armor") {
-      const owned = player.ownedGridArmorIds.includes(id)
-        ? player.ownedGridArmorIds
-        : [...player.ownedGridArmorIds, id];
-      dispatch(setPlayer({ ...player, gridArmorId: id, ownedGridArmorIds: owned }));
+      const owned = player.ownedArmorIds.includes(id)
+        ? player.ownedArmorIds
+        : [...player.ownedArmorIds, id];
+      dispatch(setPlayer({ ...player, armorId: id, ownedArmorIds: owned }));
     } else if (slot === "ability") {
       const owned = player.abilities.includes(id) ? player.abilities : [...player.abilities, id];
       dispatch(
@@ -377,13 +316,6 @@ export default function App() {
       };
     }
 
-    for (const wId of outcome.grantedWeapons) {
-      const weapon = WEAPONS.find((w) => w.id === wId);
-      if (weapon && !updated.ownedWeapons.some((w) => w.id === wId)) {
-        updated = { ...updated, ownedWeapons: [...updated.ownedWeapons, { ...weapon }] };
-      }
-    }
-
     for (const cId of outcome.grantedConsumables) {
       const consumable = CONSUMABLES.find((c) => c.id === cId);
       if (consumable) {
@@ -397,24 +329,21 @@ export default function App() {
       }
     }
 
-    for (const wId of outcome.grantedGridWeapons) {
-      const owned = updated.ownedGridWeaponIds ?? [];
-      if (!owned.includes(wId)) {
-        updated = { ...updated, ownedGridWeaponIds: [...owned, wId] };
+    for (const wId of outcome.grantedWeapons) {
+      if (!updated.ownedWeaponIds.includes(wId)) {
+        updated = { ...updated, ownedWeaponIds: [...updated.ownedWeaponIds, wId] };
       }
     }
 
-    for (const oId of outcome.grantedGridOffhands) {
-      const owned = updated.ownedGridOffhandIds ?? [];
-      if (!owned.includes(oId)) {
-        updated = { ...updated, ownedGridOffhandIds: [...owned, oId] };
+    for (const oId of outcome.grantedOffhands) {
+      if (!updated.ownedOffhandIds.includes(oId)) {
+        updated = { ...updated, ownedOffhandIds: [...updated.ownedOffhandIds, oId] };
       }
     }
 
-    for (const aId of outcome.grantedGridArmors) {
-      const owned = updated.ownedGridArmorIds ?? [];
-      if (!owned.includes(aId)) {
-        updated = { ...updated, ownedGridArmorIds: [...owned, aId] };
+    for (const aId of outcome.grantedArmors) {
+      if (!updated.ownedArmorIds.includes(aId)) {
+        updated = { ...updated, ownedArmorIds: [...updated.ownedArmorIds, aId] };
       }
     }
 
@@ -623,7 +552,6 @@ export default function App() {
           areaLog={areaLog}
           onEnterRoom={enterRoom}
           onScout={onScout}
-          onSwitchWeapon={onSwitchWeaponOnMap}
           onEquipDiceItem={onEquipDiceItem}
           onGrantAndEquipDiceItem={onGrantAndEquipDiceItem}
           onExamineProp={onExamineProp}
@@ -646,122 +574,22 @@ export default function App() {
     }
 
     const enemyIds = combatSpawn.enemies.map((e) => e.id);
-
-    if (combatSystem === "line") {
-      // Build a line encounter from the actual enemies spawned in this room.
-      const encounter = buildEncounterFromEnemies(
-        combatSpawn.enemies.map((e) => e.id),
-        combatSpawn.roomLabel ?? "Combat",
-      );
-      return (
-        <LineScreen
-          key={combatKey}
-          encounter={encounter}
-          playerData={{
-            hp: player.hp,
-            maxHp: player.maxHp,
-            salt: player.salt,
-            mainWeaponId: player.gridWeaponId ?? "sword",
-            offhandId: player.gridOffhandId ?? null,
-            armorId: player.gridArmorId ?? "cloth",
-            armor: 0,
-          }}
-          onVictory={(saltEarned) => {
-            const base = playerToGridPlayer(player);
-            const resultState: import("./grid-combat/types").GridPlayerState = {
-              ...base,
-              salt: player.salt + saltEarned,
-              pos: { row: 0, col: 0 },
-              ap: 0,
-              maxAp: 3,
-              conditions: {},
-              armor: 0,
-              thorns: 0,
-              abilityCooldowns: {},
-              boneResonanceStacks: 0,
-              overwatchTile: null,
-              overwatchDamage: 0,
-              riposteActive: false,
-              guardDamageReduction: 0,
-              braceNegateActive: false,
-              blockFirstHitReduction: 0,
-            };
-            dispatch(gridCombatVictory(resultState, saltEarned));
-          }}
-          onDefeat={() => {
-            dispatch(gridCombatDefeat(enemyIds));
-          }}
-        />
-      );
-    }
-
-    if (combatSystem === "card") {
-      const loadout = playerToCardLoadout(player);
-      const cardEnemies = combatSpawn.enemies.map((e) => ({ id: e.id, uid: e.uid }));
-      return (
-        <CardCombatScreen
-          key={combatKey}
-          loadout={loadout}
-          startingHp={player.hp}
-          startingMaxHp={player.maxHp}
-          startingSalt={player.salt}
-          initialEnemies={cardEnemies}
-          onVictory={(finalHp, finalSalt, loot) => {
-            const synthetic = cardResultToGridPlayerState(player, finalHp, finalSalt);
-            dispatch(gridCombatVictory(synthetic, loot));
-          }}
-          onDefeat={() => {
-            dispatch(gridCombatDefeat(enemyIds));
-          }}
-        />
-      );
-    }
-
-    if (combatSystem === "dice") {
-      const diceLoadout = playerToDiceLoadout(player);
-      const diceEnemies = combatSpawn.enemies.map((e) => ({ id: e.id, uid: e.uid }));
-      return (
-        <DiceScreen
-          key={combatKey}
-          loadout={diceLoadout}
-          startingHp={player.hp}
-          startingMaxHp={player.maxHp}
-          startingSalt={player.salt}
-          initialEnemies={diceEnemies}
-          onVictory={(finalHp, finalSalt, loot) => {
-            const synthetic = diceResultToGridPlayerState(player, finalHp, finalSalt);
-            dispatch(gridCombatVictory(synthetic, loot));
-          }}
-          onDefeat={() => {
-            dispatch(gridCombatDefeat(enemyIds));
-          }}
-        />
-      );
-    }
-
-    const gridPlayer = playerToGridPlayer(player);
-    const overmapData =
-      combatSpawn.overmapGrid && combatSpawn.gridRoomId != null && combatSpawn.bbox
-        ? { grid: combatSpawn.overmapGrid, roomId: combatSpawn.gridRoomId, bbox: combatSpawn.bbox }
-        : undefined;
-    const terrainLayout = getRoomTerrainLayout(
-      combatSpawn.roomLabel,
-      combatSpawn.enemies.length,
-      overmapData,
-    );
-
+    const diceLoadout = playerToDiceLoadout(player);
+    const diceEnemies = combatSpawn.enemies.map((e) => ({ id: e.id, uid: e.uid }));
     return (
-      <GridCombatScreen
+      <DiceScreen
         key={combatKey}
-        gridPlayer={gridPlayer}
-        initialEnemies={combatSpawn.enemies}
-        terrainLayout={terrainLayout}
-        restoredState={combatState}
-        onVictory={(result: GridPlayerState, loot: number) => {
-          dispatch(gridCombatVictory(result, loot));
+        loadout={diceLoadout}
+        startingHp={player.hp}
+        startingMaxHp={player.maxHp}
+        startingSalt={player.salt}
+        initialEnemies={diceEnemies}
+        onVictory={(finalHp, finalSalt, loot) => {
+          const result = diceResultToCombatVictory(player, finalHp, finalSalt);
+          dispatch(combatVictory(result, loot));
         }}
         onDefeat={() => {
-          dispatch(gridCombatDefeat(enemyIds));
+          dispatch(combatDefeat(enemyIds));
         }}
       />
     );

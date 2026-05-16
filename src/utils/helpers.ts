@@ -1,4 +1,3 @@
-import { WEAPONS, STARTER_WEAPON_ID } from "../data/weapons";
 import { CONSUMABLES, STARTER_CONSUMABLE_IDS } from "../data/consumables";
 import { PLAYER_START_HP, PLAYER_START_SALT } from "../data/constants";
 import type { Player } from "../types";
@@ -17,28 +16,20 @@ export function uid(p: string): string {
 }
 
 export function makeStarterPlayer(): Player {
-  const starterWeapon = { ...WEAPONS.find((w) => w.id === STARTER_WEAPON_ID)! };
-  const diceMainWeapon = WEAPONS.find((w) => w.id === "long_sword")!;
-  const diceOffhand = WEAPONS.find((w) => w.id === "torch_spec")!;
   return {
     hp: PLAYER_START_HP,
     maxHp: PLAYER_START_HP,
     salt: PLAYER_START_SALT,
-    statuses: {},
-    mainWeapon: diceMainWeapon,
-    offhandWeapon: diceOffhand,
-    ownedWeapons: [starterWeapon],
+    weaponId: "long_sword",
+    offhandId: "torch_spec",
+    armorId: "leather_armor",
+    ownedWeaponIds: ["long_sword"],
+    ownedOffhandIds: ["torch_spec"],
+    ownedArmorIds: ["leather_armor"],
     consumables: STARTER_CONSUMABLE_IDS.map((id) => ({
       ...CONSUMABLES.find((c) => c.id === id)!,
     })),
     abilities: [],
     flags: {},
-
-    gridWeaponId: "long_sword",
-    gridOffhandId: "torch_spec",
-    gridArmorId: "leather_armor",
-    ownedGridWeaponIds: ["long_sword"],
-    ownedGridOffhandIds: ["torch_spec"],
-    ownedGridArmorIds: ["leather_armor"],
   };
 }

@@ -76,7 +76,7 @@ export const A1_TESTING_GROUNDS_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take it",
             effects: [
-              { type: "grant_grid_weapon", weaponId: "pickaxe" },
+              { type: "grant_weapon", weaponId: "pickaxe" },
               { type: "consume_prop" },
               { type: "log", message: "Pickaxe added to your loadout." },
             ],
@@ -120,7 +120,7 @@ export const A1_TESTING_GROUNDS_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take it",
             effects: [
-              { type: "grant_grid_offhand", offhandId: "main_gauche" },
+              { type: "grant_offhand", offhandId: "main_gauche" },
               { type: "consume_prop" },
               { type: "log", message: "Main Gauche added to your loadout." },
             ],
@@ -197,7 +197,7 @@ export const A1_TESTING_GROUNDS_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take it",
             effects: [
-              { type: "grant_grid_weapon", weaponId: "claymore" },
+              { type: "grant_weapon", weaponId: "claymore" },
               { type: "consume_prop" },
               { type: "log", message: "Claymore added to your loadout." },
             ],
@@ -227,7 +227,7 @@ export const A1_TESTING_GROUNDS_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take it",
             effects: [
-              { type: "grant_grid_armor", armorId: "shadow_cloak" },
+              { type: "grant_armor", armorId: "shadow_cloak" },
               { type: "consume_prop" },
               { type: "log", message: "Shadow Cloak added to your loadout." },
             ],
@@ -257,7 +257,7 @@ export const A1_TESTING_GROUNDS_ROOMS: Record<number, AuthoredRoom> = {
             id: "take",
             label: "Take it",
             effects: [
-              { type: "grant_grid_offhand", offhandId: "censer_offhand" },
+              { type: "grant_offhand", offhandId: "censer_offhand" },
               { type: "consume_prop" },
               { type: "log", message: "Censer added to your loadout." },
             ],
