@@ -958,6 +958,8 @@ function damageEnemy(
   if (power > 0) dmg += power;
   const bolster = state.player.statuses.bolster ?? 0;
   if (bolster > 0) dmg += bolster;
+  const enemyWeaken = enemy.statuses.weaken ?? 0;
+  if (enemyWeaken > 0) dmg = Math.max(0, dmg - enemyWeaken);
 
   // Intangible: physical damage is negated (fire/holy still lands via separate paths).
   if (enemy.statuses.intangible) {
@@ -1003,6 +1005,12 @@ function damageEnemy(
       : baseLog;
   const playerStatuses = { ...state.player.statuses };
   delete (playerStatuses as Record<string, number>).power;
+  // Bolster: consume 1 stack per damage application.
+  if (bolster > 0) {
+    const newBolster = bolster - 1;
+    if (newBolster === 0) delete (playerStatuses as Record<string, number>).bolster;
+    else playerStatuses.bolster = newBolster;
+  }
   let s: DiceCombatState = {
     ...state,
     enemies,
@@ -1264,7 +1272,25 @@ function applyEnemyFace(
     if (sym === "sword") {
       // 1 damage to player, respecting unblockable / undodgeable.
       let dmg = 1;
-      if (s.player.statuses.weaken && s.player.statuses.weaken > 0) dmg = Math.max(0, dmg - 1);
+      // Bolster/weaken modify the attacker's own damage output; each consumes 1 stack per hit.
+      const attackerBolster = attacker.statuses.bolster ?? 0;
+      const attackerWeaken = attacker.statuses.weaken ?? 0;
+      if (attackerBolster > 0 || attackerWeaken > 0) {
+        dmg = Math.max(0, dmg + attackerBolster - attackerWeaken);
+        const newBolster = Math.max(0, attackerBolster - 1);
+        const newWeaken = Math.max(0, attackerWeaken - 1);
+        s = {
+          ...s,
+          enemies: s.enemies.map((e) => {
+            if (e.uid !== attackerUid) return e;
+            const st = { ...e.statuses, bolster: newBolster, weaken: newWeaken };
+            if (newBolster === 0) delete (st as Record<string, number>).bolster;
+            if (newWeaken === 0) delete (st as Record<string, number>).weaken;
+            return { ...e, statuses: st };
+          }),
+        };
+        attacker = s.enemies.find((e) => e.uid === attackerUid) ?? attacker;
+      }
       // Per-attack targeted block (from attackMitigations).
       if (attackBlock > 0 && dmg > 0) {
         const absorbed = Math.min(attackBlock, dmg);
@@ -1278,6 +1304,15 @@ function applyEnemyFace(
       // v3: shields *only* land via per-attack mitigations (attackMitigations).
       // There is no global block soup.
       if (dmg > 0) {
+        // Player mark doubles the next incoming damage instance, then consumes a stack.
+        let playerMark = s.player.statuses.mark ?? 0;
+        if (playerMark > 0) {
+          dmg *= 2;
+          playerMark -= 1;
+          const markStatuses = { ...s.player.statuses, mark: playerMark };
+          if (playerMark === 0) delete (markStatuses as Record<string, number>).mark;
+          s = { ...s, player: { ...s.player, statuses: markStatuses } };
+        }
         const newHp = Math.max(0, s.player.hp - dmg);
         s = {
           ...s,
@@ -1316,6 +1351,13 @@ function applyEnemyFace(
         ...s,
         player: { ...s.player, statuses: { ...s.player.statuses, dragged: 1 } },
         log: appendLog(s, "enemy", `${attacker.name} drags you — dodge disabled next turn.`),
+      };
+    } else if (sym === "mark") {
+      const cur = (s.player.statuses.mark ?? 0) + 1;
+      s = {
+        ...s,
+        player: { ...s.player, statuses: { ...s.player.statuses, mark: cur } },
+        log: appendLog(s, "enemy", `${attacker.name} marks you — next hit is doubled.`),
       };
     } else if (sym === "heart") {
       // Self-heal on the attacker (e.g. Vampire's Drain).
@@ -1490,6 +1532,37 @@ function applyEnemyFace(
       };
       attacker = s.enemies.find((e) => e.uid === attackerUid);
       if (!attacker) return s;
+    } else if (sym === "sun") {
+      // Bolster the ally with the most damage-symbol faces. If focus already ran this
+      // turn, its target received focus; bolster independently picks its own best target.
+      const damageSym = new Set<SymbolKey>(["sword", "flame"]);
+      const damageSymCount = (e: DiceEnemy) => {
+        const def = getEnemyDef(e.id);
+        if (!def) return 0;
+        const dice = def.phaseDice ? (def.phaseDice[e.phaseIndex] ?? def.dice) : (def.dice ?? []);
+        return dice.reduce((best, die) => {
+          const faceMax = die.faces.reduce(
+            (m, fid) =>
+              Math.max(m, getFace(fid)?.symbols?.filter((sym) => damageSym.has(sym)).length ?? 0),
+            0,
+          );
+          return Math.max(best, faceMax);
+        }, 0);
+      };
+      const allies = s.enemies.filter((e) => e.hp > 0);
+      const bolsterTarget = allies.reduce((best, e) =>
+        damageSymCount(e) > damageSymCount(best) ? e : best,
+      );
+      s = {
+        ...s,
+        enemies: s.enemies.map((e) =>
+          e.uid === bolsterTarget.uid
+            ? { ...e, statuses: { ...e.statuses, bolster: (e.statuses.bolster ?? 0) + 1 } }
+            : e,
+        ),
+        log: appendLog(s, "enemy", `${attacker.name} bolsters ${bolsterTarget.name}.`),
+      };
+      attacker = s.enemies.find((e) => e.uid === attackerUid) ?? attacker;
     } else if (sym === "reproduce") {
       // Spawn a same-id enemy in the same row, capped at 5 of this id alive.
       const sameKind = s.enemies.filter((x) => x.id === attacker!.id && x.hp > 0).length;
@@ -1562,8 +1635,8 @@ function tickPlayerStatuses(state: DiceCombatState): DiceCombatState {
       log: appendLog(s, "system", `Bleed: -${bleed} HP.`),
     };
   }
-  // Bolster, Weaken, and Dragged all decay one stack per turn.
-  const decayKeys = ["bolster", "dragged", "weaken"] as const;
+  // Dragged decays one stack per turn. Bolster/weaken consume on use instead.
+  const decayKeys = ["dragged"] as const;
   const decayed = { ...s.player.statuses };
   for (const key of decayKeys) {
     if ((decayed[key] ?? 0) > 0) {

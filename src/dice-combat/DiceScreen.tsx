@@ -165,8 +165,8 @@ const SYMBOL_DESC: Record<SymbolKey, string> = {
   drop: "Applies 1 Bleed. Bleeding enemies lose HP each turn.",
   spark: "Applies 1 Stun. Stunned enemies skip their next action.",
   crystal: "Grants 1 Salt (resource).",
-  bolt: "Applies 1 Weaken. Weakened targets deal 25% less damage.",
-  sun: "Applies 1 Bolster. Bolstered targets deal +1 on all damage symbols.",
+  bolt: "Applies 1 Weaken. Weakened targets deal reduced damage equal to their current Weaken stacks; consumes 1 stack per hit.",
+  sun: "Applies 1 Bolster. Bolstered targets deal extra damage equal to current Bolster stacks; consumes 1 stack per hit.",
   riposte:
     "Assign to a melee attack: blocks 1 damage and deals 1 back to the attacker before it resolves.",
   cleanse: "Removes all negative status effects from self.",
