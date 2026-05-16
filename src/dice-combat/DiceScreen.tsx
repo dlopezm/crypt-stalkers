@@ -499,7 +499,7 @@ export function DiceScreen({
       selectedFace.target === "all-enemies");
 
   return (
-    <div className="stage">
+    <div className={`stage${phase === "resolving-enemies" ? " stage--enemy-turn" : ""}`}>
       {/* Stone arches */}
       <svg className="arches" viewBox="0 0 880 90" preserveAspectRatio="none">
         <path
