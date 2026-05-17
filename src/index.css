@@ -385,6 +385,57 @@ button {
   min-height: 100px;
   flex-wrap: wrap;
 }
+/* 3D die cuboid */
+.die-cuboid-wrap {
+  width: 76px;
+  height: 90px;
+  perspective: 800px;
+  position: relative;
+  flex-shrink: 0;
+}
+.die-cuboid-wrap.mini {
+  width: 45px;
+  height: 54px;
+  perspective: 500px;
+}
+.die-cuboid-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+}
+.die-cuboid-face {
+  position: absolute;
+  width: 76px;
+  height: 90px;
+  background: var(--bone);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+.die-cuboid-wrap.mini .die-cuboid-face {
+  width: 45px;
+  height: 54px;
+}
+.die-cuboid-face .band {
+  height: 14px;
+  border-bottom: 1.5px solid var(--ink);
+  flex-shrink: 0;
+}
+.die-cuboid-wrap.mini .die-cuboid-face .band {
+  height: 10px;
+  border-bottom: 1px solid var(--ink);
+}
+.die-cuboid-face .sym {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .pool-die {
   width: 76px;
   height: 90px;

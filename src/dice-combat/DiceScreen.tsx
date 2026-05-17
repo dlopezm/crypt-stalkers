@@ -1,47 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  IconArea,
-  IconArmorBreak,
-  IconBind,
-  IconBleedBurst,
-  IconBolt,
-  IconBurrowSpawn,
-  IconCleanse,
-  IconCrystal,
-  IconDodge,
-  IconDrag,
-  IconDrop,
-  IconFlame,
-  IconFocus,
-  IconHeart,
-  IconHide,
-  IconHoly,
-  IconHymnHum,
-  IconIntangible,
-  IconInvert,
-  IconMark,
-  IconPierce,
-  IconPower,
-  IconPush,
-  IconRanged,
-  IconReform,
-  IconReproduce,
-  IconResonance,
-  IconRiposte,
-  IconShield,
-  IconSneakAttack,
-  IconSpark,
-  IconSteal,
-  IconSummon,
-  IconSun,
-  IconSword,
-  IconTaunt,
-  IconUnblockable,
-  IconUndodgeable,
-  IconPoison,
-  IconSkull,
-} from "../icons";
-import type { IconProps } from "../icons";
+import { IconBind, IconFocus, IconHymnHum } from "../icons";
 import {
   allAssigned,
   assignFace,
@@ -58,6 +16,8 @@ import {
 } from "./engine";
 import { COLORS, getFace, SLOT_ORDER } from "./dice-defs";
 import { getEnemyDef } from "./enemy-defs";
+import { FACE_COLOR_CSS, FaceGlyphs } from "./FaceGlyphs";
+import { RollingDieCuboid } from "./RollingDieCuboid";
 import type {
   DiceCombatState,
   DiceLoadout,
@@ -70,92 +30,6 @@ import type {
 } from "./types";
 import { STATUS_COLORS, STATUS_DESC, STATUS_ICONS } from "../data/status";
 import type { StatusKey } from "../types";
-
-const SYMBOL_ICON: Record<SymbolKey, React.FC<IconProps>> = {
-  sword: IconSword,
-  shield: IconShield,
-  heart: IconHeart,
-  flame: IconFlame,
-  drop: IconDrop,
-  spark: IconSpark,
-  crystal: IconCrystal,
-  bolt: IconBolt,
-  sun: IconSun,
-  riposte: IconRiposte,
-  cleanse: IconCleanse,
-  mark: IconMark,
-  power: IconPower,
-  dodge: IconDodge,
-  reproduce: IconReproduce,
-  steal: IconSteal,
-  push: IconPush,
-  reform: IconReform,
-  intangible: IconIntangible,
-  hide: IconHide,
-  summon: IconSummon,
-  invert: IconInvert,
-  bind: IconBind,
-  burrow_spawn: IconBurrowSpawn,
-  ranged: IconRanged,
-  area: IconArea,
-  holy: IconHoly,
-  pierce: IconPierce,
-  unblockable: IconUnblockable,
-  undodgeable: IconUndodgeable,
-  resonance: IconResonance,
-  hymn_hum: IconHymnHum,
-  armor_break: IconArmorBreak,
-  bleed_burst: IconBleedBurst,
-  drag: IconDrag,
-  sneak_attack: IconSneakAttack,
-  taunt: IconTaunt,
-  self_damage: IconSkull,
-  poison: IconPoison,
-  focus: IconFocus,
-};
-
-const SYMBOL_LABEL: Record<SymbolKey, string> = {
-  sword: "1 damage",
-  shield: "1 block",
-  heart: "1 heal",
-  flame: "1 fire",
-  drop: "+1 Bleed",
-  spark: "+1 Stun",
-  crystal: "+1 Salt",
-  bolt: "+1 Weaken",
-  sun: "+1 Bolster",
-  riposte: "Riposte",
-  cleanse: "Cleanse",
-  mark: "Mark",
-  power: "+1 Power",
-  dodge: "Dodge",
-  reproduce: "Reproduce",
-  steal: "Steal salt",
-  push: "Push row",
-  reform: "Reform",
-  intangible: "Phase",
-  hide: "Hide",
-  summon: "Raise Dead",
-  invert: "Invert",
-  bind: "Bind die",
-  burrow_spawn: "Surface + Zombie",
-  ranged: "Ranged",
-  area: "Area",
-  holy: "Holy",
-  pierce: "Pierce",
-  unblockable: "Unblockable",
-  undodgeable: "Undodgeable",
-  resonance: "+1 Resonance",
-  hymn_hum: "Hymn-Hum",
-  armor_break: "Armor Break",
-  bleed_burst: "Bleed Burst",
-  drag: "Drag",
-  sneak_attack: "Sneak Attack",
-  taunt: "Taunt",
-  self_damage: "Self-damage",
-  poison: "+1 Poison",
-  focus: "+1 Focus",
-};
 
 const SYMBOL_DESC: Record<SymbolKey, string> = {
   sword: "Deals 1 damage to the target.",
@@ -240,11 +114,6 @@ function faceDesc(face: FaceDef): string {
     .join(" ");
 }
 
-/* Maps game FaceColor → new CSS design token */
-const FACE_COLOR_CSS: Record<FaceColor, string> = Object.fromEntries(
-  Object.values(COLORS).map((c) => [c.id, c.hex]),
-) as Record<FaceColor, string>;
-
 /* Maps enemy id prefix → art tile tone class */
 const ENEMY_TONE: Record<string, string> = {
   skeleton: "teal",
@@ -267,49 +136,6 @@ function injectPoisonSymbols(face: FaceDef, stacks: number): FaceDef {
     ...face,
     symbols: [...Array<"self_damage">(stacks).fill("self_damage"), ...(face.symbols ?? [])],
   };
-}
-
-function FaceGlyphs({
-  face,
-  size = "0.95rem",
-  color,
-}: {
-  face: FaceDef;
-  size?: string;
-  color?: string;
-}) {
-  const symbols = face.symbols ?? [];
-  const iconStyle: React.CSSProperties = {
-    width: size,
-    height: size,
-    color: color ?? "var(--bone)",
-    flexShrink: 0,
-  };
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        gap: "0.15rem",
-        alignItems: "center",
-        lineHeight: 1,
-        flexWrap: "wrap",
-      }}
-      title={symbols.map((s) => SYMBOL_LABEL[s]).join(", ")}
-    >
-      {symbols.map((s, i) => {
-        const Icon = SYMBOL_ICON[s];
-        const style =
-          s === "self_damage"
-            ? {
-                ...iconStyle,
-                color: "var(--poison)",
-                filter: "drop-shadow(0px 0px 1px #000) drop-shadow(0px 0px 1px #000)",
-              }
-            : iconStyle;
-        return <Icon key={i} style={style} />;
-      })}
-    </span>
-  );
 }
 
 interface Props {
@@ -348,6 +174,7 @@ export function DiceScreen({
   const [inspectEnemyUid, setInspectEnemyUid] = useState<string | null>(null);
   const [showPlayerStatus, setShowPlayerStatus] = useState(false);
   const [playerFlashUid, setPlayerFlashUid] = useState<string | null>(null);
+  const [rollingPoolIds, setRollingPoolIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (!playerFlashUid) return;
@@ -362,6 +189,10 @@ export function DiceScreen({
       onDefeat();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase]);
+
+  useEffect(() => {
+    if (state.phase !== "rolling") setRollingPoolIds(new Set());
   }, [state.phase]);
 
   useEffect(() => {
@@ -385,14 +216,20 @@ export function DiceScreen({
       setFocusPendingSlot(slot);
       return;
     }
-    setState((s) => rollSlot(s, slot));
+    const nextState = rollSlot(state, slot);
+    setState(nextState);
+    const newFace = nextState.pool[nextState.pool.length - 1];
+    if (newFace) setRollingPoolIds((prev) => new Set([...prev, newFace.poolId]));
   }
 
   function handleFocusPick(faceIdx: number) {
     if (focusPendingSlot === null) return;
     const slot = focusPendingSlot;
     setFocusPendingSlot(null);
-    setState((s) => rollSlotWithFace(s, slot, faceIdx));
+    const nextState = rollSlotWithFace(state, slot, faceIdx);
+    setState(nextState);
+    const newFace = nextState.pool[nextState.pool.length - 1];
+    if (newFace) setRollingPoolIds((prev) => new Set([...prev, newFace.poolId]));
   }
 
   function handleStop() {
@@ -639,6 +476,14 @@ export function DiceScreen({
                   selected={selectedPoolId === pf.poolId}
                   busted={busted}
                   onClick={() => handlePoolFaceClick(pf.poolId)}
+                  isRolling={rollingPoolIds.has(pf.poolId)}
+                  onRollComplete={() =>
+                    setRollingPoolIds((prev) => {
+                      const next = new Set(prev);
+                      next.delete(pf.poolId);
+                      return next;
+                    })
+                  }
                 />
               ))}
               {phase === "rolling" && state.pool.length > 0 && (
@@ -918,6 +763,22 @@ function AlcoveCard({
   const isActing = state.lastEnemyAction?.uid === enemy.uid;
   const tone = toneFor(enemy.id);
 
+  // Tracks which faces have completed their roll animation this turn.
+  // When state.turn changes, doneKey.turn won't match, so done is treated as empty.
+  const [doneKey, setDoneKey] = useState<{ turn: number; done: Set<number> }>({
+    turn: -1,
+    done: new Set(),
+  });
+
+  const rollingFaceIndices = useMemo(() => {
+    if (enemy.rolledFaces.length === 0) return new Set<number>();
+    const done = doneKey.turn === state.turn ? doneKey.done : new Set<number>();
+    return new Set(enemy.rolledFaces.map((_, i) => i).filter((i) => !done.has(i)));
+  }, [enemy.rolledFaces, state.turn, doneKey]);
+
+  const enemyDef = getEnemyDef(enemy.id);
+  const allEnemyDice = [...(enemyDef?.dice ?? []), ...(enemyDef?.phaseDice ?? []).flat()];
+
   const isHidden = !!enemy.statuses.hidden;
   const flashStyle = playerFlash ? { filter: "drop-shadow(0 0 8px rgba(154,214,163,0.7))" } : {};
 
@@ -1020,50 +881,68 @@ function AlcoveCard({
           const mit = state.attackMitigations[`${enemy.uid}:${i}`];
           const mitigated = mit && (mit.block > 0 || mit.dodge || mit.riposteDamage > 0);
           const cancelled = mitigated && mit.dodge;
+          const isRolling = rollingFaceIndices.has(i);
+          const enemyDie = allEnemyDice.find((d) => d.id === rf.dieId) ?? null;
+
           return (
             <div
               key={i}
               className="mini"
               style={{ transform: `rotate(${(i - (n - 1) / 2) * 8}deg)` }}
             >
-              <div
-                className="mini-die"
-                title={face.label}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (canDefend) onAttackClick(i);
-                }}
-                style={{
-                  cursor: canDefend ? "pointer" : "default",
-                  opacity: cancelled ? 0.4 : 1,
-                  outline: canDefend
-                    ? "1.5px solid var(--torch)"
-                    : mitigated
-                      ? "1px solid var(--crypt)"
-                      : undefined,
-                  position: "relative",
-                }}
-              >
-                <div className="band" style={{ background: FACE_COLOR_CSS[face.color] }} />
-                <div className="sym">
-                  <FaceGlyphs face={face} size="18px" color={FACE_COLOR_CSS[face.color]} />
-                </div>
-                {rf.focused && (
-                  <div
-                    title="Selected by Focus"
-                    style={{
-                      position: "absolute",
-                      top: 2,
-                      left: 2,
-                      width: 8,
-                      height: 8,
-                      color: "#000",
-                    }}
-                  >
-                    <IconFocus style={{ width: "100%", height: "100%" }} />
+              {isRolling && enemyDie ? (
+                <RollingDieCuboid
+                  die={enemyDie}
+                  resultFaceId={rf.faceId}
+                  mini
+                  delay={i * 0.12}
+                  onRollComplete={() =>
+                    setDoneKey((prev) => ({
+                      turn: state.turn,
+                      done: new Set([...prev.done, i]),
+                    }))
+                  }
+                />
+              ) : (
+                <div
+                  className="mini-die"
+                  title={face.label}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (canDefend) onAttackClick(i);
+                  }}
+                  style={{
+                    cursor: canDefend ? "pointer" : "default",
+                    opacity: cancelled ? 0.4 : 1,
+                    outline: canDefend
+                      ? "1.5px solid var(--torch)"
+                      : mitigated
+                        ? "1px solid var(--crypt)"
+                        : undefined,
+                    position: "relative",
+                  }}
+                >
+                  <div className="band" style={{ background: FACE_COLOR_CSS[face.color] }} />
+                  <div className="sym">
+                    <FaceGlyphs face={face} size="18px" color={FACE_COLOR_CSS[face.color]} />
                   </div>
-                )}
-              </div>
+                  {rf.focused && (
+                    <div
+                      title="Selected by Focus"
+                      style={{
+                        position: "absolute",
+                        top: 2,
+                        left: 2,
+                        width: 8,
+                        height: 8,
+                        color: "#000",
+                      }}
+                    >
+                      <IconFocus style={{ width: "100%", height: "100%" }} />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -1080,12 +959,16 @@ function PoolDieCard({
   selected,
   busted,
   onClick,
+  isRolling,
+  onRollComplete,
 }: {
   pf: PoolFace;
   state: DiceCombatState;
   selected: boolean;
   busted: boolean;
   onClick: () => void;
+  isRolling: boolean;
+  onRollComplete: () => void;
 }) {
   const face = getFace(pf.faceId);
   if (!face) return null;
@@ -1101,6 +984,10 @@ function PoolDieCard({
       ? state.player.poisonedFaces.filter((p) => p.slot === pf.slot && p.faceIndex === faceIndex)
           .length
       : 0;
+
+  if (isRolling && die) {
+    return <RollingDieCuboid die={die} resultFaceId={pf.faceId} onRollComplete={onRollComplete} />;
+  }
 
   return (
     <div
