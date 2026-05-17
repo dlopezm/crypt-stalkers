@@ -291,7 +291,7 @@ export function DiceScreen({
   const candleLit = Math.round((p.hp / p.maxHp) * candleSegs);
 
   // Pool bust risk: % of pool colors that would collide if a die face shares them
-  function bustRiskForDie(slot: DieSlot): number {
+  function bustRiskForDie(slot: DieSlot): { matching: number; total: number } {
     const die = dieForSlot(slot, state);
     const poolColors = state.pool.filter((pf) => pf.color !== "colorless").map((pf) => pf.color);
     const faceColors = die.faces.map((faceId) => {
@@ -299,7 +299,7 @@ export function DiceScreen({
       return face?.color ?? ("blank" as FaceColor);
     });
     const matching = faceColors.filter((c) => c !== "colorless" && poolColors.includes(c)).length;
-    return Math.min(100, Math.round((matching / die.faces.length) * 100));
+    return { matching, total: die.faces.length };
   }
 
   function wouldBust(colorId: FaceColor): boolean {
@@ -549,7 +549,7 @@ export function DiceScreen({
           const locked = state.player.slotLocks.includes(slot);
           const canRoll = phase === "rolling" && !locked && canRollSlot(state, slot);
           const risk = bustRiskForDie(slot);
-          const isHot = canRoll && risk > 33;
+          const isHot = canRoll && risk.matching / risk.total > 1 / 3;
           const corruptions = state.player.corruptedFaces.filter((c) => c.slot === slot);
           const poisoned = state.player.poisonedFaces.filter((p) => p.slot === slot);
           return (
@@ -581,9 +581,9 @@ export function DiceScreen({
                   {locked ? (
                     <IconBind style={{ width: "0.8em", height: "0.8em" }} />
                   ) : isHot ? (
-                    `⚠ ${risk}%`
+                    `⚠ ${risk.matching}/${risk.total}`
                   ) : (
-                    `${risk}%`
+                    `${risk.matching}/${risk.total}`
                   )}
                 </span>
               </div>
