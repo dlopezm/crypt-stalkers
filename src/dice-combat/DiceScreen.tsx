@@ -285,10 +285,6 @@ function FaceGlyphs({
     color: color ?? "var(--bone)",
     flexShrink: 0,
   };
-  if (symbols.length === 0) {
-    const FaceIcon = face.icon;
-    return <FaceIcon style={{ ...iconStyle, display: "inline-block" }} />;
-  }
   return (
     <span
       style={{

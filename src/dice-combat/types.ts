@@ -78,7 +78,6 @@ export type SymbolKey =
 export interface FaceDef {
   readonly id: string;
   readonly label: string;
-  readonly icon: React.FC<IconProps>;
   readonly color: FaceColor;
   readonly target: FaceTargetKind;
   readonly symbols?: readonly SymbolKey[];
