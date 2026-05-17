@@ -4,7 +4,6 @@ import {
   IconArmorBreak,
   IconBind,
   IconBleed,
-  IconBleedBurst,
   IconBurrowSpawn,
   IconBypass,
   IconCleanse,
@@ -833,15 +832,6 @@ export const FACES: Record<string, FaceDef> = {
 
   /* ── v3 enemy faces (player-targeting offensive symbols, or self-targeting for armor/heals) ── */
 
-  enemy_grasp_drag: {
-    id: "enemy_grasp_drag",
-    label: "Drag",
-    icon: IconDrag,
-    color: "brine",
-    target: "self",
-    symbols: ["sword", "drag", "undodgeable"],
-  },
-
   enemy_bite_1: {
     id: "enemy_bite_1",
     label: "Bite",
@@ -850,14 +840,6 @@ export const FACES: Record<string, FaceDef> = {
     target: "self",
     symbols: ["sword"],
   },
-  enemy_rake_2: {
-    id: "enemy_rake_2",
-    label: "Rake",
-    icon: IconFang,
-    color: "crimson",
-    target: "self",
-    symbols: ["sword", "sword"],
-  },
   enemy_reproduce: {
     id: "enemy_reproduce",
     label: "Reproduce",
@@ -865,14 +847,6 @@ export const FACES: Record<string, FaceDef> = {
     color: "colorless",
     target: "self",
     symbols: ["reproduce"],
-  },
-  enemy_cower: {
-    id: "enemy_cower",
-    label: "Cower",
-    icon: IconShield,
-    color: "salt",
-    target: "self",
-    symbols: ["shield"],
   },
 
   /* Skeleton offense */
@@ -884,14 +858,6 @@ export const FACES: Record<string, FaceDef> = {
     target: "self",
     symbols: ["sword", "sword"],
   },
-  enemy_bone_crack: {
-    id: "enemy_bone_crack",
-    label: "Crack",
-    icon: IconMuscle,
-    color: "iron",
-    target: "self",
-    symbols: ["sword", "spark"],
-  },
   enemy_bone_lurch: {
     id: "enemy_bone_lurch",
     label: "Lurch",
@@ -900,16 +866,16 @@ export const FACES: Record<string, FaceDef> = {
     target: "self",
     symbols: ["sword"],
   },
-  enemy_bone_bash: {
-    id: "enemy_bone_bash",
-    label: "Bash",
-    icon: IconReform,
-    color: "iron",
-    target: "self",
-    symbols: ["sword", "area"],
-  },
 
-  /* Skeleton armor die — shield faces also apply Taunt. */
+  /* Skeleton armor die */
+  enemy_shield_2: {
+    id: "enemy_shield_2",
+    label: "Guard",
+    icon: IconShield,
+    color: "salt",
+    target: "self",
+    symbols: ["shield", "shield"],
+  },
   enemy_armor_2: {
     id: "enemy_armor_2",
     label: "Brace",
@@ -918,13 +884,13 @@ export const FACES: Record<string, FaceDef> = {
     target: "self",
     symbols: ["shield", "shield", "taunt"],
   },
-  enemy_armor_1: {
-    id: "enemy_armor_1",
-    label: "Plate",
+  enemy_shield_1: {
+    id: "enemy_shield_1",
+    label: "Ward",
     icon: IconShield,
     color: "salt",
     target: "self",
-    symbols: ["shield", "taunt"],
+    symbols: ["shield"],
   },
   enemy_armor_strike: {
     id: "enemy_armor_strike",
@@ -933,14 +899,6 @@ export const FACES: Record<string, FaceDef> = {
     color: "iron",
     target: "self",
     symbols: ["shield", "sword"],
-  },
-  enemy_armor_stun: {
-    id: "enemy_armor_stun",
-    label: "Stun-Brace",
-    icon: IconShield,
-    color: "iron",
-    target: "self",
-    symbols: ["shield", "spark"],
   },
 
   /* Banshee — Wail die faces */
@@ -1009,23 +967,6 @@ export const FACES: Record<string, FaceDef> = {
     target: "self",
     symbols: ["bolt", "bolt", "unblockable"],
   },
-  /* Necromancer — area curse, no animation logic here (handled by selectIntent hook). */
-  enemy_curse: {
-    id: "enemy_curse",
-    label: "Curse",
-    icon: IconGhost,
-    color: "coldfire",
-    target: "self",
-    symbols: ["bolt", "area", "undodgeable", "unblockable"],
-  },
-  enemy_grave_call: {
-    id: "enemy_grave_call",
-    label: "Grave-Call",
-    icon: IconReform,
-    color: "coldfire",
-    target: "self",
-    symbols: ["sword", "unblockable"],
-  },
   enemy_chant: {
     id: "enemy_chant",
     label: "Chant",
@@ -1036,14 +977,6 @@ export const FACES: Record<string, FaceDef> = {
   },
 
   /* Generic shared enemy faces */
-  enemy_shamble: {
-    id: "enemy_shamble",
-    label: "Shamble",
-    icon: IconZombie,
-    color: "crimson",
-    target: "self",
-    symbols: ["sword"],
-  },
   enemy_grasp: {
     id: "enemy_grasp",
     label: "Grasp",
@@ -1076,22 +1009,6 @@ export const FACES: Record<string, FaceDef> = {
     target: "self",
     symbols: ["sword", "sword", "sword"],
   },
-  enemy_pounce: {
-    id: "enemy_pounce",
-    label: "Pounce",
-    icon: IconSneakAttack,
-    color: "crimson",
-    target: "self",
-    symbols: ["sword", "sword", "sword"],
-  },
-  enemy_ambush: {
-    id: "enemy_ambush",
-    label: "Ambush",
-    icon: IconBleedBurst,
-    color: "crimson",
-    target: "self",
-    symbols: ["sword", "sword", "sword", "unblockable"],
-  },
   enemy_shadow_strike: {
     id: "enemy_shadow_strike",
     label: "Shadow Strike",
@@ -1108,22 +1025,6 @@ export const FACES: Record<string, FaceDef> = {
     target: "self",
     symbols: ["steal"],
   },
-  enemy_animate: {
-    id: "enemy_animate",
-    label: "Animate",
-    icon: IconSummon,
-    color: "coldfire",
-    target: "self",
-    symbols: ["summon"],
-  },
-  enemy_summon: {
-    id: "enemy_summon",
-    label: "Raise Dead",
-    icon: IconSummon,
-    color: "coldfire",
-    target: "self",
-    symbols: ["summon"],
-  },
   enemy_bind: {
     id: "enemy_bind",
     label: "Bind",
@@ -1139,14 +1040,6 @@ export const FACES: Record<string, FaceDef> = {
     color: "iron",
     target: "self",
     symbols: ["sword", "sword", "sword"],
-  },
-  enemy_hold: {
-    id: "enemy_hold",
-    label: "Hold",
-    icon: IconArmorBreak,
-    color: "iron",
-    target: "self",
-    symbols: ["sword", "sword", "spark"],
   },
   enemy_great_cleave: {
     id: "enemy_great_cleave",
@@ -1171,14 +1064,6 @@ export const FACES: Record<string, FaceDef> = {
     color: "coldfire",
     target: "self",
     symbols: ["sword", "sword", "sword", "unblockable"],
-  },
-  enemy_iron_pike: {
-    id: "enemy_iron_pike",
-    label: "Iron Pike",
-    icon: IconDagger,
-    color: "iron",
-    target: "self",
-    symbols: ["sword", "sword", "spark"],
   },
   enemy_echo_lance: {
     id: "enemy_echo_lance",
@@ -1270,16 +1155,6 @@ export const FACES: Record<string, FaceDef> = {
     color: "brine",
     target: "self",
     symbols: ["burrow_spawn"],
-  },
-
-  // Forsworn guard taunt
-  enemy_guard_taunt: {
-    id: "enemy_guard_taunt",
-    label: "Hold the Line",
-    icon: IconCrossedSwords,
-    color: "iron",
-    target: "self",
-    symbols: ["shield", "shield", "shield", "taunt"],
   },
 
   // False Sacrarium curse
