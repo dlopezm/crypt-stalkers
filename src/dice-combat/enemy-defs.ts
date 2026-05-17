@@ -9,7 +9,6 @@ import {
   IconHoly,
   IconHymnHum,
   IconIntangible,
-  IconMark,
   IconReform,
   IconReproduce,
   IconResonance,
@@ -316,18 +315,38 @@ const VAMPIRE: DiceEnemyDef = {
 const BANSHEE: DiceEnemyDef = {
   id: "banshee",
   name: "Wailing Banshee",
-  icon: IconMark,
+  icon: IconIntangible,
   maxHp: 4,
   defaultRow: "back",
   isBoss: false,
-  // v3: rolls a Wail die. Wail and Drone are unblockable (terror attacks).
   dice: [
     {
       id: "wail_die",
       name: "Wail Die",
-      icon: IconMark,
-      faces: ["enemy_wail", "enemy_wail", "enemy_drone", "enemy_ululate", "blank", "blank"],
+      icon: IconIntangible,
+      faces: [
+        "enemy_wail_stun3",
+        "enemy_wail_stun2",
+        "enemy_wail_stun2",
+        "enemy_wail_weaken2",
+        "enemy_wail_weaken2",
+        "enemy_wail_vulnerable",
+      ],
       defaultTarget: "player",
+    },
+    {
+      id: "ghost_die",
+      name: "Ghost Die",
+      icon: IconIntangible,
+      faces: [
+        "enemy_ghost_dodge",
+        "enemy_ghost_dodge",
+        "enemy_ghost_ranged_unblockable",
+        "blank",
+        "blank",
+        "blank",
+      ],
+      defaultTarget: "self",
     },
   ],
   onSpawn: (self, state) => {

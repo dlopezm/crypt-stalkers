@@ -52,7 +52,7 @@ function serializeNotesField(indent: string, notes: string | undefined): string 
 }
 
 /* ── Cell colors (must read clearly without hatching) ── */
-const MAX_ROOM_ID = 20;
+const MAX_ROOM_ID = 30;
 const ROOM_COLORS: Record<number, string> = {
   2: "#c8a8ff",
   3: "#a8d8ff",
@@ -73,6 +73,16 @@ const ROOM_COLORS: Record<number, string> = {
   18: "#ffd8a0",
   19: "#a0d0ff",
   20: "#d0a0ff",
+  21: "#c8e8ff",
+  22: "#c8ffc8",
+  23: "#fff0c0",
+  24: "#ffd0c0",
+  25: "#ffc0e0",
+  26: "#e0ffc0",
+  27: "#c0ffe8",
+  28: "#ffd8a0",
+  29: "#a0d0ff",
+  30: "#d0a0ff",
 };
 
 function cellFill(v: Cell): string {

@@ -20,8 +20,8 @@ const A1_TESTING_GROUNDS_GRID: number[][] = [
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 18, 18,  1, 16, 16,  1, 14, 14,  1,  0], //  7
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 18, 18,  1, 16, 16,  1, 14, 14,  1,  0], //  8
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  0,  1,  1,  0,  1,  1,  0], //  9
-  [ 1,  1,  1,  1, 20, 20,  0, 19, 19,  0, 17, 17,  0, 15, 15,  0, 13, 13,  0,  0], // 10
-  [ 1,  1,  1,  1, 20, 20,  1, 19, 19,  1, 17, 17,  1, 15, 15,  1, 13, 13,  1,  1], // 11
+  [ 1, 21, 21,  0, 20, 20,  0, 19, 19,  0, 17, 17,  0, 15, 15,  0, 13, 13,  0,  0], // 10
+  [ 1, 21, 21,  1, 20, 20,  1, 19, 19,  1, 17, 17,  1, 15, 15,  1, 13, 13,  1,  1], // 11
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 12
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 13
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 14
@@ -177,9 +177,9 @@ export const A1_TESTING_GROUNDS_ROOMS: Record<number, AuthoredRoom> = {
     ],
   },
   13: {
-    label: "Test Poisoner",
+    label: "Shadows",
     hint: "",
-    enemies: ["test_poisoner"],
+    enemies: ["shadow", "shadow", "shadow"],
   },
   14: {
     label: "Get Claymore",
@@ -275,6 +275,14 @@ export const A1_TESTING_GROUNDS_ROOMS: Record<number, AuthoredRoom> = {
     label: "Final",
     hint: "",
     enemies: ["necromancer", "necromancer", "zombie", "skeleton", "shadow"],
+  },
+  21: {
+    label: "Banshee + Skeletons",
+    hint: "a thin sound the stone carries badly - not quite a voice, not quite a crack.",
+    description:
+      "Dead end pocket - cold air that shouldn't be here, salt seams running wet. The green light flickers without cause. Something ahead is making a sound below hearing.",
+    enemies: ["banshee", "skeleton", "skeleton"],
+    notes: `Tests banshee's Wail die (stun/weaken pressure) vs skeleton armor interplay. Skeletons in front row draw attention while banshee wails from back.`,
   },
 };
 

@@ -943,7 +943,56 @@ export const FACES: Record<string, FaceDef> = {
     symbols: ["shield", "spark"],
   },
 
-  /* Banshee — terror attacks: unblockable. */
+  /* Banshee — Wail die faces */
+  enemy_wail_stun3: {
+    id: "enemy_wail_stun3",
+    label: "Shriek",
+    icon: IconIntangible,
+    color: "echo",
+    target: "self",
+    symbols: ["spark", "spark", "spark"],
+  },
+  enemy_wail_stun2: {
+    id: "enemy_wail_stun2",
+    label: "Wail",
+    icon: IconIntangible,
+    color: "coldfire",
+    target: "self",
+    symbols: ["spark", "spark"],
+  },
+  enemy_wail_weaken2: {
+    id: "enemy_wail_weaken2",
+    label: "Keen Wail",
+    icon: IconHymnHum,
+    color: "brine",
+    target: "self",
+    symbols: ["bolt", "bolt"],
+  },
+  enemy_wail_vulnerable: {
+    id: "enemy_wail_vulnerable",
+    label: "Harrowing Cry",
+    icon: IconMark,
+    color: "iron",
+    target: "self",
+    symbols: ["mark"],
+  },
+  /* Banshee — Ghost die faces */
+  enemy_ghost_dodge: {
+    id: "enemy_ghost_dodge",
+    label: "Phase",
+    icon: IconGhost,
+    color: "echo",
+    target: "self",
+    symbols: ["dodge"],
+  },
+  enemy_ghost_ranged_unblockable: {
+    id: "enemy_ghost_ranged_unblockable",
+    label: "Haunting Strike",
+    icon: IconGhost,
+    color: "coldfire",
+    target: "self",
+    symbols: ["sword", "ranged", "unblockable"],
+  },
   enemy_wail: {
     id: "enemy_wail",
     label: "Wail",
@@ -960,15 +1009,6 @@ export const FACES: Record<string, FaceDef> = {
     target: "self",
     symbols: ["bolt", "bolt", "unblockable"],
   },
-  enemy_ululate: {
-    id: "enemy_ululate",
-    label: "Ululate",
-    icon: IconHymnHum,
-    color: "echo",
-    target: "self",
-    symbols: ["spark"],
-  },
-
   /* Necromancer — area curse, no animation logic here (handled by selectIntent hook). */
   enemy_curse: {
     id: "enemy_curse",
