@@ -594,10 +594,9 @@ export function DiceScreen({
                   const corruption = corruptions.find((c) => c.faceIndex === idx);
                   const poisonStacks = poisoned.filter((p) => p.faceIndex === idx).length;
                   const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
-                  const bust = canRoll && wouldBust(colorId);
-                  const colorInPool = state.pool.some((pf) => pf.color === face.color);
+                  const bustWarning = wouldBust(colorId);
                   return (
-                    <div key={idx} className={`face ${colorInPool ? "in-pool" : ""}`}>
+                    <div key={idx} className={`face ${bustWarning ? "bust-warning" : ""}`}>
                       <div className="band" style={{ background: FACE_COLOR_CSS[colorId] }} />
                       <div className="sym">
                         <FaceGlyphs
@@ -607,7 +606,6 @@ export function DiceScreen({
                         />
                       </div>
                       <div className="lab">{face.label}</div>
-                      {bust && <span className="warn">⚠</span>}
                     </div>
                   );
                 })}

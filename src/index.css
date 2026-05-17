@@ -630,10 +630,10 @@ button {
   color: var(--torch);
   text-shadow: 0 0 2px #000;
 }
-.face.in-pool {
+.face.bust-warning {
   opacity: 0.85;
 }
-.face.in-pool::after {
+.face.bust-warning::after {
   content: "⚠";
   position: absolute;
   inset: 0;
