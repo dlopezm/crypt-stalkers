@@ -342,6 +342,7 @@ export function DiceScreen({
   );
 
   const [selectedPoolId, setSelectedPoolId] = useState<number | null>(null);
+  const [history, setHistory] = useState<DiceCombatState[]>([]);
   const [focusPendingSlot, setFocusPendingSlot] = useState<DieSlot | null>(null);
   const [learnSlot, setLearnSlot] = useState<DieSlot | null>(null);
   const [inspectEnemyUid, setInspectEnemyUid] = useState<string | null>(null);
@@ -395,10 +396,12 @@ export function DiceScreen({
   }
 
   function handleStop() {
+    setHistory([]);
     setState((s) => stopRolling(s));
   }
 
   function handleResolve() {
+    setHistory([]);
     setState((s) => resolveTurn(s));
     setSelectedPoolId(null);
   }
@@ -408,30 +411,37 @@ export function DiceScreen({
     setSelectedPoolId((cur) => (cur === poolId ? null : poolId));
   }
 
+  function applyDie(poolId: number, targetUid: string | null) {
+    if (state.phase !== "assigning") return;
+    const check = canAssign(state, poolId, targetUid);
+    if (!check.ok) return;
+    setHistory((h) => [...h, state]);
+    setState((s) => assignFace(s, poolId, targetUid));
+    setSelectedPoolId(null);
+  }
+
   function handleEnemyClick(uid: string) {
     if (state.phase !== "assigning" || selectedPoolId === null) return;
-    const check = canAssign(state, selectedPoolId, uid);
-    if (!check.ok) return;
-    setState((s) => assignFace(s, selectedPoolId, uid));
-    setSelectedPoolId(null);
+    applyDie(selectedPoolId, uid);
     setPlayerFlashUid(uid);
   }
 
   function handleAttackClick(uid: string, faceIndex: number) {
     if (state.phase !== "assigning" || selectedPoolId === null) return;
-    const target = `attack:${uid}:${faceIndex}`;
-    const check = canAssign(state, selectedPoolId, target);
-    if (!check.ok) return;
-    setState((s) => assignFace(s, selectedPoolId, target));
-    setSelectedPoolId(null);
+    applyDie(selectedPoolId, `attack:${uid}:${faceIndex}`);
     setPlayerFlashUid(uid);
   }
 
   function handleSelfApply() {
     if (state.phase !== "assigning" || selectedPoolId === null) return;
-    const check = canAssign(state, selectedPoolId, null);
-    if (!check.ok) return;
-    setState((s) => assignFace(s, selectedPoolId, null));
+    applyDie(selectedPoolId, null);
+  }
+
+  function handleUndo() {
+    if (history.length === 0) return;
+    const prev = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+    setState(prev);
     setSelectedPoolId(null);
   }
 
@@ -492,6 +502,8 @@ export function DiceScreen({
     if (selectedPoolId === null) return false;
     return canAssign(state, selectedPoolId, `attack:${uid}:${idx}`).ok;
   }
+
+  const canUndo = phase === "assigning" && history.length > 0;
 
   const isDefensive =
     selectedFace?.symbols?.some((s) => s === "shield" || s === "dodge" || s === "riposte") ?? false;
@@ -658,10 +670,15 @@ export function DiceScreen({
                 "tap a die above, then tap a mark"
               ) : (
                 <>
-                  die selected — <b>tap a mark</b>
+                  die selected — <b>{canSelfApply ? "click Apply to Self or " : ""}tap a mark</b>
                 </>
               )}
             </span>
+            {canUndo && (
+              <button className="btn ghost" onClick={handleUndo}>
+                ↩ Undo
+              </button>
+            )}
             {canSelfApply && (
               <button className="btn crypt" onClick={handleSelfApply}>
                 Apply to Self

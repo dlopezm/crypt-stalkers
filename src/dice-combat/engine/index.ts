@@ -361,19 +361,16 @@ function triggerBust(state: DiceCombatState): DiceCombatState {
 }
 
 /** Move from rolling phase into assigning.
- * v3: faces with target self/none/all-* resolve IMMEDIATELY at stop-time —
- * EXCEPT faces carrying defensive symbols (shield/dodge/riposte). Those must
- * be pointed at a specific enemy attack glyph by the player (or, as a fallback,
- * self-assigned via the explicit "self" button if no attacks remain). */
+ * Stunned and blank (target="none") faces resolve immediately with no effect.
+ * All other faces — including self, all-*, defensive — wait for the player to
+ * manually apply them in whatever order they choose. */
 export function stopRolling(state: DiceCombatState): DiceCombatState {
   if (state.phase !== "rolling") return state;
   if (state.pool.length === 0) return state;
-  let s: DiceCombatState = { ...state, phase: "assigning", assignments: {} };
   const assignments: Record<number, PoolAssignment> = {};
   for (const pf of state.pool) {
     const face = getFace(pf.faceId);
     if (!face) continue;
-    // Stunned faces do nothing — mark resolved immediately with no effect.
     if (pf.stunned) {
       assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
       continue;
@@ -382,20 +379,9 @@ export function stopRolling(state: DiceCombatState): DiceCombatState {
       assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
       continue;
     }
-    // Defensive faces wait for the player to pick a specific attack glyph.
-    if (hasDefensiveSymbol(face)) continue;
-    if (face.target === "self") {
-      s = applyFaceSymbols(s, withPoisonSymbols(s, pf, face), null);
-      assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
-      continue;
-    }
-    if (face.target === "all-front" || face.target === "all-enemies") {
-      s = applyFaceSymbols(s, withPoisonSymbols(s, pf, face), null);
-      assignments[pf.poolId] = { poolId: pf.poolId, targetUid: null, resolved: true };
-      continue;
-    }
+    // All other faces (self, all-*, any-enemy, defensive) wait for manual assignment.
   }
-  s = { ...s, assignments };
+  const s: DiceCombatState = { ...state, phase: "assigning", assignments };
   if (isVictory(s)) return finalize(s, "victory");
   return s;
 }
