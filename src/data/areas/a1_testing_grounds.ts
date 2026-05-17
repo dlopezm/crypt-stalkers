@@ -22,9 +22,9 @@ const A1_TESTING_GROUNDS_GRID: number[][] = [
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  0,  1,  1,  0,  1,  1,  0], //  9
   [ 1, 21, 21,  0, 20, 20,  0, 19, 19,  0, 17, 17,  0, 15, 15,  0, 13, 13,  0,  0], // 10
   [ 1, 21, 21,  1, 20, 20,  1, 19, 19,  1, 17, 17,  1, 15, 15,  1, 13, 13,  1,  1], // 11
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 12
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 13
-  [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 14
+  [ 1,  1,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 12
+  [ 1, 22, 22,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 13
+  [ 1, 22, 22,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 14
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 15
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 16
   [ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1], // 17
@@ -283,6 +283,11 @@ export const A1_TESTING_GROUNDS_ROOMS: Record<number, AuthoredRoom> = {
       "Dead end pocket - cold air that shouldn't be here, salt seams running wet. The green light flickers without cause. Something ahead is making a sound below hearing.",
     enemies: ["banshee", "skeleton", "skeleton"],
     notes: `Tests banshee's Wail die (stun/weaken pressure) vs skeleton armor interplay. Skeletons in front row draw attention while banshee wails from back.`,
+  },
+  22: {
+    label: "Forsworn + Rat + Shadow",
+    hint: "",
+    enemies: ["forsworn", "forsworn", "rat", "shadow"],
   },
 };
 

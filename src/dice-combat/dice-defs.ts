@@ -1209,14 +1209,47 @@ export const FACES: Record<string, FaceDef> = {
     symbols: ["intangible"],
   },
 
-  // Forsworn guard strike
-  enemy_guard_strike: {
-    id: "enemy_guard_strike",
-    label: "Guard Strike",
-    icon: IconShield,
+  // Forsworn main hand
+  enemy_forsworn_strike2: {
+    id: "enemy_forsworn_strike2",
+    label: "Strike",
+    icon: IconCrossedSwords,
+    color: "crimson",
+    target: "self",
+    symbols: ["sword", "sword"],
+  },
+  enemy_forsworn_strike3: {
+    id: "enemy_forsworn_strike3",
+    label: "Heavy Strike",
+    icon: IconCrossedSwords,
     color: "iron",
     target: "self",
     symbols: ["sword", "sword", "sword"],
+  },
+  // Forsworn offhand (damage + defense combos)
+  enemy_forsworn_guard1: {
+    id: "enemy_forsworn_guard1",
+    label: "Guard",
+    icon: IconShield,
+    color: "salt",
+    target: "self",
+    symbols: ["sword", "shield"],
+  },
+  enemy_forsworn_guard2: {
+    id: "enemy_forsworn_guard2",
+    label: "Press",
+    icon: IconShield,
+    color: "iron",
+    target: "self",
+    symbols: ["sword", "sword", "shield"],
+  },
+  enemy_forsworn_bulwark: {
+    id: "enemy_forsworn_bulwark",
+    label: "Bulwark",
+    icon: IconShield,
+    color: "echo",
+    target: "self",
+    symbols: ["sword", "shield", "shield"],
   },
 
   // Salt Revenant slot lock
