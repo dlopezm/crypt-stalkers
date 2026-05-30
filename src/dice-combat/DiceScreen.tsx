@@ -16,7 +16,7 @@ import {
 } from "./engine";
 import { COLORS, getFace, SLOT_ORDER } from "./dice-defs";
 import { getEnemyDef } from "./enemy-defs";
-import { FACE_COLOR_CSS, FaceGlyphs } from "./FaceGlyphs";
+import { FACE_COLOR_CSS, FaceGlyphs, groupSymbols } from "./FaceGlyphs";
 import { RollingDieCuboid } from "./RollingDieCuboid";
 import type {
   DiceCombatState,
@@ -95,17 +95,10 @@ const NON_STACKABLE: ReadonlySet<SymbolKey> = new Set([
 function faceDesc(face: FaceDef): string {
   const symbols = face.symbols ?? [];
   if (symbols.length === 0) return "No effect.";
-  const counts = new Map<SymbolKey, number>();
-  const order: SymbolKey[] = [];
-  for (const s of symbols) {
-    if (!counts.has(s)) order.push(s);
-    counts.set(s, (counts.get(s) ?? 0) + 1);
-  }
-  return order
-    .map((s) => {
-      const n = counts.get(s)!;
-      const desc = SYMBOL_DESC[s];
-      if (n === 1 || NON_STACKABLE.has(s)) return desc;
+  return groupSymbols(symbols)
+    .map(({ key, count: n }) => {
+      const desc = SYMBOL_DESC[key];
+      if (n === 1 || NON_STACKABLE.has(key)) return desc;
       const scaled = desc
         .replace(/^(Deals )(\d+)/, (_, p, d) => `${p}${n * +d}`)
         .replace(/^(Grants )(\d+)/, (_, p, d) => `${p}${n * +d}`)

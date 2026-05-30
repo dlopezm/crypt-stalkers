@@ -138,6 +138,29 @@ export const SYMBOL_LABEL: Record<SymbolKey, string> = {
   focus: "+1 Focus",
 };
 
+export function groupSymbols(symbols: readonly SymbolKey[]): Array<{ key: SymbolKey; count: number }> {
+  const counts = new Map<SymbolKey, number>();
+  const order: SymbolKey[] = [];
+  for (const s of symbols) {
+    if (!counts.has(s)) order.push(s);
+    counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  return order.map((key) => ({ key, count: counts.get(key)! }));
+}
+
+export function faceTooltip(symbols: readonly SymbolKey[]): string {
+  return groupSymbols(symbols)
+    .map(({ key, count: n }) => {
+      const label = SYMBOL_LABEL[key];
+      if (n === 1) return label;
+      const scaled = label
+        .replace(/^(\d+)/, (d) => String(n * +d))
+        .replace(/^\+(\d+)/, (_, d) => `+${n * +d}`);
+      return scaled !== label ? scaled : `${n}× ${label}`;
+    })
+    .join(", ");
+}
+
 export function FaceGlyphs({
   face,
   size = "0.95rem",
@@ -163,7 +186,7 @@ export function FaceGlyphs({
         lineHeight: 1,
         flexWrap: "wrap",
       }}
-      title={symbols.map((s) => SYMBOL_LABEL[s]).join(", ")}
+      title={faceTooltip(symbols)}
     >
       {symbols.map((s, i) => {
         const Icon = SYMBOL_ICON[s];
