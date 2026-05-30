@@ -1,6 +1,13 @@
 import type { StatusKey } from "../../types";
 import { DICE_BALANCE } from "../balance";
-import { COLORS, getDieForSlot, getFace, SLOT_ORDER, ABILITY_STARTING_FACES } from "../dice-defs";
+import {
+  COLORS,
+  getDieForSlot,
+  getFace,
+  FACES,
+  SLOT_ORDER,
+  ABILITY_STARTING_FACES,
+} from "../dice-defs";
 import { DICE_ENEMY_DEFS, getEnemyDef, spawnEnemy, lockSlot } from "../enemy-defs";
 import type {
   AttackMitigation,
@@ -10,6 +17,7 @@ import type {
   DiceEnemy,
   DieDef,
   DieSlot,
+  EnemyDieDef,
   EnemyQueueEntry,
   EnemyRolledFace,
   FaceColor,
@@ -1170,8 +1178,10 @@ function telegraphIntents(state: DiceCombatState): DiceCombatState {
     delete (clearedStatuses as Record<string, number>).hidden;
     const base = { ...e, statuses: clearedStatuses as typeof e.statuses };
 
-    if (def.dice && def.dice.length > 0) {
-      const dice = def.phaseDice ? (def.phaseDice[base.phaseIndex] ?? def.dice) : def.dice;
+    const rawDice =
+      base.dice ?? (def.phaseDice ? (def.phaseDice[base.phaseIndex] ?? def.dice) : def.dice);
+    if (rawDice && rawDice.length > 0) {
+      const dice = rawDice;
       const rolled: EnemyRolledFace[] = [];
       let currentStatuses = { ...base.statuses };
       for (const die of dice) {
@@ -1473,6 +1483,84 @@ function applyEnemyFace(
           ),
         };
       }
+    } else if (sym === "takeover") {
+      // Gutborn Larva: remove a living enemy and spawn a Gutborn in its place.
+      const host = s.enemies.find(
+        (e) => e.hp > 0 && e.uid !== attackerUid && e.id !== "gutborn_larva" && e.id !== "gutborn",
+      );
+      if (!host) {
+        const candidates = s.enemies.filter((e) => e.uid !== attackerUid);
+        s = {
+          ...s,
+          log: appendLog(
+            s,
+            "enemy",
+            `Take Over — no valid host found. Alive enemies: ${candidates.map((e) => `${e.name}(hp=${e.hp},id=${e.id})`).join(", ") || "none"}`,
+          ),
+        };
+      } else {
+        const hostDef = getEnemyDef(host.id);
+        const sourceDice = host.dice ?? hostDef?.dice ?? [];
+
+        // Build poisoned copies of the host's dice: each face gets a poison symbol appended.
+        // Register the new faces into FACES so getFace() can resolve them during combat.
+        const poisonedDice: EnemyDieDef[] = sourceDice.map((die) => ({
+          ...die,
+          id: `gutborn_${die.id}_${host.uid}`,
+          name: `Gutborn ${die.name}`,
+          faces: die.faces.map((faceId) => {
+            const orig = getFace(faceId);
+            if (!orig) return faceId;
+            const newId = `gutborn_${faceId}_${host.uid}`;
+            if (!FACES[newId]) {
+              FACES[newId] = { ...orig, id: newId, symbols: [...(orig.symbols ?? []), "poison"] };
+            }
+            return newId;
+          }) as unknown as EnemyDieDef["faces"],
+        }));
+
+        const larvaDie: EnemyDieDef = {
+          id: `gutborn_larva_gland_${host.uid}`,
+          name: "Larva Gland",
+          icon: hostDef?.icon ?? host.icon,
+          faces: [
+            "enemy_gutborn_larva_summon",
+            "enemy_gutborn_larva_summon",
+            "blank",
+            "blank",
+            "blank",
+            "blank",
+          ],
+          defaultTarget: "self",
+        };
+
+        const gutborn: DiceEnemy = {
+          uid: `gutborn_${host.uid}`,
+          id: "gutborn",
+          name: `Gutborn ${host.name}`,
+          icon: host.icon,
+          hp: host.hp,
+          maxHp: host.hp,
+          row: host.row,
+          statuses: {},
+          isBoss: false,
+          untargetable: false,
+          phaseIndex: 0,
+          rolledFaces: [],
+          dice: [...poisonedDice, larvaDie],
+        };
+
+        s = {
+          ...s,
+          enemies: s.enemies
+            .filter((e) => e.uid !== attackerUid)
+            .map((e) => (e.uid === host.uid ? gutborn : e)),
+          log: appendLog(s, "enemy", `The Larva burrows into the ${host.name} — a Gutborn rises.`),
+        };
+      }
+    } else if (sym === "summon_larva") {
+      s = spawnEnemy(s, "gutborn_larva");
+      s = { ...s, log: appendLog(s, "enemy", `${attacker.name} disgorges a Larva.`) };
     } else if (sym === "burrow_spawn") {
       // Gutborn Larva: surface (become targetable, move to front) and spawn a Zombie.
       s = {
@@ -1490,7 +1578,8 @@ function applyEnemyFace(
       const maxSymbolsFor = (e: DiceEnemy) => {
         const def = getEnemyDef(e.id);
         if (!def) return 0;
-        const dice = def.phaseDice ? (def.phaseDice[e.phaseIndex] ?? def.dice) : (def.dice ?? []);
+        const dice =
+          e.dice ?? (def.phaseDice ? (def.phaseDice[e.phaseIndex] ?? def.dice) : (def.dice ?? []));
         return dice.reduce((best, die) => {
           const faceMax = die.faces.reduce(
             (m, fid) => Math.max(m, getFace(fid)?.symbols?.length ?? 0),
@@ -1526,7 +1615,8 @@ function applyEnemyFace(
       const damageSymCount = (e: DiceEnemy) => {
         const def = getEnemyDef(e.id);
         if (!def) return 0;
-        const dice = def.phaseDice ? (def.phaseDice[e.phaseIndex] ?? def.dice) : (def.dice ?? []);
+        const dice =
+          e.dice ?? (def.phaseDice ? (def.phaseDice[e.phaseIndex] ?? def.dice) : (def.dice ?? []));
         return dice.reduce((best, die) => {
           const faceMax = die.faces.reduce(
             (m, fid) =>

@@ -492,30 +492,17 @@ const GUTBORN_LARVA: DiceEnemyDef = {
   name: "Gutborn Larva",
   icon: IconBurrowSpawn,
   maxHp: 1,
-  defaultRow: "back", // starts untargetable by melee — different from Rat (front row, area kill)
+  defaultRow: "back",
   isBoss: false,
   dice: [
     {
       id: "larva_die",
       name: "Larva Die",
       icon: IconBurrowSpawn,
-      faces: [
-        "enemy_burrow",
-        "enemy_burrow",
-        "enemy_burrow",
-        "enemy_burrow",
-        "enemy_burrow",
-        "enemy_burrow",
-      ],
+      faces: ["enemy_takeover", "enemy_takeover", "blank", "blank", "blank", "blank"],
       defaultTarget: "self",
     },
   ],
-  onSpawn: (self, state) => ({
-    ...state,
-    enemies: state.enemies.map((e) =>
-      e.uid === self.uid ? { ...e, row: "back" as const, untargetable: true } : e,
-    ),
-  }),
 };
 
 /* ── 13. The Forsworn ── */
@@ -810,6 +797,18 @@ const TEST_POISONER: DiceEnemyDef = {
   ],
 };
 
+/* ── Gutborn ── */
+/* No static dice — dice are built dynamically at takeover time and stored on DiceEnemy.dice. */
+
+const GUTBORN: DiceEnemyDef = {
+  id: "gutborn",
+  name: "Gutborn",
+  icon: IconBurrowSpawn,
+  maxHp: 4, // fallback only; actual HP is inherited from the host at takeover
+  defaultRow: "front",
+  isBoss: false,
+};
+
 /* ── Registry ── */
 
 export const DICE_ENEMY_DEFS: Record<string, DiceEnemyDef> = {
@@ -825,6 +824,7 @@ export const DICE_ENEMY_DEFS: Record<string, DiceEnemyDef> = {
   shadow: SHADOW,
   grave_robber: GRAVE_ROBBER,
   gutborn_larva: GUTBORN_LARVA,
+  gutborn: GUTBORN,
   forsworn: FORSWORN,
   false_sacrarium: FALSE_SACRARIUM,
   salt_revenant: SALT_REVENANT,

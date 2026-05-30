@@ -75,6 +75,8 @@ const SYMBOL_DESC: Record<SymbolKey, string> = {
   poison:
     "Adds a self-damage symbol to a random die face (the same face can be hit multiple times).",
   focus: "Grants 1 Focus — on your next roll, choose which face lands.",
+  takeover: "Removes a living enemy and spawns a Gutborn in its place.",
+  summon_larva: "Spawns a Gutborn Larva.",
 };
 
 const NON_STACKABLE: ReadonlySet<SymbolKey> = new Set([
@@ -775,7 +777,10 @@ function AlcoveCard({
   }, [enemy.rolledFaces, state.turn, doneKey]);
 
   const enemyDef = getEnemyDef(enemy.id);
-  const allEnemyDice = [...(enemyDef?.dice ?? []), ...(enemyDef?.phaseDice ?? []).flat()];
+  const allEnemyDice = [
+    ...(enemy.dice ?? enemyDef?.dice ?? []),
+    ...(enemyDef?.phaseDice ?? []).flat(),
+  ];
 
   const isHidden = !!enemy.statuses.hidden;
   const flashStyle = playerFlash ? { filter: "drop-shadow(0 0 8px rgba(154,214,163,0.7))" } : {};
@@ -1507,7 +1512,7 @@ function EnemyDieDialog({
 }) {
   if (!enemy) return null;
   const def = getEnemyDef(enemy.id);
-  const dice = def?.dice ?? [];
+  const dice = enemy.dice ?? def?.dice ?? [];
   return (
     <DialogShell onClose={onClose}>
       <DialogHeader

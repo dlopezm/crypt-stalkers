@@ -58,6 +58,8 @@ export type SymbolKey =
   | "invert" // 🦠 false-sacrarium: player's most-rolled color counts as Brine next turn
   | "bind" // ⛓️ salt-revenant: lock one of the player's die slots
   | "burrow_spawn" // 🪱 larva: surface and spawn a Zombie
+  | "takeover" // 🦠 gutborn larva: remove a living enemy and spawn a Gutborn in its place
+  | "summon_larva" // 🪱 gutborn: spawn a Gutborn Larva
   // ── Face modifiers (apply to the whole face, not stackable) ──
   | "ranged" // 🏹 face can target / be used from back row
   | "area" // ⤧ also hits enemies adjacent to the primary target
@@ -158,6 +160,8 @@ export interface DiceEnemy {
   readonly phaseIndex: number;
   /** v3: faces this enemy rolled at start of its turn. Visible to player before they roll. */
   readonly rolledFaces: readonly EnemyRolledFace[];
+  /** Dice carried in state (e.g. dynamically built Gutborn). Overrides def.dice when present. */
+  readonly dice?: readonly EnemyDieDef[];
 }
 
 /* ── Player state ── */

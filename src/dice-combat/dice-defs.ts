@@ -992,13 +992,31 @@ export const FACES: Record<string, FaceDef> = {
     symbols: ["sword", "sword", "bind"],
   },
 
-  // Gutborn Larva — surfaces immediately and spawns a Zombie
+  // Gutborn Larva — surfaces immediately and spawns a Zombie (legacy, kept for compatibility)
   enemy_burrow: {
     id: "enemy_burrow",
     label: "Burrow",
     color: "brine",
     target: "self",
     symbols: ["burrow_spawn"],
+  },
+
+  // Gutborn Larva — take over a living enemy, transforming it into a Gutborn
+  enemy_takeover: {
+    id: "enemy_takeover",
+    label: "Take Over",
+    color: "brine",
+    target: "self",
+    symbols: ["takeover"],
+  },
+
+  // Gutborn — spawn a new Gutborn Larva
+  enemy_gutborn_larva_summon: {
+    id: "enemy_gutborn_larva_summon",
+    label: "Spawn Larva",
+    color: "coldfire",
+    target: "self",
+    symbols: ["summon_larva"],
   },
 
   // False Sacrarium curse
