@@ -138,7 +138,9 @@ export const SYMBOL_LABEL: Record<SymbolKey, string> = {
   focus: "+1 Focus",
 };
 
-export function groupSymbols(symbols: readonly SymbolKey[]): Array<{ key: SymbolKey; count: number }> {
+export function groupSymbols(
+  symbols: readonly SymbolKey[],
+): Array<{ key: SymbolKey; count: number }> {
   const counts = new Map<SymbolKey, number>();
   const order: SymbolKey[] = [];
   for (const s of symbols) {

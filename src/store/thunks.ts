@@ -37,14 +37,14 @@ export function combatVictory(result: CombatVictoryResult, loot: number) {
 
     const withLoot = {
       ...currentPlayer,
-      hp: result.hp,
+      hp: result.maxHp,
       maxHp: result.maxHp,
       salt: result.salt + loot,
       consumables: [...result.consumables],
     };
 
     if (curRoom?.boss && areaDef?.bossRoom) {
-      dispatch(setPlayer({ ...withLoot, hp: withLoot.maxHp }));
+      dispatch(setPlayer(withLoot));
       dispatch(clearCombat());
       dispatch(setScreen("victory"));
       return;
