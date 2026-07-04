@@ -676,14 +676,14 @@ export function GridCanvas({
       }
     }
 
-    // ── Pass 3.5: Environmental effect tints (scouted/visited rooms only) ──
+    // ── Pass 3.5: Environmental effect tints (visited rooms only) ──
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         const v = cells[r][c];
         if (v < 2) continue;
         const node = gridIdToNode.get(v);
         if (!node || !visible.has(node.id)) continue;
-        if (node.state !== "visited" && !node.scouted) continue;
+        if (node.state !== "visited") continue;
 
         const x = c * R_CELL;
         const y = r * R_CELL;

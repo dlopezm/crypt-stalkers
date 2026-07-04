@@ -166,8 +166,7 @@ export default function App() {
     if (!area || !currentRoomId || !player || !areaGrid || !areaDef) return;
     const room = area.find((n) => n.id === roomId);
     if (!room) return;
-    const currentRoom = area.find((n) => n.id === currentRoomId);
-    if (!debugMode && currentRoom && !currentRoom.connections.includes(roomId)) return;
+    if (!debugMode && room.state === "locked") return;
 
     dispatch(
       saveRoomCheckpoint({
@@ -397,16 +396,6 @@ export default function App() {
     applyEffects(action.effects, roomId, propId);
   }
 
-  function onScout(roomId: string, _scoutLevel: number) {
-    if (!area || !currentRoomId) return;
-    const { newArea: afterAI } = tickAI(area, currentRoomId, "scout");
-    const scoutedArea = afterAI.map((n) => (n.id === roomId ? { ...n, scouted: true } : n));
-    addLog([`\u{1F50D} Scouted ${area.find((n) => n.id === roomId)?.label || roomId}`], "player");
-    if (!checkAmbush(scoutedArea, currentRoomId)) {
-      dispatch(updateArea(scoutedArea));
-    }
-  }
-
   /* ── Rendering ── */
   if (screen === "title")
     return (
@@ -551,7 +540,6 @@ export default function App() {
           areaTurn={areaTurn}
           areaLog={areaLog}
           onEnterRoom={enterRoom}
-          onScout={onScout}
           onEquipDiceItem={onEquipDiceItem}
           onGrantAndEquipDiceItem={onGrantAndEquipDiceItem}
           onExamineProp={onExamineProp}

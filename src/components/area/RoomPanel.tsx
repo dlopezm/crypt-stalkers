@@ -45,24 +45,18 @@ function buildThreatSummary(node: AreaNode): readonly string[] {
 export function RoomPanel({
   node,
   currentRoomId,
-  adjacentIds,
+  visibleIds,
   debugMode,
-  scoutLevel,
-  scoutResult,
   player,
   onEnterRoom,
-  onScout,
   onExamineProp,
 }: {
   readonly node: AreaNode | null;
   readonly currentRoomId: string;
-  readonly adjacentIds: Set<string>;
+  readonly visibleIds: Set<string>;
   readonly debugMode: boolean;
-  readonly scoutLevel: number;
-  readonly scoutResult: string | null;
   readonly player: Player;
   readonly onEnterRoom: (id: string) => void;
-  readonly onScout: (level: number) => void;
   readonly onExamineProp: (roomId: string, propId: string) => void;
 }) {
   const [showDesc, setShowDesc] = useState(false);
@@ -83,7 +77,7 @@ export function RoomPanel({
   );
 
   const envDescs =
-    node.state === "visited" || node.id === currentRoomId || node.scouted
+    node.state === "visited" || node.id === currentRoomId
       ? (() => {
           const d = getActiveEffects(node).map((e) => e.description);
           if (node.looted?.length) d.push("Someone has been here before you. Drawers left open.");
@@ -128,23 +122,11 @@ export function RoomPanel({
         </div>
       )}
 
-      {node.id !== currentRoomId && node.enemies.length > 0 && !node.exit && (
+      {node.id !== currentRoomId && node.enemies.length > 0 && !node.exit && debugMode && (
         <div className="text-sm text-crypt-muted mb-2 leading-relaxed">
-          {debugMode ? (
-            <span className="text-crypt-purple">
-              {node.enemies.length} enemies: {node.enemies.map((e) => e.typeId).join(", ")}
-            </span>
-          ) : scoutLevel === 0 ? (
-            <span className="text-crypt-dim italic">Unknown. Scout to learn more.</span>
-          ) : (
-            scoutResult
-          )}
-        </div>
-      )}
-
-      {scoutResult && scoutLevel > 0 && (
-        <div className="text-sm text-amber-500 mb-2 italic leading-relaxed border-l-2 border-crypt-red-glow/30 pl-2">
-          {scoutResult}
+          <span className="text-crypt-purple">
+            {node.enemies.length} enemies: {node.enemies.map((e) => e.typeId).join(", ")}
+          </span>
         </div>
       )}
 
@@ -154,13 +136,9 @@ export function RoomPanel({
         </p>
       )}
 
-      {adjacentIds.has(node.id) &&
-        node.id !== currentRoomId &&
-        (() => {
-          const isScouted = node.scouted || node.state === "visited";
-          const threats = isScouted ? buildThreatSummary(node) : [];
-          return <ThreatPanel threats={threats} />;
-        })()}
+      {visibleIds.has(node.id) && node.id !== currentRoomId && (
+        <ThreatPanel threats={buildThreatSummary(node)} />
+      )}
 
       {/* In-room props — hidden on mobile (tap them on the map), shown on desktop */}
       {node.id === currentRoomId &&
@@ -195,7 +173,7 @@ export function RoomPanel({
         })()}
 
       <div className="flex flex-col gap-1.5">
-        {(adjacentIds.has(node.id) || debugMode) && node.id !== currentRoomId && (
+        {(visibleIds.has(node.id) || debugMode) && node.id !== currentRoomId && (
           <button
             style={btnStyle(node.exit ? "#8b6914" : "#8b0000")}
             onClick={() => onEnterRoom(node.id)}
@@ -207,42 +185,6 @@ export function RoomPanel({
                 : "Enter"}
           </button>
         )}
-
-        {adjacentIds.has(node.id) && node.id !== currentRoomId && !node.exit && (
-          <div className="flex gap-1">
-            <button
-              title="Listen at door (quiet, safe)"
-              style={btnStyle("#3a2a10")}
-              className={`text-xs! px-2! py-1! flex-1 ${scoutLevel >= 1 ? "opacity-50" : ""}`}
-              onClick={() => onScout(1)}
-            >
-              {"\u{1F442}"} Listen
-            </button>
-            <button
-              title="Peek through keyhole"
-              style={btnStyle("#4a3010")}
-              className={`text-xs! px-2! py-1! flex-1 ${scoutLevel >= 2 ? "opacity-50" : ""}`}
-              onClick={() => onScout(2)}
-            >
-              {"\u{1F511}"} Peek
-            </button>
-            <button
-              title={`Full scout — risky`}
-              style={btnStyle("#5a3a10")}
-              className={`text-xs! px-2! py-1! flex-1 ${scoutLevel >= 3 ? "opacity-50" : ""}`}
-              onClick={() => onScout(3)}
-            >
-              {"\u{1F575}"} Scout
-            </button>
-          </div>
-        )}
-
-        {!debugMode &&
-          node.state !== "locked" &&
-          !adjacentIds.has(node.id) &&
-          node.id !== currentRoomId && (
-            <div className="text-xs text-crypt-dim italic">Not adjacent {"—"} move closer.</div>
-          )}
       </div>
     </div>
   );

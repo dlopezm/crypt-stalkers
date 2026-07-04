@@ -1,5 +1,4 @@
 import { getActiveProps } from "../../utils/props";
-import { ENEMY_TYPES } from "../../data/enemies";
 import { getActiveEffects } from "../../data/environment";
 import type { AreaNode, RoomProp, Player } from "../../types";
 
@@ -97,55 +96,6 @@ export function resolvePropTiles(
     }
   }
   return map;
-}
-
-/* ── Threat indicator for scouted rooms ── */
-function ThreatIndicator({
-  node,
-  gridWidth,
-  gridHeight,
-}: {
-  readonly node: AreaNode;
-  readonly gridWidth: number;
-  readonly gridHeight: number;
-}) {
-  if (!node.bbox || !node.scouted || node.enemies.length === 0) return null;
-
-  const { maxRow, minCol, maxCol } = node.bbox;
-  const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
-  const bottomPct = ((maxRow + 1.3) / gridHeight) * 100;
-
-  const types = node.enemies
-    .map((e) => ENEMY_TYPES.find((t) => t.id === e.typeId))
-    .filter((t): t is NonNullable<typeof t> => t != null);
-  const asciiIcons = types
-    .slice(0, 3)
-    .map((t) => t.ascii)
-    .join("");
-  const tooltip = node.enemies
-    .map((e) => ENEMY_TYPES.find((t) => t.id === e.typeId)?.name ?? e.typeId)
-    .join(", ");
-
-  return (
-    <div
-      title={tooltip}
-      style={{
-        position: "absolute",
-        left: `${cxPct}%`,
-        top: `${bottomPct}%`,
-        transform: "translate(-50%, -50%)",
-        fontSize: "0.55rem",
-        color: "#c41c1c",
-        zIndex: 4,
-        pointerEvents: "none",
-        whiteSpace: "nowrap",
-        textShadow: "0 0 4px #000",
-      }}
-    >
-      {asciiIcons}
-      {node.enemies.length > 3 && `+${node.enemies.length - 3}`}
-    </div>
-  );
 }
 
 /* ── Safe room icon ── */
@@ -290,9 +240,9 @@ export function RoomLabels({
         );
       })}
 
-      {/* Environmental effect icons for scouted/visited rooms */}
+      {/* Environmental effect icons for visited rooms */}
       {area.map((n) => {
-        if (!n.bbox || (!n.scouted && n.state !== "visited")) return null;
+        if (!n.bbox || n.state !== "visited") return null;
         const icons = getActiveEffects(n)
           .map((e) => e.icon)
           .filter((i): i is string => i !== undefined);
@@ -321,16 +271,6 @@ export function RoomLabels({
           </div>
         );
       })}
-
-      {/* Threat indicators for scouted rooms */}
-      {area.map((n) => (
-        <ThreatIndicator
-          key={`threat-${n.id}`}
-          node={n}
-          gridWidth={gridWidth}
-          gridHeight={gridHeight}
-        />
-      ))}
 
       {/* Safe room icons */}
       {area.map((n) => (

@@ -194,7 +194,6 @@ export interface AreaNode {
   cx: number;
   cy: number;
   connections: string[];
-  scouted: boolean;
   gridRoomId?: number;
   bbox?: RoomBBox;
   /** If set, entering this room transitions to another area. Mirrors `AuthoredRoom.exit`. */

@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { btnStyle } from "../../styles";
-import { getScoutIntel } from "../../utils/area";
 import { HpBar } from "../shared";
 import { WEAPONS } from "../../data/weapons";
 import { GridCanvas, visibleRooms, CELL_PX } from "./GridCanvas";
@@ -22,7 +21,6 @@ export function AreaMap({
   areaTurn,
   areaLog,
   onEnterRoom,
-  onScout,
   onEquipDiceItem,
   onGrantAndEquipDiceItem,
   onExamineProp,
@@ -41,7 +39,6 @@ export function AreaMap({
   areaTurn: number;
   areaLog: AreaLogEntry[];
   onEnterRoom: (id: string) => void;
-  onScout: (id: string, level: number) => void;
   onEquipDiceItem: (slot: EquipmentSlot, id: string) => void;
   onGrantAndEquipDiceItem: (slot: EquipmentSlot, id: string) => void;
   onExamineProp: (roomId: string, propId: string) => void;
@@ -52,8 +49,6 @@ export function AreaMap({
   onAddSalt?: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(currentRoomId);
-  const [scoutResult, setScoutResult] = useState<string | null>(null);
-  const [scoutLevel, setScoutLevel] = useState(0);
   const [showEquipmentPicker, setShowEquipmentPicker] = useState(false);
   const [openProp, setOpenProp] = useState<{ roomId: string; propId: string } | null>(null);
   const [showLog, setShowLog] = useState(false);
@@ -116,7 +111,6 @@ export function AreaMap({
 
   const node = selected ? area.find((n) => n.id === selected) : null;
   const currentRoom = area.find((n) => n.id === currentRoomId);
-  const adjacentIds = new Set(currentRoom?.connections || []);
 
   const visible = useMemo(() => visibleRooms(area, debugMode), [area, debugMode]);
 
@@ -153,20 +147,8 @@ export function AreaMap({
   function handleClickRoom(nodeId: string) {
     const n = area.find((nd) => nd.id === nodeId);
     if (!n) return;
-    const vis = n.state === "visited";
-    if (!debugMode && n.id !== currentRoomId && !adjacentIds.has(n.id) && !vis) return;
+    if (!debugMode && !visible.has(n.id)) return;
     setSelected(n.id === selected ? null : n.id);
-    setScoutResult(null);
-    setScoutLevel(0);
-  }
-
-  function handleScout(level: number) {
-    if (!node) return;
-    const intel = getScoutIntel(node, level);
-    const icons: Record<number, string> = { 1: "\u{1F442}", 2: "\u{1F511}", 3: "\u{1F575}" };
-    setScoutResult(`${icons[level] || ""} ${intel}`);
-    setScoutLevel(level);
-    onScout(node.id, level);
   }
 
   function handleEnterRoom(id: string) {
@@ -296,13 +278,10 @@ export function AreaMap({
           <RoomPanel
             node={node ?? null}
             currentRoomId={currentRoomId}
-            adjacentIds={adjacentIds}
+            visibleIds={visible}
             debugMode={debugMode}
-            scoutLevel={scoutLevel}
-            scoutResult={scoutResult}
             player={player}
             onEnterRoom={handleEnterRoom}
-            onScout={handleScout}
             onExamineProp={handleExamineProp}
           />
 
