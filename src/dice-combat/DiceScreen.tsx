@@ -16,6 +16,7 @@ import {
 } from "./engine";
 import { COLORS, getFace, SLOT_ORDER } from "./dice-defs";
 import { getEnemyDef } from "./enemy-defs";
+import { artFor } from "./enemy-art";
 import { FACE_COLOR_CSS, FaceGlyphs, groupSymbols } from "./FaceGlyphs";
 import { RollingDieCuboid } from "./RollingDieCuboid";
 import type {
@@ -755,6 +756,7 @@ function AlcoveCard({
   const isDead = enemy.hp <= 0;
   const isActing = state.lastEnemyAction?.uid === enemy.uid;
   const tone = toneFor(enemy.id);
+  const art = artFor(enemy.id);
 
   // Tracks which faces have completed their roll animation this turn.
   // When state.turn changes, doneKey.turn won't match, so done is treated as empty.
@@ -788,160 +790,167 @@ function AlcoveCard({
         ...(isHidden ? { opacity: 0.45 } : {}),
       }}
     >
-      {/* Status button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onInspect();
-        }}
-        className="btn ghost"
-        style={{ fontSize: 9, padding: "2px 6px", marginTop: 2 }}
-      >
-        🔍 Status
-      </button>
-
       {/* Arch + art tile */}
       <div style={{ position: "relative" }}>
         <div className="alcove-arch" />
         <div className="alcove-art">
-          <div className={`art-img tone-${tone}`}>
-            <span className="lbl">{enemy.name}</span>
-          </div>
-        </div>
-      </div>
+          {art ? (
+            <div className={`art-img art-photo${backRow ? " small" : ""}`}>
+              <img src={art} alt={enemy.name} />
+            </div>
+          ) : (
+            <div className={`art-img tone-${tone}`}>
+              <span className="lbl">{enemy.name}</span>
+            </div>
+          )}
 
-      {/* Name plate with HP */}
-      <div className="alcove-name">
-        <span>
-          {(() => {
-            const EI = enemy.icon;
-            return (
-              <>
-                <EI
-                  style={{
-                    width: "1em",
-                    height: "1em",
-                    display: "inline-block",
-                    verticalAlign: "middle",
-                  }}
-                />{" "}
-                {enemy.name}
-              </>
-            );
-          })()}
-        </span>
-        <span className="hp">{`${enemy.hp}/${enemy.maxHp}`}</span>
-      </div>
+          {/* Status button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onInspect();
+            }}
+            className="btn ghost alcove-status-btn"
+          >
+            🔍
+          </button>
 
-      {/* Status badges */}
-      {Object.values(enemy.statuses).some(Boolean) && (
-        <div
-          style={{
-            display: "flex",
-            gap: 3,
-            flexWrap: "wrap",
-            justifyContent: "center",
-            fontSize: 20,
-          }}
-        >
-          {Object.entries(enemy.statuses).map(([k, v]) =>
-            v ? (
-              <span key={k} title={`${k} ${v > 1 ? v : ""}`}>
+          {/* Overlaid caption: name, HP, statuses, dice — pinned to card bottom */}
+          <div className="alcove-caption">
+            <div className="alcove-name">
+              <span>
                 {(() => {
-                  const Icon = STATUS_ICONS[k as StatusKey];
+                  const EI = enemy.icon;
                   return (
-                    <Icon
-                      style={{
-                        width: "1.43em",
-                        height: "1.43em",
-                        display: "inline-block",
-                        color: STATUS_COLORS[k as StatusKey],
-                      }}
-                    />
+                    <>
+                      <EI
+                        style={{
+                          width: "1em",
+                          height: "1em",
+                          display: "inline-block",
+                          verticalAlign: "middle",
+                        }}
+                      />{" "}
+                      {enemy.name}
+                    </>
                   );
                 })()}
-                {v > 1 ? v : ""}
               </span>
-            ) : null,
-          )}
-        </div>
-      )}
-
-      {/* Mini dice fan (rolled faces) */}
-      <div className="alcove-dice">
-        {enemy.rolledFaces.map((rf, i) => {
-          const face = getFace(rf.faceId);
-          if (!face) return null;
-          const n = enemy.rolledFaces.length;
-          const canDefend = isAttackTargetable(i);
-          const mit = state.attackMitigations[`${enemy.uid}:${i}`];
-          const mitigated = mit && (mit.block > 0 || mit.dodge || mit.riposteDamage > 0);
-          const cancelled = mitigated && mit.dodge;
-          const isRolling = rollingFaceIndices.has(i);
-          const enemyDie = allEnemyDice.find((d) => d.id === rf.dieId) ?? null;
-
-          return (
-            <div
-              key={i}
-              className="mini"
-              style={{ transform: `rotate(${(i - (n - 1) / 2) * 8}deg)` }}
-            >
-              {isRolling && enemyDie ? (
-                <RollingDieCuboid
-                  die={enemyDie}
-                  resultFaceId={rf.faceId}
-                  mini
-                  delay={i * 0.12}
-                  onRollComplete={() =>
-                    setDoneKey((prev) => ({
-                      turn: state.turn,
-                      done: new Set([...prev.done, i]),
-                    }))
-                  }
-                />
-              ) : (
-                <div
-                  className="mini-die"
-                  title={face.label}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (canDefend) onAttackClick(i);
-                  }}
-                  style={{
-                    cursor: canDefend ? "pointer" : "default",
-                    opacity: cancelled ? 0.4 : 1,
-                    outline: canDefend
-                      ? "1.5px solid var(--torch)"
-                      : mitigated
-                        ? "1px solid var(--crypt)"
-                        : undefined,
-                    position: "relative",
-                  }}
-                >
-                  <div className="band" style={{ background: FACE_COLOR_CSS[face.color] }} />
-                  <div className="sym">
-                    <FaceGlyphs face={face} size="18px" color={FACE_COLOR_CSS[face.color]} />
-                  </div>
-                  {rf.focused && (
-                    <div
-                      title="Selected by Focus"
-                      style={{
-                        position: "absolute",
-                        top: 2,
-                        left: 2,
-                        width: 8,
-                        height: 8,
-                        color: "#000",
-                      }}
-                    >
-                      <IconFocus style={{ width: "100%", height: "100%" }} />
-                    </div>
-                  )}
-                </div>
-              )}
+              <span className="hp">{`${enemy.hp}/${enemy.maxHp}`}</span>
             </div>
-          );
-        })}
+
+            {/* Status badges */}
+            {Object.values(enemy.statuses).some(Boolean) && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 3,
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  fontSize: 20,
+                }}
+              >
+                {Object.entries(enemy.statuses).map(([k, v]) =>
+                  v ? (
+                    <span key={k} title={`${k} ${v > 1 ? v : ""}`}>
+                      {(() => {
+                        const Icon = STATUS_ICONS[k as StatusKey];
+                        return (
+                          <Icon
+                            style={{
+                              width: "1.43em",
+                              height: "1.43em",
+                              display: "inline-block",
+                              color: STATUS_COLORS[k as StatusKey],
+                            }}
+                          />
+                        );
+                      })()}
+                      {v > 1 ? v : ""}
+                    </span>
+                  ) : null,
+                )}
+              </div>
+            )}
+
+            {/* Mini dice fan (rolled faces) */}
+            <div className="alcove-dice">
+              {enemy.rolledFaces.map((rf, i) => {
+                const face = getFace(rf.faceId);
+                if (!face) return null;
+                const n = enemy.rolledFaces.length;
+                const canDefend = isAttackTargetable(i);
+                const mit = state.attackMitigations[`${enemy.uid}:${i}`];
+                const mitigated = mit && (mit.block > 0 || mit.dodge || mit.riposteDamage > 0);
+                const cancelled = mitigated && mit.dodge;
+                const isRolling = rollingFaceIndices.has(i);
+                const enemyDie = allEnemyDice.find((d) => d.id === rf.dieId) ?? null;
+
+                return (
+                  <div
+                    key={i}
+                    className="mini"
+                    style={{ transform: `rotate(${(i - (n - 1) / 2) * 8}deg)` }}
+                  >
+                    {isRolling && enemyDie ? (
+                      <RollingDieCuboid
+                        die={enemyDie}
+                        resultFaceId={rf.faceId}
+                        mini
+                        delay={i * 0.12}
+                        onRollComplete={() =>
+                          setDoneKey((prev) => ({
+                            turn: state.turn,
+                            done: new Set([...prev.done, i]),
+                          }))
+                        }
+                      />
+                    ) : (
+                      <div
+                        className="mini-die"
+                        title={face.label}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (canDefend) onAttackClick(i);
+                        }}
+                        style={{
+                          cursor: canDefend ? "pointer" : "default",
+                          opacity: cancelled ? 0.4 : 1,
+                          outline: canDefend
+                            ? "1.5px solid var(--torch)"
+                            : mitigated
+                              ? "1px solid var(--crypt)"
+                              : undefined,
+                          position: "relative",
+                        }}
+                      >
+                        <div className="band" style={{ background: FACE_COLOR_CSS[face.color] }} />
+                        <div className="sym">
+                          <FaceGlyphs face={face} size="18px" color={FACE_COLOR_CSS[face.color]} />
+                        </div>
+                        {rf.focused && (
+                          <div
+                            title="Selected by Focus"
+                            style={{
+                              position: "absolute",
+                              top: 2,
+                              left: 2,
+                              width: 8,
+                              height: 8,
+                              color: "#000",
+                            }}
+                          >
+                            <IconFocus style={{ width: "100%", height: "100%" }} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
