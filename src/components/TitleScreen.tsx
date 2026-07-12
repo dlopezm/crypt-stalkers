@@ -22,7 +22,7 @@ export function TitleScreen({
   const hasSave = !!onContinue && !cleared;
 
   return (
-    <div className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center justify-center relative overflow-hidden p-4">
+    <div className="min-h-dvh bg-crypt-bg text-crypt-text font-serif flex flex-col items-center justify-center relative overflow-y-auto py-6 px-4">
       <div className="vignette" />
       <h1
         className="text-[clamp(2.5rem,6vw,4rem)] tracking-[0.2em] uppercase text-crypt-red-glow font-bold relative z-1 mb-1"
@@ -30,16 +30,16 @@ export function TitleScreen({
       >
         Crypt Stalkers
       </h1>
-      <div className="text-crypt-dim tracking-[0.3em] text-sm mb-8 relative z-1">
+      <div className="text-crypt-dim tracking-[0.3em] text-sm mb-8 landscape:mb-4 relative z-1">
         {"◆"} THE SALT REMEMBERS YOUR NAME {"◆"}
       </div>
-      <div className="panel max-w-lg text-center relative z-1">
-        <p className="text-base text-crypt-muted leading-relaxed mb-4">
+      <div className="panel max-w-lg text-center relative z-1 landscape:py-3">
+        <p className="text-base text-crypt-muted leading-relaxed mb-4 landscape:mb-2 landscape:text-sm">
           Four hundred years ago, your family lost a salt mine worth a barony. The order that bought
           it went silent. Whatever is down there
           {"—"} the salt, the dead, the mine itself {"—"} belongs to you.
         </p>
-        <div className="text-sm text-crypt-dim mb-6 leading-loose text-left space-y-0.5">
+        <div className="text-sm text-crypt-dim mb-6 landscape:mb-3 leading-loose landscape:leading-snug text-left space-y-0.5">
           <div>
             {"\u{1F6E1}️"} Your family{"'"}s crest still marks the entrance
           </div>
@@ -48,11 +48,11 @@ export function TitleScreen({
           <div>{"\u{1FA99}"} Greed built this place. Greed is what keeps it going</div>
           <div>{"⛏️"} The deeper you dig, the more it costs</div>
         </div>
-        <div className="flex flex-col gap-3 items-center">
+        <div className="flex flex-col gap-3 landscape:gap-2 items-center">
           {hasSave && (
             <button
               style={btnStyle("#2a6e2a")}
-              className="text-lg! px-8! py-3! tracking-[0.2em] w-full"
+              className="text-lg! px-8! py-3! landscape:py-2! tracking-[0.2em] w-full"
               onClick={onContinue}
             >
               Continue
@@ -60,7 +60,7 @@ export function TitleScreen({
           )}
           <button
             style={btnStyle("#8b0000")}
-            className="text-lg! px-8! py-3! tracking-[0.2em] w-full"
+            className="text-lg! px-8! py-3! landscape:py-2! tracking-[0.2em] w-full"
             onClick={onStart}
           >
             {hasSave ? "New Game" : "Begin Your Journey"}

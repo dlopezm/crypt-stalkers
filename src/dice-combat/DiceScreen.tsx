@@ -422,277 +422,311 @@ export function DiceScreen({
         </div>
       </div>
 
-      {/* Enemy row — back-row enemies shown at 60% scale, original order preserved */}
-      <div className="enemies" style={{ padding: "14px 20px 8px" }}>
-        {visibleEnemies.map((enemy) => (
-          <AlcoveCard
-            key={enemy.uid}
-            state={state}
-            enemy={enemy}
-            targetable={isTargetable(enemy.uid)}
-            onClick={() => handleEnemyClick(enemy.uid)}
-            isAttackTargetable={(idx) => isAttackTargetable(enemy.uid, idx)}
-            onAttackClick={(idx) => handleAttackClick(enemy.uid, idx)}
-            onInspect={() => setInspectEnemyUid(enemy.uid)}
-            playerFlash={playerFlashUid === enemy.uid}
-            backRow={enemy.row === "back"}
-          />
-        ))}
-        {visibleEnemies.length === 0 && (
-          <span style={{ opacity: 0.4, fontStyle: "italic" }}>(all enemies defeated)</span>
-        )}
-      </div>
+      {/* Combat body — on desktop/portrait this is display:contents (a no-op
+          wrapper) so the sections stack vertically as before. In landscape it
+          becomes a flex row: the kit peels off into a left sidebar (order:-1)
+          and the board (enemies/altar/actions) fills the rest. */}
+      <div className="combat-body">
+        {/* Enemy row — back-row enemies shown at 60% scale, original order preserved */}
+        <div className="board-col">
+          <div className="enemies">
+            {visibleEnemies.map((enemy) => (
+              <AlcoveCard
+                key={enemy.uid}
+                state={state}
+                enemy={enemy}
+                targetable={isTargetable(enemy.uid)}
+                onClick={() => handleEnemyClick(enemy.uid)}
+                isAttackTargetable={(idx) => isAttackTargetable(enemy.uid, idx)}
+                onAttackClick={(idx) => handleAttackClick(enemy.uid, idx)}
+                onInspect={() => setInspectEnemyUid(enemy.uid)}
+                playerFlash={playerFlashUid === enemy.uid}
+                backRow={enemy.row === "back"}
+              />
+            ))}
+            {visibleEnemies.length === 0 && (
+              <span style={{ opacity: 0.4, fontStyle: "italic" }}>(all enemies defeated)</span>
+            )}
+          </div>
 
-      {/* Altar / Pool */}
-      <div className="altar-wrap">
-        <div className="altar">
-          <div className="torch-stand l" />
-          <div className="torch-glow l" />
-          <div className="torch-stand r" />
-          <div className="torch-glow r" />
-          <div className="altar-slab">
-            <div className="altar-head">
-              <span className="eyebrow">
-                THE ALTAR · {state.pool.length} stone{state.pool.length === 1 ? "" : "s"}
-              </span>
-              <span className="eyebrow" style={{ color: busted ? "var(--blood)" : "var(--torch)" }}>
-                {altarLabel}
-              </span>
-            </div>
-            <div className="altar-pool">
-              {state.pool.length === 0 && phase === "rolling" && (
-                <span className="eyebrow" style={{ color: "var(--bone-faint)" }}>
-                  tap a kit below to lay the first stone
-                </span>
-              )}
-              {state.pool.map((pf) => (
-                <PoolDieCard
-                  key={pf.poolId}
-                  pf={pf}
-                  state={state}
-                  selected={selectedPoolId === pf.poolId}
-                  busted={busted}
-                  onClick={() => handlePoolFaceClick(pf.poolId)}
-                  isRolling={rollingPoolIds.has(pf.poolId)}
-                  onRollComplete={() =>
-                    setRollingPoolIds((prev) => {
-                      const next = new Set(prev);
-                      next.delete(pf.poolId);
-                      return next;
-                    })
-                  }
-                />
-              ))}
-              {phase === "rolling" && state.pool.length > 0 && (
-                <div className="pool-empty">
-                  roll
-                  <br />
-                  more?
+          {/* Altar / Pool */}
+          <div className="altar-wrap">
+            <div className="altar">
+              <div className="torch-stand l" />
+              <div className="torch-glow l" />
+              <div className="torch-stand r" />
+              <div className="torch-glow r" />
+              <div className="altar-slab">
+                <div className="altar-head">
+                  <span className="eyebrow">
+                    THE ALTAR · {state.pool.length} stone{state.pool.length === 1 ? "" : "s"}
+                  </span>
+                  <span
+                    className="eyebrow"
+                    style={{ color: busted ? "var(--blood)" : "var(--torch)" }}
+                  >
+                    {altarLabel}
+                  </span>
                 </div>
-              )}
+                <div className="altar-pool">
+                  {state.pool.length === 0 && phase === "rolling" && (
+                    <span className="eyebrow" style={{ color: "var(--bone-faint)" }}>
+                      tap a kit below to lay the first stone
+                    </span>
+                  )}
+                  {state.pool.map((pf) => (
+                    <PoolDieCard
+                      key={pf.poolId}
+                      pf={pf}
+                      state={state}
+                      selected={selectedPoolId === pf.poolId}
+                      busted={busted}
+                      onClick={() => handlePoolFaceClick(pf.poolId)}
+                      isRolling={rollingPoolIds.has(pf.poolId)}
+                      onRollComplete={() =>
+                        setRollingPoolIds((prev) => {
+                          const next = new Set(prev);
+                          next.delete(pf.poolId);
+                          return next;
+                        })
+                      }
+                    />
+                  ))}
+                  {phase === "rolling" && state.pool.length > 0 && (
+                    <div className="pool-empty">
+                      roll
+                      <br />
+                      more?
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Action bar */}
-      <div className="action-bar">
-        {phase === "rolling" && (
-          <>
-            <button className="btn ghost" onClick={handleStop} disabled={state.pool.length === 0}>
-              DONE ROLLING ({state.pool.length})
-            </button>
-            <span className="hint">or keep rolling ↓</span>
-          </>
-        )}
-        {phase === "assigning" && (
-          <>
-            <span className="hint">
-              {selectedPoolId == null ? (
-                "tap a die above, then tap a mark"
-              ) : (
-                <>
-                  die selected — <b>{canSelfApply ? "click Apply to Self or " : ""}tap a mark</b>
-                </>
-              )}
-            </span>
-            {canUndo && (
-              <button className="btn ghost" onClick={handleUndo}>
-                ↩ Undo
-              </button>
+          {/* Action bar */}
+          <div className="action-bar">
+            {phase === "rolling" && (
+              <>
+                <button
+                  className="btn ghost"
+                  onClick={handleStop}
+                  disabled={state.pool.length === 0}
+                >
+                  DONE ROLLING ({state.pool.length})
+                </button>
+                <span className="hint">or keep rolling ↓</span>
+              </>
             )}
-            {canSelfApply && (
-              <button className="btn crypt" onClick={handleSelfApply}>
-                Apply to Self
-              </button>
-            )}
-            <button className="btn blood" disabled={!allAssigned(state)} onClick={handleResolve}>
-              END TURN ▸
-            </button>
-          </>
-        )}
-        {busted && (
-          <button className="btn" onClick={handleResolve}>
-            TURN ENDS →
-          </button>
-        )}
-      </div>
-
-      {/* Weapon tablets / Kit */}
-      <div className="kit">
-        {SLOT_ORDER.map((slot) => {
-          const die = dieForSlot(slot, state);
-          if (!die) return null;
-          const locked = state.player.slotLocks.includes(slot);
-          const canRoll = phase === "rolling" && !locked && canRollSlot(state, slot);
-          const risk = bustRiskForDie(slot);
-          const isHot = canRoll && risk.matching / risk.total > 1 / 3;
-          const corruptions = state.player.corruptedFaces.filter((c) => c.slot === slot);
-          const poisoned = state.player.poisonedFaces.filter((p) => p.slot === slot);
-          return (
-            <div
-              key={slot}
-              className={`tablet ${isHot ? "hot" : ""} ${locked ? "locked" : ""}`}
-              onClick={canRoll ? () => handleRoll(slot) : undefined}
-            >
-              <div className="tablet-head">
-                <span className="tablet-name">
-                  {(() => {
-                    const DI = die.icon;
-                    return (
-                      <>
-                        <DI
-                          style={{
-                            width: "1em",
-                            height: "1em",
-                            display: "inline-block",
-                            verticalAlign: "middle",
-                          }}
-                        />{" "}
-                        {die.name}
-                      </>
-                    );
-                  })()}
-                </span>
-                <span className={`tablet-risk ${isHot ? "warn" : ""}`}>
-                  {locked ? (
-                    <IconBind style={{ width: "0.8em", height: "0.8em" }} />
-                  ) : isHot ? (
-                    `⚠ ${risk.matching}/${risk.total}`
+            {phase === "assigning" && (
+              <>
+                <span className="hint">
+                  {selectedPoolId == null ? (
+                    "tap a die above, then tap a mark"
                   ) : (
-                    `${risk.matching}/${risk.total}`
+                    <>
+                      die selected —{" "}
+                      <b>{canSelfApply ? "click Apply to Self or " : ""}tap a mark</b>
+                    </>
                   )}
                 </span>
-              </div>
-              <div className="tablet-faces">
-                {die.faces.map((faceId, idx) => {
-                  const face = getFace(faceId);
-                  if (!face) return null;
-                  const corruption = corruptions.find((c) => c.faceIndex === idx);
-                  const poisonStacks = poisoned.filter((p) => p.faceIndex === idx).length;
-                  const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
-                  const bustWarning = wouldBust(colorId);
-                  return (
-                    <div key={idx} className={`face ${bustWarning ? "bust-warning" : ""}`}>
-                      <div className="band" style={{ background: FACE_COLOR_CSS[colorId] }} />
-                      <div className="sym">
-                        <FaceGlyphs
-                          face={injectPoisonSymbols(face, poisonStacks)}
-                          size="16px"
-                          color={FACE_COLOR_CSS[colorId]}
-                        />
-                      </div>
-                      <div className="lab">{face.label}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Player status button + badges */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          padding: "4px 0 0",
-          gap: "3px",
-        }}
-      >
-        {(Object.values(p.statuses).some((v) => (v ?? 0) > 0) ||
-          p.hymnHumActive ||
-          p.resonanceCharges > 0 ||
-          p.slotLocks.length > 0) && (
-          <div
-            style={{
-              display: "flex",
-              gap: "0.4rem",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              fontSize: "1.5rem",
-            }}
-          >
-            {(Object.keys(p.statuses) as StatusKey[])
-              .filter((k) => (p.statuses[k] ?? 0) > 0)
-              .map((k) => {
-                const Icon = STATUS_ICONS[k];
-                return (
-                  <Tooltip
-                    key={k}
-                    content={`${k.charAt(0).toUpperCase() + k.slice(1)}: ${STATUS_DESC[k]}`}
-                  >
-                    <span
-                      style={{
-                        color: STATUS_COLORS[k],
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.2rem",
-                      }}
-                    >
-                      <Icon style={{ width: "1.17em", height: "1.17em" }} />
-                      {(p.statuses[k] ?? 0) > 1 ? `×${p.statuses[k]}` : ""}
-                    </span>
-                  </Tooltip>
-                );
-              })}
-            {p.hymnHumActive && (
-              <span
-                style={{
-                  color: "var(--crypt)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.2rem",
-                }}
-              >
-                <IconHymnHum style={{ width: "1.17em", height: "1.17em" }} /> Hymn-Hum
-              </span>
+                {canUndo && (
+                  <button className="btn ghost" onClick={handleUndo}>
+                    ↩ Undo
+                  </button>
+                )}
+                {canSelfApply && (
+                  <button className="btn crypt" onClick={handleSelfApply}>
+                    Apply to Self
+                  </button>
+                )}
+                <button
+                  className="btn blood"
+                  disabled={!allAssigned(state)}
+                  onClick={handleResolve}
+                >
+                  END TURN ▸
+                </button>
+              </>
             )}
-            {p.resonanceCharges > 0 && <span style={{ color: "var(--torch)" }}>✦ Resonance</span>}
-            {p.slotLocks.length > 0 && (
-              <span
-                style={{
-                  color: "var(--blood)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.2rem",
-                }}
-              >
-                <IconBind style={{ width: "1.17em", height: "1.17em" }} /> {p.slotLocks.join(", ")}
-              </span>
+            {busted && (
+              <button className="btn" onClick={handleResolve}>
+                TURN ENDS →
+              </button>
             )}
           </div>
-        )}
-        <button
-          className="btn ghost"
-          style={{ fontSize: 9, padding: "2px 8px" }}
-          onClick={() => setShowPlayerStatus(true)}
-        >
-          🔍 Status
-        </button>
+        </div>
+        {/* /board-col */}
+
+        {/* Side column — kit + status. In landscape this is the left sidebar
+            (kit on top, Status pinned under it). On desktop it's
+            display:contents so kit and status flow as before. */}
+        <div className="side-col">
+          {/* Weapon tablets / Kit */}
+          <div className="kit">
+            {SLOT_ORDER.map((slot) => {
+              const die = dieForSlot(slot, state);
+              if (!die) return null;
+              const locked = state.player.slotLocks.includes(slot);
+              const canRoll = phase === "rolling" && !locked && canRollSlot(state, slot);
+              const risk = bustRiskForDie(slot);
+              const isHot = canRoll && risk.matching / risk.total > 1 / 3;
+              const corruptions = state.player.corruptedFaces.filter((c) => c.slot === slot);
+              const poisoned = state.player.poisonedFaces.filter((p) => p.slot === slot);
+              return (
+                <div
+                  key={slot}
+                  className={`tablet ${isHot ? "hot" : ""} ${locked ? "locked" : ""}`}
+                  onClick={canRoll ? () => handleRoll(slot) : undefined}
+                >
+                  <div className="tablet-head">
+                    <span className="tablet-name">
+                      {(() => {
+                        const DI = die.icon;
+                        return (
+                          <>
+                            <DI
+                              style={{
+                                width: "1em",
+                                height: "1em",
+                                display: "inline-block",
+                                verticalAlign: "middle",
+                              }}
+                            />{" "}
+                            {die.name}
+                          </>
+                        );
+                      })()}
+                    </span>
+                    <span className={`tablet-risk ${isHot ? "warn" : ""}`}>
+                      {locked ? (
+                        <IconBind style={{ width: "0.8em", height: "0.8em" }} />
+                      ) : isHot ? (
+                        `⚠ ${risk.matching}/${risk.total}`
+                      ) : (
+                        `${risk.matching}/${risk.total}`
+                      )}
+                    </span>
+                  </div>
+                  <div className="tablet-faces">
+                    {die.faces.map((faceId, idx) => {
+                      const face = getFace(faceId);
+                      if (!face) return null;
+                      const corruption = corruptions.find((c) => c.faceIndex === idx);
+                      const poisonStacks = poisoned.filter((p) => p.faceIndex === idx).length;
+                      const colorId: FaceColor = corruption ? corruption.recoloredTo : face.color;
+                      const bustWarning = wouldBust(colorId);
+                      return (
+                        <div key={idx} className={`face ${bustWarning ? "bust-warning" : ""}`}>
+                          <div className="band" style={{ background: FACE_COLOR_CSS[colorId] }} />
+                          <div className="sym">
+                            <FaceGlyphs
+                              face={injectPoisonSymbols(face, poisonStacks)}
+                              size="16px"
+                              color={FACE_COLOR_CSS[colorId]}
+                            />
+                          </div>
+                          <div className="lab">{face.label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {/* /kit */}
+
+          {/* Player status button + badges */}
+          <div
+            className="combat-status"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "4px 0 0",
+              gap: "3px",
+            }}
+          >
+            {(Object.values(p.statuses).some((v) => (v ?? 0) > 0) ||
+              p.hymnHumActive ||
+              p.resonanceCharges > 0 ||
+              p.slotLocks.length > 0) && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.4rem",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  fontSize: "1.5rem",
+                }}
+              >
+                {(Object.keys(p.statuses) as StatusKey[])
+                  .filter((k) => (p.statuses[k] ?? 0) > 0)
+                  .map((k) => {
+                    const Icon = STATUS_ICONS[k];
+                    return (
+                      <Tooltip
+                        key={k}
+                        content={`${k.charAt(0).toUpperCase() + k.slice(1)}: ${STATUS_DESC[k]}`}
+                      >
+                        <span
+                          style={{
+                            color: STATUS_COLORS[k],
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.2rem",
+                          }}
+                        >
+                          <Icon style={{ width: "1.17em", height: "1.17em" }} />
+                          {(p.statuses[k] ?? 0) > 1 ? `×${p.statuses[k]}` : ""}
+                        </span>
+                      </Tooltip>
+                    );
+                  })}
+                {p.hymnHumActive && (
+                  <span
+                    style={{
+                      color: "var(--crypt)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.2rem",
+                    }}
+                  >
+                    <IconHymnHum style={{ width: "1.17em", height: "1.17em" }} /> Hymn-Hum
+                  </span>
+                )}
+                {p.resonanceCharges > 0 && (
+                  <span style={{ color: "var(--torch)" }}>✦ Resonance</span>
+                )}
+                {p.slotLocks.length > 0 && (
+                  <span
+                    style={{
+                      color: "var(--blood)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.2rem",
+                    }}
+                  >
+                    <IconBind style={{ width: "1.17em", height: "1.17em" }} />{" "}
+                    {p.slotLocks.join(", ")}
+                  </span>
+                )}
+              </div>
+            )}
+            <button
+              className="btn ghost"
+              style={{ fontSize: 9, padding: "2px 8px" }}
+              onClick={() => setShowPlayerStatus(true)}
+            >
+              🔍 Status
+            </button>
+          </div>
+          {/* /combat-status */}
+        </div>
+        {/* /side-col */}
       </div>
+      {/* /combat-body */}
 
       {/* Log strip */}
       <div className="log">

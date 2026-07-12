@@ -18,12 +18,12 @@ export function IntroScreen({ onFinish }: { readonly onFinish: () => void }) {
 
   return (
     <div
-      className="min-h-screen bg-crypt-bg text-crypt-text font-serif flex flex-col items-center justify-center relative overflow-hidden p-4 cursor-pointer select-none"
+      className="min-h-dvh bg-crypt-bg text-crypt-text font-serif flex flex-col items-center justify-center relative overflow-y-auto p-4 landscape:py-6 cursor-pointer select-none"
       onClick={advance}
     >
       <div className="vignette" />
 
-      <div className="relative z-1 max-w-lg w-full flex flex-col items-center gap-8">
+      <div className="relative z-1 max-w-lg w-full flex flex-col items-center gap-8 landscape:gap-4 my-auto">
         <AnimatePresence mode="wait">
           <motion.p
             key={index}

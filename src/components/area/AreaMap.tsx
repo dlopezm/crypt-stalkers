@@ -229,7 +229,7 @@ export function AreaMap({
       <div
         className="flex relative z-1 w-full flex-1 min-h-0
                       flex-col
-                      lg:flex-row lg:gap-4 lg:px-4 lg:pb-4 lg:items-stretch"
+                      md:flex-row md:gap-4 md:px-4 md:pb-4 md:items-stretch"
       >
         {/* Map canvas — takes all available space on mobile */}
         <div
@@ -272,7 +272,7 @@ export function AreaMap({
         <div
           className="shrink-0 flex flex-col gap-2
                         px-3 pb-3 overflow-y-auto
-                        lg:w-[320px] lg:max-w-[360px] lg:px-0 lg:pb-0 lg:overflow-y-auto lg:max-h-full"
+                        md:w-[300px] md:max-w-[340px] md:px-0 md:pb-0 md:overflow-y-auto md:max-h-full"
         >
           {/* Room panel */}
           <RoomPanel

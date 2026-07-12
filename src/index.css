@@ -56,6 +56,68 @@ button {
   cursor: pointer;
 }
 
+/* ── Landscape lock (mobile / touch devices) ──
+   Hidden by default. Shown only on coarse-pointer (touch) devices held
+   in portrait, prompting the player to rotate. Desktop windows that
+   happen to be tall keep a fine pointer, so they are never affected. */
+#rotate-prompt {
+  display: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  #rotate-prompt {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    background: var(--color-crypt-bg);
+    color: var(--bone);
+  }
+
+  /* Freeze the game underneath so it can't be interacted with sideways. */
+  #root {
+    pointer-events: none;
+  }
+
+  .rotate-prompt__inner {
+    max-width: 22rem;
+  }
+
+  .rotate-prompt__icon {
+    font-size: 3.5rem;
+    line-height: 1;
+    animation: rotate-hint 2.4s ease-in-out infinite;
+  }
+
+  .rotate-prompt__title {
+    font-family: "Rye", serif;
+    font-size: 1.5rem;
+    margin: 1.25rem 0 0.5rem;
+    color: var(--color-crypt-gold);
+  }
+
+  .rotate-prompt__text {
+    font-size: 1rem;
+    margin: 0;
+    color: var(--color-crypt-muted);
+  }
+}
+
+@keyframes rotate-hint {
+  0%,
+  40% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(90deg);
+  }
+}
+
 .display {
   font-family: "Rye", serif;
   letter-spacing: 0.03em;
@@ -79,6 +141,7 @@ button {
 /* Stage */
 .stage {
   height: 100vh;
+  height: 100dvh;
   background: radial-gradient(ellipse at 50% -10%, #1a3838 0%, #0a1a1a 35%, #050a0a 80%);
   position: relative;
   overflow: hidden;
@@ -195,12 +258,21 @@ button {
 }
 
 /* ENEMIES */
+/* Wrappers used only to re-flow combat into a sidebar layout in landscape.
+   On desktop/portrait they're display:contents so they vanish from layout
+   and the sections keep stacking vertically exactly as before. */
+.combat-body,
+.board-col,
+.side-col {
+  display: contents;
+}
+
 .enemies {
   display: flex;
   justify-content: center;
   align-items: flex-start;
   gap: 28px;
-  padding: 18px 20px 12px;
+  padding: 14px 20px 8px;
   position: relative;
   z-index: 3;
   flex-wrap: wrap;
@@ -940,6 +1012,178 @@ button {
   }
   .tablet-faces {
     gap: 2px;
+  }
+}
+
+/* ── SHORT VIEWPORT (landscape phones/tablets) ──
+   Fires on any wide-but-short screen. The width-based mobile query above
+   misses landscape phones (they can be ~900px wide yet only ~400px tall),
+   so combat must be compacted against height here instead. Everything is
+   scaled down so the full stack — header, enemy cards, altar, actions,
+   kit — fits within the viewport without vertical overflow. */
+@media (max-height: 560px) and (orientation: landscape) {
+  /* Stack tightly from the top and let the enemy row absorb slack, rather
+     than space-between spreading big gaps between sections. */
+  .stage {
+    justify-content: flex-start;
+  }
+  .arches {
+    display: none;
+  }
+  .hdr {
+    padding: 6px 16px 2px;
+    min-height: 0;
+    gap: 10px;
+  }
+  /* Drop the turn/phase title entirely in landscape — space is precious and
+     the turn number still appears in the log strip. Candles + salt stay. */
+  .title {
+    display: none;
+  }
+
+  /* ── Two-column combat: kit sidebar (left) + board (right) ── */
+  .combat-body {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 10px;
+    padding: 0 12px 4px;
+  }
+  .board-col {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* Enemy cards are the focus — give the row the dominant share of the
+     height and size the cards up so they read clearly. */
+  .enemies {
+    gap: 14px;
+    padding: 4px 4px;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .art-img {
+    width: 128px !important;
+    height: 164px !important;
+  }
+  .art-img.small {
+    width: 84px !important;
+    height: 108px !important;
+  }
+  .alcove-arch {
+    display: none;
+  }
+  .alcove {
+    gap: 3px;
+  }
+  .alcove-name {
+    font-size: 11px;
+    padding: 1px 6px;
+  }
+  .alcove-dice {
+    height: 34px;
+  }
+  .mini-die {
+    width: 26px;
+    height: 30px;
+  }
+  .mini-die .sym {
+    font-size: 10px;
+  }
+
+  /* Altar: collapse to its contents so it doesn't dominate the middle.
+     The pool's forced min-height is the main space-eater — kill it. */
+  .altar-wrap {
+    padding: 2px 4px;
+    flex: 0 0 auto;
+  }
+  .altar-slab {
+    padding: 5px 10px;
+    min-height: 0;
+  }
+  .altar-head {
+    margin-bottom: 3px;
+  }
+  .altar-pool {
+    min-height: 52px;
+    gap: 8px;
+  }
+  .torch-stand,
+  .torch-glow {
+    display: none;
+  }
+  .pool-die,
+  .pool-empty {
+    width: 46px;
+    height: 56px;
+  }
+  .pool-die .sym {
+    font-size: 14px;
+  }
+
+  .action-bar {
+    padding: 2px 4px 2px;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  /* ── Left sidebar ── the kit (weapon tablets) stacked full-detail with the
+     Status control pinned underneath it. The side-col is the flex child of
+     combat-body that owns the fixed width and left placement. */
+  .side-col {
+    order: -1;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    width: 150px;
+    align-self: stretch;
+    min-height: 0;
+    padding-left: 4px;
+  }
+  .kit {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 0;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  /* Status pinned under the dice, left-aligned. */
+  .combat-status {
+    flex: 0 0 auto;
+    align-items: flex-start !important;
+    padding: 2px 0 4px !important;
+  }
+  .tablet {
+    padding: 3px 6px;
+  }
+  .tablet-name {
+    font-size: 10px;
+  }
+  .tablet-head {
+    margin-bottom: 2px;
+  }
+  .tablet-faces {
+    gap: 2px;
+  }
+  .face .lab {
+    display: none;
+  }
+  .face .sym {
+    font-size: 10px;
   }
 }
 
