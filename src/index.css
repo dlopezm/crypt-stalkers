@@ -56,55 +56,96 @@ button {
   cursor: pointer;
 }
 
-/* ── Landscape lock (mobile / touch devices) ──
-   Hidden by default. Shown only on coarse-pointer (touch) devices held
-   in portrait, prompting the player to rotate. Desktop windows that
-   happen to be tall keep a fine pointer, so they are never affected. */
-#rotate-prompt {
+/* ── Device prompt (mobile / touch devices) ──
+   Driven by src/device-prompt.ts via the data-mode attribute:
+     data-mode="rotate"     → shown in portrait, asks to rotate to landscape
+     data-mode="fullscreen" → shown in landscape, offers to enter fullscreen
+     (no attribute)         → hidden
+   Desktop never gets a data-mode set, so it stays hidden there. */
+#device-prompt {
   display: none;
 }
 
-@media (orientation: portrait) and (pointer: coarse) {
-  #rotate-prompt {
-    display: flex;
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    text-align: center;
-    background: var(--color-crypt-bg);
-    color: var(--bone);
-  }
+#device-prompt[data-mode] {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  background: var(--color-crypt-bg);
+  color: var(--bone);
+}
 
-  /* Freeze the game underneath so it can't be interacted with sideways. */
-  #root {
-    pointer-events: none;
-  }
+/* Freeze the game underneath while any prompt is up. */
+body:has(#device-prompt[data-mode]) #root {
+  pointer-events: none;
+}
 
-  .rotate-prompt__inner {
-    max-width: 22rem;
-  }
+.device-prompt__inner {
+  max-width: 22rem;
+}
 
-  .rotate-prompt__icon {
-    font-size: 3.5rem;
-    line-height: 1;
-    animation: rotate-hint 2.4s ease-in-out infinite;
-  }
+/* Show only the section matching the current mode. */
+.device-prompt__rotate,
+.device-prompt__fullscreen {
+  display: none;
+}
+#device-prompt[data-mode="rotate"] .device-prompt__rotate {
+  display: block;
+}
+#device-prompt[data-mode="fullscreen"] .device-prompt__fullscreen {
+  display: block;
+}
 
-  .rotate-prompt__title {
-    font-family: "Rye", serif;
-    font-size: 1.5rem;
-    margin: 1.25rem 0 0.5rem;
-    color: var(--color-crypt-gold);
-  }
+.device-prompt__icon {
+  font-size: 3.5rem;
+  line-height: 1;
+  animation: rotate-hint 2.4s ease-in-out infinite;
+}
+.device-prompt__icon--static {
+  animation: none;
+}
 
-  .rotate-prompt__text {
-    font-size: 1rem;
-    margin: 0;
-    color: var(--color-crypt-muted);
-  }
+.device-prompt__title {
+  font-family: "Rye", serif;
+  font-size: 1.5rem;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--color-crypt-gold);
+}
+
+.device-prompt__text {
+  font-size: 1rem;
+  margin: 0;
+  color: var(--color-crypt-muted);
+}
+
+.device-prompt__btn {
+  margin-top: 1.5rem;
+  font-family: "Special Elite", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.95rem;
+  color: var(--bone);
+  background: var(--color-crypt-red-glow);
+  border: 1.5px solid var(--color-crypt-red);
+  border-radius: 4px;
+  padding: 0.7rem 1.6rem;
+  box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
+}
+
+.device-prompt__dismiss {
+  display: block;
+  margin: 0.85rem auto 0;
+  background: none;
+  border: none;
+  color: var(--color-crypt-dim);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-decoration: underline;
+  opacity: 0.7;
 }
 
 @keyframes rotate-hint {

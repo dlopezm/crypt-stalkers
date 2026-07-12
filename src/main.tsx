@@ -6,6 +6,10 @@ import App from "./App";
 import { TooltipProvider } from "./components/Tooltip";
 import { store } from "./store";
 import { saveGame } from "./utils/save";
+import { initDevicePrompt } from "./device-prompt";
+
+// Mobile rotate/fullscreen prompt controller (no-op on desktop).
+initDevicePrompt();
 // Persist to localStorage after every dispatch.
 // Guards prevent saving incomplete state during multi-dispatch operations.
 store.subscribe(() => {
