@@ -30,7 +30,7 @@ The question the game asks: **who pays for what you take?**
 
 **Death:** Die -> "You have fallen" screen -> reload from last checkpoint (state saved on room entry, before combat). The player retries from the previous room. They can retreat, rest, choose different paths. The consequence is time and learning, not currency.
 
-**Safe room rest:** Rest heals 5% max HP per turn in unsafe rooms, with ambush risk (AI ticks). In safe rooms (sunlit, warded, or brazier-lit), rest heals 15-20% with NO ambush risk. This makes salt spending on wards directly feed survival.
+**Recovery:** Full recovery after every fight. Each fight is its own puzzle.
 
 ---
 
@@ -434,8 +434,8 @@ Crystal lantern = sunlight class.
 
 Every securing action costs the player something - time, salt, or both. Safety is earned, not given.
 
-- **Ward a room:** Salt cost. Permanent salt ward along threshold. Enemies won't enter or spawn. Also makes the room a safe rest point (enhanced healing, no ambush risk). The order's core technology, now in the player's hands.
-- **Relight brazier:** Salt cost + hymn performance (Area 2 ritual knowledge). Permanent true-light zone. Suppresses Skullflower/Ghouls/Larvae/Shadows. Redirects skeleton patrols toward light. Also a safe rest point and checkpoint.
+- **Ward a room:** Salt cost. Permanent salt ward along threshold. Enemies won't enter or spawn. The order's core technology, now in the player's hands.
+- **Relight brazier:** Salt cost + hymn performance (Area 2 ritual knowledge). Permanent true-light zone. Suppresses Skullflower/Ghouls/Larvae/Shadows. Redirects skeleton patrols toward light. Also a checkpoint.
 - **Block door:** Free action, costs one dungeon turn (AI ticks, ambush risk). Prevents most monster movement. Rats/Larvae squeeze under. Strong monsters bash through.
 - **Consecrate ground:** Requires CONSECRATION capability. True safe zone. **Seals room's loot permanently.** Undead cannot enter. The player gives up treasure for safety - a direct inversion of greed.
 - **Burn Skullflower:** Fire clears passage. Permanent in lit areas. Regrows in dark.

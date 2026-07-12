@@ -41,6 +41,7 @@ import {
   IconUndodgeable,
 } from "../icons";
 import type { IconProps } from "../icons";
+import { Tooltip } from "../components/Tooltip";
 import { COLORS } from "./dice-defs";
 import type { FaceColor, FaceDef, SymbolKey } from "./types";
 
@@ -180,28 +181,29 @@ export function FaceGlyphs({
     flexShrink: 0,
   };
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        gap: "0.15rem",
-        alignItems: "center",
-        lineHeight: 1,
-        flexWrap: "wrap",
-      }}
-      title={faceTooltip(symbols)}
-    >
-      {symbols.map((s, i) => {
-        const Icon = SYMBOL_ICON[s];
-        const style =
-          s === "self_damage"
-            ? {
-                ...iconStyle,
-                color: "var(--poison)",
-                filter: "drop-shadow(0px 0px 1px #000) drop-shadow(0px 0px 1px #000)",
-              }
-            : iconStyle;
-        return <Icon key={i} style={style} />;
-      })}
-    </span>
+    <Tooltip content={faceTooltip(symbols)}>
+      <span
+        style={{
+          display: "inline-flex",
+          gap: "0.15rem",
+          alignItems: "center",
+          lineHeight: 1,
+          flexWrap: "wrap",
+        }}
+      >
+        {symbols.map((s, i) => {
+          const Icon = SYMBOL_ICON[s];
+          const style =
+            s === "self_damage"
+              ? {
+                  ...iconStyle,
+                  color: "var(--poison)",
+                  filter: "drop-shadow(0px 0px 1px #000) drop-shadow(0px 0px 1px #000)",
+                }
+              : iconStyle;
+          return <Icon key={i} style={style} />;
+        })}
+      </span>
+    </Tooltip>
   );
 }

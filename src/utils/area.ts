@@ -251,7 +251,6 @@ export function generateArea(def: AreaDef): GenerateAreaResult {
 
     let tmpl: RoomTemplate;
     let authoredProps: AreaNode["props"];
-    let safeRoom: boolean | undefined;
     if (authored) {
       const ar = authored.rooms[room.gridId];
       tmpl = {
@@ -261,7 +260,6 @@ export function generateArea(def: AreaDef): GenerateAreaResult {
         description: ar.description,
       };
       authoredProps = ar.props;
-      safeRoom = ar.safeRoom;
     } else if (isStart) {
       tmpl = { label: "Entrance", enemies: [], hint: "" };
     } else if (isBoss && def.bossRoom) {
@@ -286,7 +284,6 @@ export function generateArea(def: AreaDef): GenerateAreaResult {
       bbox: room.bbox,
       props: authoredProps,
       propStates: authoredProps ? {} : undefined,
-      safeRoom,
     };
   });
 

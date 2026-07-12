@@ -82,7 +82,6 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Wider stop: packed grit floor, salt benches along the walls. Small niche with coins, crystals, dry petals - miners' altar, untouched-looking. Faint warmth from deeper salt. No drip, no picks.",
     enemies: [],
-    safeRoom: true,
     notes: "R132. DARK. Era 1. Wider halt space; salt benches. " + "Connects R131 ↔ R133.",
     props: [
       {
@@ -142,7 +141,6 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "One wall carved with a rough house, garden, two figures holding hands - bad perspective, clear intent. Under it, cut deep: HOME. Small space. Very quiet.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R133. DARK. Era 1. Dominant wall piece. " +
       "Player recognizes baron stories / letters. Pure human beat - no fight, no loot required. " +
@@ -171,7 +169,6 @@ export const A4_ANCESTORS_TRAIL_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Side pocket from a fall-in - low ceiling, tight. Air barely moves. Surrounding salt is warm; the pocket is a little cooler. Skeleton, paper, small carved toy on the ground. Room is small.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R134. DARK. Dead end; emotional climax of Area 4 - quiet, no combat. Era 1. " +
       "Collapsed side into small alcove. " +

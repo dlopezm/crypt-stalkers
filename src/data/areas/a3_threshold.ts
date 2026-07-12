@@ -197,7 +197,6 @@ export const A3_THRESHOLD_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Shallow niche off the main passage, coldfire-lit. Shelf with bread, jar, herbs in a row. Slightly warmer than the stairs.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R78. Era 2+3. COLDFIRE. Cultist ×1 watches if not bypassed - enemy type cultist not in data; use stealth/disguise logic in script. " +
       "Cultist disguise: no hostile reaction; otherwise combat. " +

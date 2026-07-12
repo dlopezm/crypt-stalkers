@@ -142,7 +142,7 @@ A vertical shaft threads pale daylight and fresh air from above; too narrow to c
 
 - **Connects to:** R3.
 - **Contains:** **Brazier** (relightable after **Area 2** ritual).
-- **Special:** **Safe room** — sunlight blocks most monster entry; enhanced rest healing; no ambush risk. The **order ward** inscribed around the brazier base is the player’s first sight of ward markings — they will later learn to create these themselves.
+- **Special:** Sunlight blocks most monster entry. The **order ward** inscribed around the brazier base is the player’s first sight of ward markings — they will later learn to create these themselves.
 
 ---
 
@@ -367,7 +367,7 @@ Side passage **caved**; shattered timbers; **rat colony**. Collapse may tie to w
 Hillside **rip**; daylight and wind; distant fields visible. **Skeletal tracks** lead out — undead use this daily. Player **can exit** to wilderness — **not** toward town; narrative beat: the plague road is real.
 
 - **Connects to:** R19 (long tunnel).
-- **Special:** **Alternate exit**; **safe room** (sun); reinforces stakes of surface raids.
+- **Special:** **Alternate exit**; reinforces stakes of surface raids.
 
 ---
 

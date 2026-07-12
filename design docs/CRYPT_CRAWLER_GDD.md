@@ -9,7 +9,6 @@
 > - **Traps and blocked doors are free.** They cost a dungeon turn (AI ticks), not currency.
 > - **Equipment, consumables, abilities** found in the dungeon via props, not purchased.
 > - **Death** reloads from checkpoint (room entry), not town respawn with gold penalty.
-> - **Safe rooms** (warded, brazier-lit, sunlit) provide enhanced rest healing and no ambush risk.
 
 ---
 

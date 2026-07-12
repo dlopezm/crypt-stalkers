@@ -98,7 +98,6 @@ export const A2_RESTRICTED_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R53. COLDFIRE. Room design ref R53. Consecration knowledge pairs with relic in Area 3 R102 when implemented. " +
       "Connects: R51 only.",
-    safeRoom: true,
     props: [
       {
         id: "full_brazier_relighting_codex",
@@ -157,7 +156,6 @@ export const A2_RESTRICTED_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R54. COLDFIRE. Room design ref R54. Internal exploitation record - foreshadows lich themes. " +
       "Connects: R51 only.",
-    safeRoom: true,
     props: [
       {
         id: "tithe_and_seizure_folio",

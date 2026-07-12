@@ -183,7 +183,6 @@ export const A2_CHAPEL_ROOMS: Record<number, AuthoredRoom> = {
       "Small raised platform for lead singer. Rosetta for singing + fire + faith - ties brazier system to order practice. " +
       "Combine with R39 sheet, R53 ritual texts, Rennic (R49) for full relighting procedure. " +
       "Connects: R38 only.",
-    safeRoom: true,
     props: [
       {
         id: "cantor_stand_inscription",

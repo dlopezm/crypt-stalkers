@@ -285,7 +285,6 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
       "Three walls of card drawers. Brass pulls polished by use. Center table stacked with cord-tied finding slips. " +
       "Steady coldfire. Half-open drawers click when the air moves.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R47. COLDFIRE. Room design ref R47. " +
       "Connects: R43, R48, R49 (Rennic), R50 restricted door.",
@@ -412,7 +411,6 @@ export const A2_LIBRARY_ROOMS: Record<number, AuthoredRoom> = {
       "Pale glow in the corner - grey-white, not green coldfire. Still cold. " +
       "Your voice falls flat; almost no echo. Stale paper and old dust on the tongue.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R49. DARK. Room design ref R49. Rennic: ghost scholar, non-hostile - translation, library wayfinding, hymn–brazier bridge. " +
       "Connects: R47 only.",

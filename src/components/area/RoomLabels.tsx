@@ -1,5 +1,6 @@
 import { getActiveProps } from "../../utils/props";
 import { getActiveEffects } from "../../data/environment";
+import { Tooltip } from "../Tooltip";
 import type { AreaNode, RoomProp, Player } from "../../types";
 
 /* ── Individual sound icon ── */
@@ -22,37 +23,38 @@ function SoundIcon({
   const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
   const cyPct = ((minRow + maxRow + 1) / 2 / gridHeight) * 100;
   return (
-    <div
-      title={icon.texts.join("\n")}
-      onClick={() => onSelectRoom(icon.roomId)}
-      style={{
-        position: "absolute",
-        left: `${cxPct}%`,
-        top: `${cyPct}%`,
-        transform: "translate(-50%, -50%)",
-        zIndex: 10,
-        pointerEvents: "auto",
-        cursor: "pointer",
-        animation: "soundFadeIn 0.3s ease-out, soundPulse 1.5s ease-in-out infinite",
-      }}
-    >
+    <Tooltip content={icon.texts.join("\n")}>
       <div
+        onClick={() => onSelectRoom(icon.roomId)}
         style={{
-          background: "rgba(140,20,20,0.9)",
-          border: "1px solid #c41c1c",
-          borderRadius: "4px",
-          padding: "2px 6px",
-          fontSize: "0.6rem",
-          color: "#ffb0b0",
-          fontWeight: "bold",
-          whiteSpace: "nowrap",
-          boxShadow: "0 0 12px rgba(196,28,28,0.6), 0 0 24px rgba(196,28,28,0.3)",
-          textShadow: "0 0 6px rgba(255,100,100,0.5)",
+          position: "absolute",
+          left: `${cxPct}%`,
+          top: `${cyPct}%`,
+          transform: "translate(-50%, -50%)",
+          zIndex: 10,
+          pointerEvents: "auto",
+          cursor: "pointer",
+          animation: "soundFadeIn 0.3s ease-out, soundPulse 1.5s ease-in-out infinite",
         }}
       >
-        {"\u{1F442}"} {icon.texts.length > 1 ? `${icon.texts.length} sounds` : icon.texts[0]}
+        <div
+          style={{
+            background: "rgba(140,20,20,0.9)",
+            border: "1px solid #c41c1c",
+            borderRadius: "4px",
+            padding: "2px 6px",
+            fontSize: "0.6rem",
+            color: "#ffb0b0",
+            fontWeight: "bold",
+            whiteSpace: "nowrap",
+            boxShadow: "0 0 12px rgba(196,28,28,0.6), 0 0 24px rgba(196,28,28,0.3)",
+            textShadow: "0 0 6px rgba(255,100,100,0.5)",
+          }}
+        >
+          {"\u{1F442}"} {icon.texts.length > 1 ? `${icon.texts.length} sounds` : icon.texts[0]}
+        </div>
       </div>
-    </div>
+    </Tooltip>
   );
 }
 
@@ -96,42 +98,6 @@ export function resolvePropTiles(
     }
   }
   return map;
-}
-
-/* ── Safe room icon ── */
-function SafeRoomIcon({
-  node,
-  gridWidth,
-  gridHeight,
-}: {
-  readonly node: AreaNode;
-  readonly gridWidth: number;
-  readonly gridHeight: number;
-}) {
-  if (!node.bbox || !node.safeRoom) return null;
-  if (node.state !== "visited" && node.state !== "reachable") return null;
-
-  const { minRow, minCol, maxCol } = node.bbox;
-  const cxPct = ((minCol + maxCol + 1) / 2 / gridWidth) * 100;
-  const topPct = ((minRow - 0.3) / gridHeight) * 100;
-
-  return (
-    <div
-      title="Safe room - enhanced rest, no ambushes"
-      style={{
-        position: "absolute",
-        left: `${cxPct}%`,
-        top: `${topPct}%`,
-        transform: "translate(-50%, -50%)",
-        fontSize: "0.6rem",
-        zIndex: 4,
-        pointerEvents: "none",
-        textShadow: "0 0 6px rgba(100,200,255,0.6)",
-      }}
-    >
-      ☀️
-    </div>
-  );
 }
 
 /* ── Room labels overlay ── */
@@ -210,29 +176,32 @@ export function RoomLabels({
                   const topPct = ((tile.row + 0.5) / gridHeight) * 100;
                   const hasAction = !!(p.actions?.length || p.onExamine);
                   return (
-                    <div
+                    <Tooltip
                       key={`${n.id}-prop-${p.id}`}
-                      title={`${p.label}${hasAction ? " \u2014 click to interact" : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onExaminePropOnMap(n.id, p.id);
-                      }}
-                      style={{
-                        position: "absolute",
-                        left: `${leftPct}%`,
-                        top: `${topPct}%`,
-                        transform: "translate(-50%, -50%)",
-                        fontSize: "1.1rem",
-                        zIndex: 5,
-                        pointerEvents: "auto",
-                        cursor: "pointer",
-                        padding: "4px",
-                        textShadow: "0 0 6px #000, 0 0 10px #000",
-                        filter: "drop-shadow(0 0 3px rgba(255,220,120,0.5))",
-                      }}
+                      content={`${p.label}${hasAction ? " \u2014 click to interact" : ""}`}
                     >
-                      {p.icon}
-                    </div>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onExaminePropOnMap(n.id, p.id);
+                        }}
+                        style={{
+                          position: "absolute",
+                          left: `${leftPct}%`,
+                          top: `${topPct}%`,
+                          transform: "translate(-50%, -50%)",
+                          fontSize: "1.1rem",
+                          zIndex: 5,
+                          pointerEvents: "auto",
+                          cursor: "pointer",
+                          padding: "4px",
+                          textShadow: "0 0 6px #000, 0 0 10px #000",
+                          filter: "drop-shadow(0 0 3px rgba(255,220,120,0.5))",
+                        }}
+                      >
+                        {p.icon}
+                      </div>
+                    </Tooltip>
                   );
                 });
               })()}
@@ -271,11 +240,6 @@ export function RoomLabels({
           </div>
         );
       })}
-
-      {/* Safe room icons */}
-      {area.map((n) => (
-        <SafeRoomIcon key={`safe-${n.id}`} node={n} gridWidth={gridWidth} gridHeight={gridHeight} />
-      ))}
 
       {/* Sound icons */}
       {soundIcons.map((icon) => (

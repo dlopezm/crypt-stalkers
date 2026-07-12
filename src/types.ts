@@ -148,8 +148,6 @@ export interface AuthoredRoom {
   exit?: RoomExit;
   /** Interactable props placed within this room. */
   props?: RoomProp[];
-  /** Safe rooms heal more on rest and suppress ambushes (sunlit, warded, brazier-lit). */
-  safeRoom?: boolean;
 }
 
 export interface AuthoredLayout {
@@ -202,8 +200,6 @@ export interface AreaNode {
   props?: RoomProp[];
   /** Runtime state per prop id (examined / actions used / consumed). */
   propStates?: Record<string, PropState>;
-  /** Safe rooms heal more on rest and suppress ambushes. */
-  safeRoom?: boolean;
   ratInfested?: number;
   stench?: number;
   coldZone?: number;

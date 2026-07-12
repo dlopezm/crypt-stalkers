@@ -336,7 +336,6 @@ export const A1_UPPER_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     hint: "air turns a fraction warmer toward the sun-cut entrance.",
     description: "Air warms slightly toward the sunlit entrance.",
     enemies: [],
-    safeRoom: true,
     exit: { toAreaId: "a1_mine_mouth", toRoomGridId: 7 },
   },
   10: {

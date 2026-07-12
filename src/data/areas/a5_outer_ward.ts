@@ -36,7 +36,6 @@ export const A5_OUTER_WARD_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Coldfire runs through the salt-block in thin green lines. Raw mine cut, dressed masonry, and necromantic patchwork sit in one view. The air is still and feels charged.",
     enemies: [],
-    safeRoom: true,
     isStart: true,
     notes:
       "R146. Always. Dark (coldfire flickers). No enemies. Era 1 raw mine + Era 2 salt-block + Era 3 coldfire - all three in one glance. " +

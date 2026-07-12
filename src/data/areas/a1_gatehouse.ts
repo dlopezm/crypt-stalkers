@@ -38,7 +38,6 @@ export const A1_GATEHOUSE_ROOMS: Record<number, AuthoredRoom> = {
       "Open sky through a broken wall ring - flagstones, grit in the wind. Two salt pillars carved with flames and gaping mouths.",
     enemies: [],
     isStart: true,
-    safeRoom: true,
     notes:
       "R7. Era 2 + ruin. LIT (open sky). " + "Foreshadows Grave Robber behavior and patrol danger.",
     props: [

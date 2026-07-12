@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { btnStyle } from "../../styles";
+import { Tooltip } from "../Tooltip";
 import { ENEMY_TYPES } from "../../data/enemies";
 import { getActiveEffects, isHazardousRoom } from "../../data/environment";
 import { getActiveProps } from "../../utils/props";
@@ -96,13 +97,14 @@ export function RoomPanel({
           )}
         </div>
         {canSeeDesc && (
-          <button
-            onClick={() => setShowDesc((v) => !v)}
-            className="text-xs text-crypt-dim/60 shrink-0 mt-0.5"
-            title={showDesc ? "Hide description" : "Show description"}
-          >
-            {showDesc ? "▴" : "▾"}
-          </button>
+          <Tooltip content={showDesc ? "Hide description" : "Show description"}>
+            <button
+              onClick={() => setShowDesc((v) => !v)}
+              className="text-xs text-crypt-dim/60 shrink-0 mt-0.5"
+            >
+              {showDesc ? "▴" : "▾"}
+            </button>
+          </Tooltip>
         )}
       </div>
 

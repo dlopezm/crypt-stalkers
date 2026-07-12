@@ -372,7 +372,6 @@ export const A2_CLOISTER_ROOMS: Record<number, AuthoredRoom> = {
       "Small garden court. Ceiling opens to a rough shaft; grey daylight on dead herb beds. No coldfire. " +
       "Thin draft. Bitter dried-plant smell. One pillar re-carved over older chisel marks.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R36. DIM (ventilation shaft). Era 1+2. Room design ref R36. Dead end off R35 only. " +
       "Former herb garden; weak daylight through shaft. Plants dead to husks; higher ceiling, hush unlike coldfire. Era 1 pillar carved to Era 2 devotional column. " +

@@ -63,7 +63,6 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
     notes:
       "R70. COLDFIRE. Era 2. Room design ref R70. RANGED capability from crossbow pickup. " +
       "Connects: R69, R71 armor storage (dead end).",
-    safeRoom: true,
     props: [
       {
         id: "overlooked_crossbow",
@@ -136,7 +135,6 @@ export const A2_ARMORY_ROOMS: Record<number, AuthoredRoom> = {
       "Damp leather and oil smell. Tap a hanging helm: rings loud and sharp.",
     enemies: [],
     notes: "R71. COLDFIRE. Era 2+3. Room design ref R71. Connects: R70 only.",
-    safeRoom: true,
     props: [
       {
         id: "light_chain_mail",

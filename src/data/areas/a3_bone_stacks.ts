@@ -101,7 +101,6 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Skulls on shelves wall to floor. Rows of hollow eye sockets in the lantern light. Very quiet. Cold, dry dust smell.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R95. Era 3. DARK. Profound silence. Ancestors statistically present - tag in R81 names one of thousands. No loot - atmosphere only. Connects R94 ↔ R97.",
     props: [
@@ -233,7 +232,6 @@ export const A3_BONE_STACKS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Huge femurs set vertical, bound with iron and salt-glass. Bright coldfire ahead - haze at the doorway, cold on the face. Swept stone floor. Wide space before the door.",
     enemies: [],
-    safeRoom: true,
     notes:
       'Staging before R99 proper. COLDFIRE implied from ward nearby. No combat here - return from Area 5 Outer Ward lands grid 8 (pair: a5_outer_ward "To Lich\'s Ward"). ' +
       "Connects stack core to R99 Lich's Ward Door. Beyond R99 → Area 5 R146 uses separate exit room (grid 12).",

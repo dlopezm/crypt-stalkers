@@ -44,7 +44,6 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
       "Sunlight through a broken gap overhead - rough stone, peeling plaster, grit on the floor. Iron cart tracks run straight into shadow.",
     enemies: [],
     isStart: true,
-    safeRoom: true,
     notes:
       "R1. Era 1 + Era 2 plaster. SUNLIT - safe, no combat. " +
       "Era layering visible: raw stone → plaster → neglect. " +
@@ -239,9 +238,8 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Vertical shaft to a slit of sky. Wrought-iron brazier bowl at the foot, packed grey ash - cold even in the sunbeam. Draft on your neck; when it drops, warmth threads off the salt toward the deep tunnels.",
     enemies: [],
-    safeRoom: true,
     notes:
-      "R5. Era 1 + Era 2. SUNLIT - safe room (sunlight blocks most monster entry; rest/plan spot). " +
+      "R5. Era 1 + Era 2. SUNLIT (sunlight blocks most monster entry). " +
       "Vertical shaft; too narrow to climb. When brazier lit: true-light zone here.",
     props: [
       {
@@ -343,7 +341,6 @@ export const A1_MINE_MOUTH_ROOMS: Record<number, AuthoredRoom> = {
       "Cut stone blocks and hard mortar replace raw tunnel; steps rise toward open sky and the order's gatehouse. " +
       "The air smells cleaner here. Whatever the order left behind, it's closer to the surface than the clicking in the deep.",
     enemies: [],
-    safeRoom: true,
     exit: { toAreaId: "a1_gatehouse", toRoomGridId: 2 },
   },
   9: {

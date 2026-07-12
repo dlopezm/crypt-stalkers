@@ -85,7 +85,6 @@ export const A2_CHAPTER_HOUSE_ROOMS: Record<number, AuthoredRoom> = {
     enemies: [],
     notes:
       "R57. COLDFIRE. Room design ref R57. Cultist ×1 not in enemy list. " + "Connects: R56 only.",
-    safeRoom: true,
     props: [
       {
         id: "surface_supply_calendar",
@@ -201,7 +200,6 @@ export const A2_CHAPTER_HOUSE_ROOMS: Record<number, AuthoredRoom> = {
       "Climate-cool and faintly acrid - wax solvent, metal polish, old velvet gone bald on display boards. Cases line the walls under coldfire hoods; brass catches light in disciplined gleam. " +
       "The room is quiet except for the tick of cooling metal - a treasury of signatures that outlived the hands that owned them.",
     enemies: [],
-    safeRoom: true,
     notes: "R59. COLDFIRE. Room design ref R59. Connects: R56 only.",
     props: [
       {

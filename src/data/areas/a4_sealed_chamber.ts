@@ -252,7 +252,6 @@ export const A4_SEALED_CHAMBER_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Small watch room. Narrow slit into the round chamber - you see columns, sigil, heat shimmer; almost no sound through the wall. Salt crust on the walls. Warmth bleeds through the rock from the seal side.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R145. DARK. Era 2 + lich annotations. Slit view toward R143. " +
       "Player synthesis (esp. after seal Study + Crystal Galleries): barrier thins when mine eaten, eases when taking stops; lich maintenance buys time while undeath frays seal; R143 cracks rhyme with log. " +

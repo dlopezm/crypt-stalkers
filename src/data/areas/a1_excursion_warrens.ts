@@ -128,10 +128,9 @@ export const A1_EXCURSION_WARRENS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Long tunnel ends at a torn hole in the hillside - wind, grey daylight, winter fields beyond the mud. Outside air is cold and clean after the tunnel damp.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R23. Era 3. LIT (daylight). Dead end - long tunnel. " +
-      "SAFE ROOM (sun). Exit to wilderness - NOT toward town.",
+      "Exit to wilderness - NOT toward town.",
     props: [
       {
         id: "skeletal_tracks",

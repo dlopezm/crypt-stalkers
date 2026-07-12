@@ -1080,3 +1080,32 @@ button {
     0 4px 30px rgba(0, 0, 0, 0.8),
     inset 0 1px 0 rgba(139, 0, 0, 0.15);
 }
+
+/* ── Tooltips (Radix) ── */
+.tooltip-content {
+  background: #1a120c;
+  border: 1px solid var(--bone-faint);
+  color: var(--bone);
+  font-family: "Special Elite", monospace;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  padding: 5px 9px;
+  max-width: 280px;
+  white-space: pre-line;
+  z-index: 2000;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7);
+  animation: tooltipIn 0.12s ease-out;
+}
+.tooltip-arrow {
+  fill: var(--bone-faint);
+}
+@keyframes tooltipIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

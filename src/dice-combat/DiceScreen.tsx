@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { IconBind, IconFocus, IconHymnHum } from "../icons";
+import { Tooltip } from "../components/Tooltip";
 import {
   allAssigned,
   assignFace,
@@ -639,19 +640,22 @@ export function DiceScreen({
               .map((k) => {
                 const Icon = STATUS_ICONS[k];
                 return (
-                  <span
+                  <Tooltip
                     key={k}
-                    title={`${k.charAt(0).toUpperCase() + k.slice(1)}: ${STATUS_DESC[k]}`}
-                    style={{
-                      color: STATUS_COLORS[k],
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.2rem",
-                    }}
+                    content={`${k.charAt(0).toUpperCase() + k.slice(1)}: ${STATUS_DESC[k]}`}
                   >
-                    <Icon style={{ width: "1.17em", height: "1.17em" }} />
-                    {(p.statuses[k] ?? 0) > 1 ? `×${p.statuses[k]}` : ""}
-                  </span>
+                    <span
+                      style={{
+                        color: STATUS_COLORS[k],
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.2rem",
+                      }}
+                    >
+                      <Icon style={{ width: "1.17em", height: "1.17em" }} />
+                      {(p.statuses[k] ?? 0) > 1 ? `×${p.statuses[k]}` : ""}
+                    </span>
+                  </Tooltip>
                 );
               })}
             {p.hymnHumActive && (
@@ -852,22 +856,27 @@ function AlcoveCard({
               >
                 {Object.entries(enemy.statuses).map(([k, v]) =>
                   v ? (
-                    <span key={k} title={`${k} ${v > 1 ? v : ""}`}>
-                      {(() => {
-                        const Icon = STATUS_ICONS[k as StatusKey];
-                        return (
-                          <Icon
-                            style={{
-                              width: "1.43em",
-                              height: "1.43em",
-                              display: "inline-block",
-                              color: STATUS_COLORS[k as StatusKey],
-                            }}
-                          />
-                        );
-                      })()}
-                      {v > 1 ? v : ""}
-                    </span>
+                    <Tooltip
+                      key={k}
+                      content={`${k.charAt(0).toUpperCase() + k.slice(1)}${v > 1 ? ` ×${v}` : ""}: ${STATUS_DESC[k as StatusKey]}`}
+                    >
+                      <span>
+                        {(() => {
+                          const Icon = STATUS_ICONS[k as StatusKey];
+                          return (
+                            <Icon
+                              style={{
+                                width: "1.43em",
+                                height: "1.43em",
+                                display: "inline-block",
+                                color: STATUS_COLORS[k as StatusKey],
+                              }}
+                            />
+                          );
+                        })()}
+                        {v > 1 ? v : ""}
+                      </span>
+                    </Tooltip>
                   ) : null,
                 )}
               </div>
@@ -906,44 +915,53 @@ function AlcoveCard({
                         }
                       />
                     ) : (
-                      <div
-                        className="mini-die"
-                        title={face.label}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (canDefend) onAttackClick(i);
-                        }}
-                        style={{
-                          cursor: canDefend ? "pointer" : "default",
-                          opacity: cancelled ? 0.4 : 1,
-                          outline: canDefend
-                            ? "1.5px solid var(--torch)"
-                            : mitigated
-                              ? "1px solid var(--crypt)"
-                              : undefined,
-                          position: "relative",
-                        }}
-                      >
-                        <div className="band" style={{ background: FACE_COLOR_CSS[face.color] }} />
-                        <div className="sym">
-                          <FaceGlyphs face={face} size="18px" color={FACE_COLOR_CSS[face.color]} />
-                        </div>
-                        {rf.focused && (
+                      <Tooltip content={face.label}>
+                        <div
+                          className="mini-die"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canDefend) onAttackClick(i);
+                          }}
+                          style={{
+                            cursor: canDefend ? "pointer" : "default",
+                            opacity: cancelled ? 0.4 : 1,
+                            outline: canDefend
+                              ? "1.5px solid var(--torch)"
+                              : mitigated
+                                ? "1px solid var(--crypt)"
+                                : undefined,
+                            position: "relative",
+                          }}
+                        >
                           <div
-                            title="Selected by Focus"
-                            style={{
-                              position: "absolute",
-                              top: 2,
-                              left: 2,
-                              width: 8,
-                              height: 8,
-                              color: "#000",
-                            }}
-                          >
-                            <IconFocus style={{ width: "100%", height: "100%" }} />
+                            className="band"
+                            style={{ background: FACE_COLOR_CSS[face.color] }}
+                          />
+                          <div className="sym">
+                            <FaceGlyphs
+                              face={face}
+                              size="18px"
+                              color={FACE_COLOR_CSS[face.color]}
+                            />
                           </div>
-                        )}
-                      </div>
+                          {rf.focused && (
+                            <Tooltip content="Selected by Focus">
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: 2,
+                                  left: 2,
+                                  width: 8,
+                                  height: 8,
+                                  color: "#000",
+                                }}
+                              >
+                                <IconFocus style={{ width: "100%", height: "100%" }} />
+                              </div>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </Tooltip>
                     )}
                   </div>
                 );
@@ -995,66 +1013,72 @@ function PoolDieCard({
   }
 
   return (
-    <div
-      className={`pool-die ${selected ? "selected" : ""} ${assigned ? "assigned" : ""} ${busted ? "busted" : ""} ${pf.stunned ? "stunned" : ""}`}
-      onClick={onClick}
-      title={pf.stunned ? `${face.label} — stunned, no effect` : `${face.label}\n${faceDesc(face)}`}
+    <Tooltip
+      content={
+        pf.stunned ? `${face.label} — stunned, no effect` : `${face.label}\n${faceDesc(face)}`
+      }
     >
-      <div className="band" style={{ background: FACE_COLOR_CSS[pf.color] }} />
-      <div className="sym">
-        <FaceGlyphs
-          face={injectPoisonSymbols(face, poisonStacks)}
-          size="26px"
-          color={FACE_COLOR_CSS[pf.color]}
-        />
+      <div
+        className={`pool-die ${selected ? "selected" : ""} ${assigned ? "assigned" : ""} ${busted ? "busted" : ""} ${pf.stunned ? "stunned" : ""}`}
+        onClick={onClick}
+      >
+        <div className="band" style={{ background: FACE_COLOR_CSS[pf.color] }} />
+        <div className="sym">
+          <FaceGlyphs
+            face={injectPoisonSymbols(face, poisonStacks)}
+            size="26px"
+            color={FACE_COLOR_CSS[pf.color]}
+          />
+        </div>
+        {assignment && !pf.stunned && (
+          <div className="target-tag">→ {target ? target.name : "self"}</div>
+        )}
+        {pf.stunned && (
+          <div
+            style={{
+              fontSize: 7,
+              color: STATUS_COLORS.stun,
+              textAlign: "center",
+              position: "absolute",
+              top: 0,
+              right: 1,
+            }}
+          >
+            STUN
+          </div>
+        )}
+        {pf.forced && !pf.stunned && (
+          <div
+            style={{
+              fontSize: 7,
+              color: "var(--blood)",
+              textAlign: "center",
+              position: "absolute",
+              top: 0,
+              right: 1,
+            }}
+          >
+            FORCED
+          </div>
+        )}
+        {pf.focused && (
+          <Tooltip content="Selected by Focus">
+            <div
+              style={{
+                position: "absolute",
+                top: 2,
+                left: 2,
+                width: 10,
+                height: 10,
+                color: STATUS_COLORS.focus,
+              }}
+            >
+              <IconFocus style={{ width: "100%", height: "100%" }} />
+            </div>
+          </Tooltip>
+        )}
       </div>
-      {assignment && !pf.stunned && (
-        <div className="target-tag">→ {target ? target.name : "self"}</div>
-      )}
-      {pf.stunned && (
-        <div
-          style={{
-            fontSize: 7,
-            color: STATUS_COLORS.stun,
-            textAlign: "center",
-            position: "absolute",
-            top: 0,
-            right: 1,
-          }}
-        >
-          STUN
-        </div>
-      )}
-      {pf.forced && !pf.stunned && (
-        <div
-          style={{
-            fontSize: 7,
-            color: "var(--blood)",
-            textAlign: "center",
-            position: "absolute",
-            top: 0,
-            right: 1,
-          }}
-        >
-          FORCED
-        </div>
-      )}
-      {pf.focused && (
-        <div
-          title="Selected by Focus"
-          style={{
-            position: "absolute",
-            top: 2,
-            left: 2,
-            width: 10,
-            height: 10,
-            color: STATUS_COLORS.focus,
-          }}
-        >
-          <IconFocus style={{ width: "100%", height: "100%" }} />
-        </div>
-      )}
-    </div>
+    </Tooltip>
   );
 }
 
@@ -1146,23 +1170,24 @@ function FocusPickerDialog({
                   ((e.currentTarget as HTMLDivElement).style.borderColor = "#2a1c10")
                 }
               >
-                <div
-                  style={{
-                    width: "24px",
-                    height: "24px",
-                    background: FACE_COLOR_CSS[colorId],
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#000",
-                    fontSize: "0.85rem",
-                    fontWeight: "bold",
-                    flexShrink: 0,
-                  }}
-                  title={color.label}
-                >
-                  {color.badge}
-                </div>
+                <Tooltip content={color.label}>
+                  <div
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      background: FACE_COLOR_CSS[colorId],
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#000",
+                      fontSize: "0.85rem",
+                      fontWeight: "bold",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {color.badge}
+                  </div>
+                </Tooltip>
                 <div style={{ flex: 1 }}>
                   <div
                     style={{
@@ -1283,23 +1308,24 @@ function DieLearnDialog({
                   border: corruption ? "1px solid var(--torch)" : "1px solid #2a1c10",
                 }}
               >
-                <div
-                  style={{
-                    width: "24px",
-                    height: "24px",
-                    background: FACE_COLOR_CSS[colorId],
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#000",
-                    fontSize: "0.85rem",
-                    fontWeight: "bold",
-                    flexShrink: 0,
-                  }}
-                  title={color.label}
-                >
-                  {color.badge}
-                </div>
+                <Tooltip content={color.label}>
+                  <div
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      background: FACE_COLOR_CSS[colorId],
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#000",
+                      fontSize: "0.85rem",
+                      fontWeight: "bold",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {color.badge}
+                  </div>
+                </Tooltip>
                 <div style={{ flex: 1 }}>
                   <div
                     style={{
@@ -1463,23 +1489,24 @@ function FaceRows({
                   : "1px solid #2a1c10",
             }}
           >
-            <div
-              style={{
-                width: "24px",
-                height: "24px",
-                background: FACE_COLOR_CSS[colorId],
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#000",
-                fontSize: "0.85rem",
-                fontWeight: "bold",
-                flexShrink: 0,
-              }}
-              title={color.label}
-            >
-              {color.badge}
-            </div>
+            <Tooltip content={color.label}>
+              <div
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  background: FACE_COLOR_CSS[colorId],
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#000",
+                  fontSize: "0.85rem",
+                  fontWeight: "bold",
+                  flexShrink: 0,
+                }}
+              >
+                {color.badge}
+              </div>
+            </Tooltip>
             <div style={{ flex: 1 }}>
               <div
                 style={{ fontSize: "0.9rem", display: "flex", gap: "0.3rem", alignItems: "center" }}
@@ -1551,30 +1578,29 @@ function EnemyDieDialog({
       )}
       {dice.map((die) => (
         <div key={die.id} style={{ marginBottom: "1rem" }}>
-          <div
-            style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}
-            title={`${die.name} — rolls one face per turn`}
-          >
-            {(() => {
-              const DI = die.icon;
-              return (
-                <>
-                  <DI
-                    style={{
-                      width: "1em",
-                      height: "1em",
-                      display: "inline-block",
-                      verticalAlign: "middle",
-                    }}
-                  />{" "}
-                  {die.name}
-                </>
-              );
-            })()}
-            <span style={{ fontSize: "0.7rem", opacity: 0.6, marginLeft: "0.5rem" }}>
-              ({die.defaultTarget === "self" ? "self-buff die" : "attacks player"})
-            </span>
-          </div>
+          <Tooltip content={`${die.name} — rolls one face per turn`}>
+            <div style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>
+              {(() => {
+                const DI = die.icon;
+                return (
+                  <>
+                    <DI
+                      style={{
+                        width: "1em",
+                        height: "1em",
+                        display: "inline-block",
+                        verticalAlign: "middle",
+                      }}
+                    />{" "}
+                    {die.name}
+                  </>
+                );
+              })()}
+              <span style={{ fontSize: "0.7rem", opacity: 0.6, marginLeft: "0.5rem" }}>
+                ({die.defaultTarget === "self" ? "self-buff die" : "attacks player"})
+              </span>
+            </div>
+          </Tooltip>
           <FaceRows faceIds={die.faces} />
         </div>
       ))}

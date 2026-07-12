@@ -131,7 +131,6 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Smaller circle. Sigils only lit in thin lines - enough to read by. Tools, crates, chair shoved aside. Old reagents, cold stone smell.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R88. Era 3. COLDFIRE (dim). Inactive circle; dark sigils; prior maintainer lost. Dead end. Study aids CONSECRATION (know your counter).",
     props: [
@@ -333,7 +332,6 @@ export const A3_REANIMATION_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Coldfire lamp - sick green on everything. Shelves: folios, jars, pinned notes. Smell of ink, alcohol, bone dust. Far wall covered by a big map - doors and tunnels inked, crossed out, redrawn.",
     enemies: [],
-    safeRoom: true,
     notes: "R92. Era 3. COLDFIRE. Senior research space; occupant often at R87. Dead end.",
     props: [
       {

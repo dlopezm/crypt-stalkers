@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { btnStyle } from "../../styles";
+import { Tooltip } from "../Tooltip";
 import { AREAS } from "../../data/rooms";
 import { ENEMY_TYPES } from "../../data/enemies";
 import { extractRoomsFromGrid } from "../../utils/area";
@@ -464,22 +465,22 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
             <div className="text-xs text-crypt-dim uppercase tracking-wider mb-1">Palette</div>
             <div className="flex flex-wrap gap-1">
               {[1, 0, ...Array.from({ length: MAX_ROOM_ID - 1 }, (_, i) => i + 2)].map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setPaint(v)}
-                  title={cellLabel(v)}
-                  style={{
-                    background: cellFill(v),
-                    border: paint === v ? "2px solid #ffe080" : "1px solid #3a2f25",
-                    width: 36,
-                    height: 36,
-                    color: v === 1 ? "#aaa" : "#000",
-                    fontSize: 11,
-                    cursor: "pointer",
-                  }}
-                >
-                  {v === 1 ? "█" : v === 0 ? "·" : v}
-                </button>
+                <Tooltip key={v} content={cellLabel(v)}>
+                  <button
+                    onClick={() => setPaint(v)}
+                    style={{
+                      background: cellFill(v),
+                      border: paint === v ? "2px solid #ffe080" : "1px solid #3a2f25",
+                      width: 36,
+                      height: 36,
+                      color: v === 1 ? "#aaa" : "#000",
+                      fontSize: 11,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {v === 1 ? "█" : v === 0 ? "·" : v}
+                  </button>
+                </Tooltip>
               ))}
             </div>
             <div className="text-xs text-crypt-muted mt-1">
@@ -620,22 +621,22 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
             </div>
             <div className="flex flex-wrap gap-1">
               {roomIds.map((id) => (
-                <button
-                  key={id}
-                  onClick={() => setSelectedRoomId(id)}
-                  style={{
-                    background: selectedRoomId === id ? "#ffe080" : ROOM_COLORS[id] || "#888",
-                    border: "1px solid #3a2f25",
-                    width: 32,
-                    height: 32,
-                    cursor: "pointer",
-                    color: "#000",
-                    fontWeight: "bold",
-                  }}
-                  title={rooms[id]?.label || `Room ${id}`}
-                >
-                  {id}
-                </button>
+                <Tooltip key={id} content={rooms[id]?.label || `Room ${id}`}>
+                  <button
+                    onClick={() => setSelectedRoomId(id)}
+                    style={{
+                      background: selectedRoomId === id ? "#ffe080" : ROOM_COLORS[id] || "#888",
+                      border: "1px solid #3a2f25",
+                      width: 32,
+                      height: 32,
+                      cursor: "pointer",
+                      color: "#000",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {id}
+                  </button>
+                </Tooltip>
               ))}
             </div>
           </div>
@@ -722,14 +723,14 @@ export function AuthoredAreaEditor({ onBack }: { onBack: () => void }) {
                   </div>
                   <div className="flex flex-wrap gap-1 mb-1">
                     {selectedRoom.enemies.map((e, i) => (
-                      <button
-                        key={i}
-                        onClick={() => removeEnemyAt(selectedRoomId, i)}
-                        className="text-xs bg-[#2a1f15] border border-[#3a2f25] text-crypt-text px-1 py-0.5"
-                        title="Click to remove"
-                      >
-                        {e} ✕
-                      </button>
+                      <Tooltip key={i} content="Click to remove">
+                        <button
+                          onClick={() => removeEnemyAt(selectedRoomId, i)}
+                          className="text-xs bg-[#2a1f15] border border-[#3a2f25] text-crypt-text px-1 py-0.5"
+                        >
+                          {e} ✕
+                        </button>
+                      </Tooltip>
                     ))}
                   </div>
                   <select

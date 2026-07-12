@@ -150,7 +150,6 @@ export const A4_SHADOW_DEPTHS_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Work alcove: polish wheels, brass jigs, mounts for lantern shells. Tools on pegs; bench worn at the front edge where people leaned. Wall salt warms the wood. Smells like metal dust and oil.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R138. DARK. Era 1. Miner workshop alcove: bench, polish, mounts. " +
       "CRAFT CRYSTAL LANTERN - requires: self-luminous crystal (R137), shuttered lantern, knowledge (R137 note OR Area 2 R48 mining/reflector docs OR reflector work R119–R120). " +

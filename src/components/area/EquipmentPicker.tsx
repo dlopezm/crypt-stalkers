@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { IconProps } from "../../icons";
+import { Tooltip } from "../Tooltip";
 import { btnStyle, FONT } from "../../styles";
 import {
   ABILITY_DICE,
@@ -270,29 +271,29 @@ function ItemCard({
           const colorId: FaceColor = face.color;
           const color = COLORS[colorId];
           return (
-            <div
-              key={idx}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.3rem",
-                fontSize: "0.65rem",
-                opacity: 0.9,
-              }}
-              title={`${face.label} (${color.label})`}
-            >
-              <span
+            <Tooltip key={idx} content={`${face.label} (${color.label})`}>
+              <div
                 style={{
-                  width: "8px",
-                  height: "8px",
-                  background: color.hex,
-                  borderRadius: "2px",
-                  display: "inline-block",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.3rem",
+                  fontSize: "0.65rem",
+                  opacity: 0.9,
                 }}
-              />
-              <span style={{ width: "10px", textAlign: "center" }}>{color.badge}</span>
-              <span style={{ flex: 1 }}>{face.label}</span>
-            </div>
+              >
+                <span
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    background: color.hex,
+                    borderRadius: "2px",
+                    display: "inline-block",
+                  }}
+                />
+                <span style={{ width: "10px", textAlign: "center" }}>{color.badge}</span>
+                <span style={{ flex: 1 }}>{face.label}</span>
+              </div>
+            </Tooltip>
           );
         })}
       </div>

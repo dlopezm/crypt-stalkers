@@ -125,7 +125,7 @@ Former herb garden; shaft admits weak daylight. Plants dead to husks; higher cei
 
 - **Connects to:** R35 only
 - **Contains:** Dried medicinal herbs (alchemy); restful tone
-- **Special:** Natural dim light — relatively safe pause point; enhanced rest healing, reduced ambush risk.
+- **Special:** Natural dim light — relatively safe pause point.
 
 ---
 

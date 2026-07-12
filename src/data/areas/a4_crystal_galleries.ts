@@ -60,7 +60,6 @@ export const A4_CRYSTAL_GALLERIES_ROOMS: Record<number, AuthoredRoom> = {
     description:
       "Cavern lined with large warm salt crystals. They glow faintly on their own - enough to keep color if you shade your flame. Touch a face and you feel a low vibration in your jaw. The roof is black; you only catch glints off distant facets.",
     enemies: [],
-    safeRoom: true,
     notes:
       "R118. DARK. Era 1. Natural cavern; massive geode split by mining - deep salt in miniature. " +
       "Crystals warm to touch, faintly self-luminous; struck crystals resonate (low hum). " +
